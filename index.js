@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const program = require("commander");
+const moment = require("moment");
 const chalk = require("chalk");
 const pinyin = require("js-pinyin");
 
@@ -43,12 +44,28 @@ program
     console.log(cmd.add)
   })
 
+// 必须传入
 program
   .command('py <word>')
   .description("拼音转换")
   .option('-a, --add <fileName>', 'add a file')
   .action(function (word) {
     console.log(word, pinyin.getFullChars(word))
+  })
+
+// 转换时间
+program
+  .command('time [word]')
+  .description("时间转换！")
+  .option('-f, --format [format]', '时间格式')
+  .option('-u, --unit', '转换为时间戳')
+  .action(function (word = moment(), option) {
+    if (option.unit) {
+      console.log("获取时间戳：", moment(word).unix())
+    } else {
+      let format = option.format || "YYYY-MM-DD";
+      console.log(moment(word).format(format), option)
+    }
   })
 
 

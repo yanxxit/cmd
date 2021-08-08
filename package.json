@@ -15,6 +15,7 @@
     "chalk": "^4.1.2",
     "commander": "^8.1.0",
     "js-pinyin": "^0.1.9",
+    "moment": "^2.29.1",
     "terminal-kit": "^2.1.6"
   }
 }
