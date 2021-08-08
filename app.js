@@ -1,0 +1,1 @@
+require("./static")({ port: 3001 })

@@ -2,6 +2,8 @@
 const program = require("commander");
 const moment = require("moment");
 const chalk = require("chalk");
+const path = require("path");
+const os = require("os");
 const pinyin = require("js-pinyin");
 
 
@@ -11,7 +13,7 @@ program.version("1.0.0", "-v --version"); // 版本 node ./index.js -v
 // program.version(require('./package')).version;
 
 // 配置选项
-program.option("-p --port <v>", "设置端口号"); // 参数介绍
+// program.option("-p --port <v>", "设置端口号"); // 参数介绍
 program.option("-c --config <v>", "配置文件"); // 参数介绍
 
 
@@ -71,16 +73,16 @@ program
 // 本地静态文件
 program
   .command('static [dir]')
-  .description("时间转换！")
-  .option('-f, --format [format]', '时间格式')
-  .option('-u, --unit', '转换为时间戳')
-  .action(function (word = moment(), option) {
-    if (option.unit) {
-      console.log("获取时间戳：", moment(word).unix())
-    } else {
-      let format = option.format || "YYYY-MM-DD";
-      console.log(moment(word).format(format), option)
+  .description("本地静态文件")
+  .option('-p, --port [port=3000]', '端口号')
+  .action(function (dir, option) {
+    if (!dir) dir = process.cwd();
+
+    if (!path.isAbsolute(dir)) {
+      dir = path.join(process.cwd(), dir)
     }
+
+    require("./static")({ port: option.port, dir });
   })
 
 
