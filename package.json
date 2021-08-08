@@ -14,10 +14,14 @@
   "license": "ISC",
   "dependencies": {
     "chalk": "^4.1.2",
+    "clear": "^0.1.0",
     "commander": "^8.1.0",
+    "download-git-repo": "^3.0.2",
     "express": "^4.17.1",
+    "figlet": "^1.5.0",
     "js-pinyin": "^0.1.9",
     "moment": "^2.29.1",
+    "ora": "^5.4.1",
     "terminal-kit": "^2.1.6"
   }
 }

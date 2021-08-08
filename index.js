@@ -23,8 +23,7 @@ program.option("-c --config <v>", "配置文件"); // 参数介绍
 program
   .command("init <name>")
   .description("init ank project")
-// .action(require('../lib/init'))
-// .action(require('../lib/init'))
+  .action(require('./lib/init'))
 
 // 创建指令 <>表示变量参数
 program
