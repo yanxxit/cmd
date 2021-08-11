@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const favicon = require('serve-favicon');
 const http = require('http');
-const morgan = require('morgan')
+const morgan = require('morgan');
 const proxy = require('http-proxy-middleware');
 
 module.exports = function (options = { port: 3000, dir: __dirname }) {
@@ -14,31 +14,28 @@ module.exports = function (options = { port: 3000, dir: __dirname }) {
   app.use(morgan('tiny'))
   app.use(express.static(options.dir));
   app.use(favicon(__dirname + '/favicon.ico'));
+
   // xtools static .\public\ -P https://condejs.org
+  // xtools static .\public\ -P iapi>>http://172.16.1.102:7001
   if (options.proxy) {
-    app.use('/', proxy.createProxyMiddleware({ target: options.proxy, changeOrigin: true }));
-  }
-  // xtools static .\public\ -PJ iapi::http://172.16.1.102:7001
-  if (options.proxy_json) {
-    if (options.proxy_json.indexOf("::") > -1) {
-      let [api, url] = options.proxy_json.split("::");
+    if (options.proxy.indexOf(">>") > -1) {
+      let [api, url] = options.proxy.split(">>");
       let pathRewrite = {};
       pathRewrite[`^/${api}`] = "";
       app.use(`/${api}`, proxy.createProxyMiddleware({ target: url, changeOrigin: true, pathRewrite: pathRewrite }));
     } else {
-      let { api, url } = JSON.parse(options.proxy_json);//{api:"",url:""}
-      let pathRewrite = {};
-      pathRewrite[`^/${api}`] = "";
-      app.use(`/${api}`, proxy.createProxyMiddleware({ target: url, changeOrigin: true, pathRewrite: pathRewrite }));
+      app.use('/', proxy.createProxyMiddleware({ target: options.proxy, changeOrigin: true }));
     }
   }
 
-  if (options.proxy_string) {
-
-    let proxy_json = JSON.parse(options.proxy_json);//{api:"",proxy:""}
-    let pathRewrite = {};
-    pathRewrite[`^/${proxy_json.api}`] = "";
-    app.use(`/${proxy_json.api}`, proxy({ target: proxy_json.proxy, changeOrigin: true, pathRewrite: pathRewrite }));
+  // xtools static -c .\test\proxy.json
+  if (options.config) {
+    let proxys = require(options.config);
+    for (const m of proxys) {
+      let pathRewrite = {};
+      pathRewrite[`^/${m.path}`] = "";
+      app.use(`/${m.path}`, proxy.createProxyMiddleware({ target: m.redirect, changeOrigin: true, pathRewrite: pathRewrite }));
+    }
   }
 
 
@@ -51,7 +48,7 @@ module.exports = function (options = { port: 3000, dir: __dirname }) {
    * Listen on provided port, on all network interfaces.
    */
   server.listen(options.port, function (e) {
-    console.log("dir:", options.dir);
+    console.log("static:", options.dir);
     console.log(`http://127.0.0.1:${options.port}`);
   });
   server.on('error', onError);

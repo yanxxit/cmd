@@ -1,0 +1,10 @@
+[
+  {
+    "path": "iapi",
+    "redirect": "http://172.16.1.102:7001"
+  },
+  {
+    "path": "core",
+    "redirect": "http://172.16.1.102:6001"
+  }
+]
