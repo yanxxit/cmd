@@ -74,14 +74,17 @@ program
   .command('static [dir]')
   .description("本地静态文件")
   .option('-p, --port [port=3000]', '端口号')
+  .option('-P, --proxy [proxy]', '代理')
+  .option('-PJ, --proxy_json [proxy_json]', '代理配置')
   .action(function (dir, option) {
     if (!dir) dir = process.cwd();
 
     if (!path.isAbsolute(dir)) {
       dir = path.join(process.cwd(), dir)
     }
+    console.log(dir, option)
 
-    require("./static")({ port: option.port, dir });
+    require("./static")({ port: option.port || 3000, dir, proxy: option.proxy, proxy_json: option.proxy_json });
   })
 
 
