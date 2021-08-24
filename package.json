@@ -1,14 +1,14 @@
 {
-  "name": "xtools",
+  "name": "x-tool",
   "version": "1.0.0",
   "description": "cmd tools ",
   "main": "index.js",
   "bin": {
-    "xtools": "index.js"
+    "x-tool": "index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "local": "npm uninstall -g xtools && npm link"
+    "local": "npm uninstall -g x-tool && npm link"
   },
   "author": "",
   "license": "ISC",

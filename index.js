@@ -36,7 +36,7 @@ program
 
 
 program
-  .command('open <path>')
+  .command('x-tool <path>')
   .option('-a, --add <fileName>', 'add a file')
   .option('-u, --update <fileName>', 'update a file')
   .option('-r, --remove <fileName>', 'remove a file')
