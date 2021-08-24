@@ -7,7 +7,7 @@ const os = require("os");
 const pinyin = require("js-pinyin");
 
 
-program.name("tool"); // 名字介绍
+program.name("exec"); // 名字介绍
 program.usage("<path file>"); // 使用方式介绍
 program.version("1.0.0", "-v --version"); // 版本 node ./index.js -v
 // program.version(require('./package')).version;

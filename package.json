@@ -10,7 +10,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "local": "npm uninstall -g tool && npm link"
+    "local": "npm uninstall -g it-cmd && npm link"
   },
   "author": "",
   "license": "ISC",
