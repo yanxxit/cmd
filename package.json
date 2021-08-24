@@ -1,6 +1,6 @@
 {
   "name": "it-cmd",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "cmd tools ",
   "main": "index.js",
   "bin": {
