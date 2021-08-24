@@ -5,7 +5,7 @@
   "main": "index.js",
   "bin": {
     "tool": "index.js",
-    "x": "index.js",
+    "x-tool": "index.js",
     "exec": "index.js"
   },
   "scripts": {
