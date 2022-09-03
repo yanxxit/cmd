@@ -59,13 +59,18 @@ program
   .command('time [word]')
   .description("时间转换！")
   .option('-f, --format [format]', '时间格式')
-  .option('-u, --unit', '转换为时间戳')
-  .action(function (word = moment(), option) {
-    if (option.unit) {
+  .option('-u, --unix', '转换为时间戳')
+  .action(function (word, option) {
+    if (!word) {
+      console.log("获取时间戳：", moment().format("YYYY-MM-DD HH:mm:ss"))
+    } else if (option.unix) {
       console.log("获取时间戳：", moment(word).unix())
-    } else {
+    } else if (option.format) {
       let format = option.format || "YYYY-MM-DD";
       console.log(moment(word).format(format), option)
+    } else if (word && [10, 13].includes(word.length)) {
+      if (word.length === 10) console.log("显示时间：", moment(word * 1000).format("YYYY-MM-DD HH:mm:ss"))
+      if (word.length === 13) console.log("显示时间：", moment(word).format("YYYY-MM-DD HH:mm:ss"))
     }
   })
 
