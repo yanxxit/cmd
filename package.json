@@ -1,6 +1,6 @@
 {
   "name": "it-cmd",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "cmd tools ",
   "main": "index.js",
   "bin": {
@@ -12,7 +12,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "local": "npm uninstall -g it-cmd && npm link"
   },
-  "author": "",
+  "author": "yanxxit",
+  "homepage": "https://www.yxxit.com/view/",
+  "repository": "shawflying/cmd",
   "license": "ISC",
   "dependencies": {
     "chalk": "^4.1.2",
