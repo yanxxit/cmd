@@ -5,7 +5,15 @@ const chalk = require("chalk");
 const path = require("path");
 const os = require("os");
 const pinyin = require("js-pinyin");
+const crypto = require("crypto");
+const fs = require('fs');
+const calendar = require('./lib/calendar');
 
+
+function createHash(text, hashtype) {
+  const hash = crypto.createHash(hashtype).update(text).digest("hex");
+  console.log(hashtype, hash, hash.length);
+}
 
 program.name("exec"); // 名字介绍
 program.usage("<path file>"); // 使用方式介绍
@@ -53,6 +61,66 @@ program
   .action(function (word) {
     console.log(word, pinyin.getFullChars(word))
   })
+
+program
+  .command('md5 <word>')
+  .description("MD5")
+  .option('-s, --string', 'string')
+  .action(function (word, options) {
+    if (options.string) {
+      createHash(word, "md5");
+      return
+    }
+
+    let stat = "";
+    if (path.isAbsolute(word)) {
+      stat = fs.existsSync(word)
+    } else {
+      stat = fs.existsSync(path.join(__dirname, word))
+    }
+
+    if (stat) {
+      //从文件创建一个可读流
+      var stream = fs.createReadStream(word);
+      var fsHash = crypto.createHash('md5');
+
+      stream.on('data', function (d) {
+        fsHash.update(d);
+      });
+
+      stream.on('end', function () {
+        var md5 = fsHash.digest('hex');
+        console.log("文件的MD5是：%s", md5);
+      });
+    } else {
+      createHash(word, "md5");
+    }
+  })
+
+program
+  .command('sha256 <word>')
+  .description("sha256")
+  .option('-f, --file <fileName>', 'a file')
+  .action(function (word) {
+    createHash(word, "sha256");
+  })
+
+program
+  .command('sha512 <word>')
+  .description("sha512")
+  .option('-f, --file <fileName>', 'a file')
+  .action(function (word) {
+    createHash(word, "sha512");
+  })
+
+program
+  .command('cal')
+  .description("cal")
+  // .option('-f, --file <fileName>', 'a file')
+  .action(function () {
+    calendar.showCalendar()
+  })
+
 
 // 转换时间
 program
