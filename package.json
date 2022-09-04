@@ -1,12 +1,12 @@
 {
   "name": "it-cmd",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "cmd tools ",
   "main": "index.js",
   "bin": {
     "tool": "index.js",
     "x-tool": "index.js",
-    "exec": "index.js"
+    "x": "index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -35,10 +35,10 @@
     "no-case": "^2.3.2",
     "ora": "^5.4.1",
     "play-sound": "^1.1.5",
-    "request": "^2.88.2",
     "serve-favicon": "^2.5.0",
     "shelljs": "^0.8.4",
     "terminal-kit": "^2.1.6",
+    "undici": "^5.10.0",
     "urlencode": "^1.1.0"
   }
 }

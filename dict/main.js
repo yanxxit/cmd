@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const request = require('request')
+let { fetch } = require("undici")
 const chalk = require('chalk')
 const Spinner = require('cli-spinner').Spinner
 const isChinese = require('is-chinese')
@@ -21,27 +21,16 @@ const fanyi = async function (word) {
 
   word = isCN ? word : noCase(word)
 
-  const options = {
-    'url': config.getURL(word) + urlencode(word),
-    'proxy': config.proxy || null
+  // #8c8c8c
+  const ColorOutput = chalk.keyword(config.color)
+  const result = await fetch(config.getURL(word) + urlencode(word), { method: "GET" })
+  const body = await result.text()
+  if (config.spinner) {
+    spinner.stop(true)
   }
 
-  console.log(options)
-  // #8c8c8c
-
-  const ColorOutput = chalk.keyword(config.color)
-  request(options, (error, response, body) => {
-    if (error) {
-      console.error(error)
-    }
-
-    if (config.spinner) {
-      spinner.stop(true)
-    }
-
-    let out = ColorOutput(Parser.parse(isCN, body, word))
-    // console.log(out)
-  })
+  let out = ColorOutput(Parser.parse(isCN, body, word))
+  // console.log(out)
 
 }
 
