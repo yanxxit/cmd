@@ -116,9 +116,19 @@ program
 program
   .command('cal')
   .description("cal")
-  // .option('-f, --file <fileName>', 'a file')
-  .action(function () {
-    calendar.showCalendar()
+  .option('-y, --year', '年度日历')
+  .option('-m, --month <month>', '指定月份')
+  .option('-t, --three', '最近三个月的日历')
+  .action(function (options) {
+    if (options.year) {
+      calendar.getCurrentYearCalendars()
+    } else if (options.three) {
+      calendar.getCurrentThreeCalendars()
+    } else if (options.month) {
+      calendar.getCalendarByMonth(options.month)
+    } else {
+      calendar.getCalendarByMonth()
+    }
   })
 
 
