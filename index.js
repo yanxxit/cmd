@@ -5,6 +5,7 @@ const chalk = require("chalk");
 const path = require("path");
 const os = require("os");
 const pinyin = require("js-pinyin");
+const jsonlib = require("str-to-json");
 const crypto = require("crypto");
 const fs = require('fs');
 const calendar = require('./lib/calendar');
@@ -137,37 +138,11 @@ program
   .description("json 数据转换")
   // .option('-f, --file <fileName>', 'a file')
   .action(function (word) {
-
-    try {
-      let doc = JSON.parse(word);
-      console.log(JSON.stringify(doc, null, 2))
-    } catch (error) {
-      try {
-        // node index.js json  "{'a':'1','b':'2','c':3}"
-        // node index.js json  "{'a':'1','b':{e:1,f:2,g:{k:1,h:2}},'c':3}"
-        // let doc = eval(word.replace(/'/g, '/\'').replace(/"/g, '/\"'));
-        word = word.replace(/'/g, '')
-        let docs = word.split(",")
-        console.log(docs)
-
-        let myjson = "";
-        let indexs = {}
-        let count = 0;
-        for (const str of docs) {
-          if (str.indexOf("{") === 0) {
-            indexs[count]
-          }
-        }
-
-
-        // console.log(JSON.stringify(doc, null, 2))
-      } catch (error) {
-        console.log(word)
-      }
-    }
-
+    let data = jsonlib.stringToJSON(word)
+    console.log(JSON.stringify(data, null, 2))
   })
 
+// node index.js json "{a:1,b:true,c:{a:1},e:'hello world'}"  
 program
   .command('cal')
   .description("cal")
