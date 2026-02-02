@@ -4,10 +4,11 @@
   "description": "cmd tools ",
   "main": "index.js",
   "bin": {
-    "tool": "index.js",
     "x-tool": "index.js",
     "x-git": "lib/git/sparseCloneWithArgs.js",
     "x-ask": "lib/ai/ask.js",
+    "x-fy": "bin/fy.js",
+    "x-say": "bin/say.js",
     "x": "index.js"
   },
   "scripts": {

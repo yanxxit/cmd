@@ -9,8 +9,6 @@ const jsonlib = require("str-to-json");
 const crypto = require("crypto");
 const fs = require('fs');
 const calendar = require('./lib/calendar');
-const voice = require('./lib/say');
-const dict = require('./dict/main');
 
 
 function createHash(text, hashtype) {
@@ -115,23 +113,6 @@ program
   .action(function (word) {
     createHash(word, "sha512");
   })
-
-program
-  .command('say <word>')
-  .description("say 命令")
-  // .option('-f, --file <fileName>', 'a file')
-  .action(function (word) {
-    voice.say(word);
-  })
-
-program
-  .command('fy <word>')
-  .description("翻译")
-  // .option('-f, --file <fileName>', 'a file')
-  .action(function (word) {
-    dict.fanyi(word)
-  })
-
 
 program
   .command('json <word>')
