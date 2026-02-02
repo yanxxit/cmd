@@ -17,7 +17,7 @@ log4js.configure({
       type: 'console',
       layout: {
         type: 'pattern',
-        pattern: '%d{yyyy-MM-dd hh:mm:ss} [%p] [%c] %m'
+        pattern: '%d{yyyy-MM-dd hh:mm:ss} [%c] [%p] %m'
       }
     },
     // 文件输出 appender - 所有日志
@@ -26,7 +26,7 @@ log4js.configure({
       filename: path.join(logsDir, 'combined.log'),
       layout: {
         type: 'pattern',
-        pattern: '%d{yyyy-MM-dd hh:mm:ss} [%p] [%c] %m'
+        pattern: '%d{yyyy-MM-dd hh:mm:ss} [%c] [%p] %m'
       }
     },
     // 文件输出 appender - 错误日志
@@ -35,7 +35,7 @@ log4js.configure({
       filename: path.join(logsDir, 'error.log'),
       layout: {
         type: 'pattern',
-        pattern: '%d{yyyy-MM-dd hh:mm:ss} [%p] [%c] %m'
+        pattern: '%d{yyyy-MM-dd hh:mm:ss} [%c] [%p] %m'
       }
     },
     // 错误日志专用 appender

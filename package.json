@@ -11,6 +11,7 @@
     "x-chat": "bin/chat.js",
     "x-fy": "bin/fy.js",
     "x-say": "bin/say.js",
+    "x-ds": "bin/ds.js",
     "x": "index.js"
   },
   "scripts": {

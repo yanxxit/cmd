@@ -1,0 +1,19 @@
+{
+  "name": "ds",
+  "version": "1.0.0",
+  "description": "A dictionary made by a diaosi, for the diaosi (Node.js version)",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js",
+    "web": "node src/server.js"
+  },
+  "keywords": ["dictionary", "english", "chinese"],
+  "author": "diaosi",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {}
+}

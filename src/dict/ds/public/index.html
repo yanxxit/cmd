@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diaosi Dictionary - A dictionary made by a diaosi, for the diaosi</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .search-box {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    
+    #wordInput {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 4px 0 0 4px;
+    }
+    
+    #searchBtn {
+      padding: 12px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 0 4px 4px 0;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    
+    #searchBtn:hover {
+      background-color: #0056b3;
+    }
+    
+    #result {
+      min-height: 200px;
+      padding: 15px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      background-color: #fafafa;
+      white-space: pre-wrap;
+    }
+    
+    .shortcut-info {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #e7f3ff;
+      border-left: 4px solid #007bff;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Diaosi Dictionary</h1>
+    <p style="text-align: center;">A dictionary made by a diaosi, for the diaosi</p>
+    
+    <div class="search-box">
+      <input type="text" id="wordInput" placeholder="Enter an English word to search..." autofocus>
+      <button id="searchBtn">Search</button>
+    </div>
+    
+    <div id="result">Results will appear here...</div>
+    
+    <div class="shortcut-info">
+      <strong>Shortcuts:</strong><br>
+      - Press Enter in the input box to search<br>
+      - Alt+D: Focus on the input box (not implemented in browser)<br>
+      - ESC: Clear the input box
+    </div>
+  </div>
+
+  <script>
+    const wordInput = document.getElementById('wordInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const resultDiv = document.getElementById('result');
+    
+    // 搜索函数
+    async function searchWord(word) {
+      if (!word.trim()) {
+        resultDiv.textContent = 'Please enter a word to search.';
+        return;
+      }
+      
+      try {
+        resultDiv.textContent = 'Searching...';
+        
+        const response = await fetch('/api/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ word: word.trim() })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          resultDiv.textContent = data.result || `${word}: Not found`;
+        } else {
+          resultDiv.textContent = `Error: ${data.error}`;
+        }
+      } catch (error) {
+        resultDiv.textContent = `Error: ${error.message}`;
+      }
+    }
+    
+    // 搜索按钮点击事件
+    searchBtn.addEventListener('click', () => {
+      searchWord(wordInput.value);
+    });
+    
+    // 输入框回车事件
+    wordInput.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        searchWord(wordInput.value);
+      }
+    });
+    
+    // ESC键清空输入框
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        wordInput.value = '';
+        resultDiv.textContent = 'Results will appear here...';
+        wordInput.focus();
+      }
+    });
+    
+    // 页面加载后聚焦到输入框
+    window.addEventListener('load', () => {
+      wordInput.focus();
+    });
+  </script>
+</body>
+</html>
