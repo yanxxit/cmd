@@ -1,4 +1,4 @@
-import moment from "moment";
+import moment from "dayjs";
 import chalk from "chalk";
 function getWeekByDay(week) {
   switch (week) {

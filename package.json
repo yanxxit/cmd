@@ -8,6 +8,7 @@
     "x-tool": "index.js",
     "x-git-sparse": "bin/git-sparse.js",
     "x-ask": "bin/ask.js",
+    "x-chat": "bin/chat.js",
     "x-fy": "bin/fy.js",
     "x-say": "bin/say.js",
     "x": "index.js"
@@ -27,6 +28,7 @@
     "cli-spinner": "^0.2.10",
     "commander": "^8.3.0",
     "configstore": "^3.1.1",
+    "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
     "download": "^8.0.0",
     "download-git-repo": "^3.0.2",
@@ -35,7 +37,8 @@
     "http-proxy-middleware": "^2.0.1",
     "is-chinese": "^1.4.6",
     "js-pinyin": "^0.1.9",
-    "moment": "^2.29.1",
+    "marked": "^15.0.12",
+    "marked-terminal": "^7.3.0",
     "morgan": "^1.10.0",
     "no-case": "^2.3.2",
     "openai": "^6.17.0",
@@ -43,6 +46,7 @@
     "play-sound": "^1.1.5",
     "serve-favicon": "^2.5.0",
     "shelljs": "^0.8.4",
+    "signale": "^1.4.0",
     "terminal-kit": "^2.1.6",
     "undici": "^5.10.0",
     "urlencode": "^1.1.0"

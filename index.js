@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { program } from "commander";
-import moment from "moment";
+import moment from "dayjs";
 import chalk from "chalk";
 import path from "path";
 import os from "os";
