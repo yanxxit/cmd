@@ -1,5 +1,5 @@
 const { program } = require('commander');
-const voice = require('../lib/say');
+const voice = require('../src/say');
 
 program
     .version('1.0.0')

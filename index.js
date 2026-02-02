@@ -8,7 +8,7 @@ const pinyin = require("js-pinyin");
 const jsonlib = require("str-to-json");
 const crypto = require("crypto");
 const fs = require('fs');
-const calendar = require('./lib/calendar');
+const calendar = require('./src/calendar');
 
 
 function createHash(text, hashtype) {
@@ -32,27 +32,7 @@ program.version("1.0.0", "-v --version"); // 版本 node ./index.js -v
 program
   .command("init <name>")
   .description("init ank project")
-  .action(require('./lib/init'))
-
-// 创建指令 <>表示变量参数
-program
-  .command("create <item>")
-  .description("创建项目的指令")
-  .action((item) => {
-    // 行为
-    console.log(chalk.red("创建项目 --- " + item));
-  });
-
-
-program
-  .command('x-tool <path>')
-  .option('-a, --add <fileName>', 'add a file')
-  .option('-u, --update <fileName>', 'update a file')
-  .option('-r, --remove <fileName>', 'remove a file')
-  .action(function (path, cmd) {
-    console.log(path)
-    console.log(cmd.add)
-  })
+  .action(require('./src/github/init'))
 
 // 必须传入
 program
@@ -161,30 +141,6 @@ program
       if (word.length === 10) console.log("显示时间：", moment(word * 1000).format("YYYY-MM-DD HH:mm:ss"))
       if (word.length === 13) console.log("显示时间：", moment(word).format("YYYY-MM-DD HH:mm:ss"))
     }
-  })
-
-// 本地静态文件
-program
-  .command('static [dir]')
-  .description("本地静态文件")
-  .option('-p, --port [port=3000]', '端口号')
-  .option('-P, --proxy [proxy]', '代理地址')
-  .option('-c, --config [config]', '本地代理配置文件 [{"path":"iapi","redirect":"http://172.16.1.102:7001"}]')
-  .action(function (dir, option) {
-    if (!dir) dir = process.cwd();
-
-    if (!path.isAbsolute(dir)) {
-      dir = path.join(process.cwd(), dir)
-    }
-    if (option?.config) {
-      if (!path.isAbsolute(option.config)) {
-        option.config = path.join(process.cwd(), option.config)
-      }
-    }
-    console.log(dir, option)
-    option.dir = dir;
-    option.port = option.port || 3000;
-    require("./src/http-server/static")(option);
   })
 
 
