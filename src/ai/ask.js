@@ -1,9 +1,10 @@
-#!/usr/bin/env node
+import OpenAI from "openai";
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const OpenAI = require("openai");
-const { program } = require('commander');
-const dotenv = require('dotenv');
-const path = require('path');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let env_file = path.resolve(__dirname, '../../', '.env');
 // console.log(`加载环境变量文件: ${env_file}`);
@@ -23,22 +24,12 @@ const client = new OpenAI({
   baseURL: "https://api.hunyuan.cloud.tencent.com/v1", // 混元 endpoint
 });
 
-// 定义命令行选项
-program
-  .version('1.0.0')
-  .description('AI 聊天工具 - 向混元大模型发送问题并获取回答')
-  .arguments('<question>')
-  .action((question) => {
-    program.question = question;
-  });
-
-async function main(){
-  // 解析命令行参数
-  program.parse(process.argv);
-  
-  // 获取用户问题
-  const userQuestion = program.question || "上海人口有多少？";
-  
+/**
+ * 向混元大模型发送问题并获取回答
+ * @param {string} userQuestion - 用户问题
+ * @returns {Promise<void>}
+ */
+async function ask(userQuestion) {
   // 获取当前日期
   const today = new Date();
   const year = today.getFullYear();
@@ -67,14 +58,4 @@ async function main(){
   console.log(completion.choices[0].message.content);
 }
 
-// 检查是否安装了 commander
-try {
-  require('commander');
-  // 执行主函数
-  main();
-} catch (err) {
-  console.error('\x1b[31m❌ 错误: 缺少必要的依赖包 "commander"。\x1b[0m');
-  console.log('请运行以下命令安装:');
-  console.log('npm install commander');
-  process.exit(1);
-}
+export default ask;

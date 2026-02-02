@@ -46,17 +46,17 @@ function strToJSON(word) {
   return JSON.parse(strjson);
 }
 
-if (module.parent) {
-  // 被 require，则导出 app
-  module.exports = {
-    strToJSON
-  }
-} else {
+export {
+  strToJSON
+};
+
+// 直接执行测试
+if (import.meta.url === `file://${process.argv[1]}`) {
   // boolean,number,string,date
   // let word = "{'a':'1','b':1,'c':3}";
   // let word = "{\"a\":'1','b':1,'c':3}";
   // let word = `{"a":'1','b':1,'c':3}`;
   let word = "{'a':'1','b':1,'c':{ok:1,test:true,ttt:\"abc\"},dd:12,bb:11, 'd':{f:1,h:2}}";
   // let word = "{'a': { b: { c: { d: 1 } } } }";
-  strToJSON(word)
+  strToJSON(word);
 }

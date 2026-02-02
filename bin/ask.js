@@ -1,9 +1,10 @@
+#!/usr/bin/env node
 import { program } from 'commander';
-import voice from '../src/say.js';
+import ask from '../src/ai/ask.js';
 
 program
     .version('1.0.0')
-    .description('语音工具')
+    .description('AI 聊天工具 - 向混元大模型发送问题并获取回答')
     .arguments('<question>')
     .action((question) => {
         program.question = question;
@@ -14,8 +15,8 @@ async function main() {
     program.parse(process.argv);
 
     // 获取用户问题
-    const userQuestion = program.question || "";
-    await voice.say(userQuestion)
+    const userQuestion = program.question || "上海人口有多少？";
+    await ask(userQuestion);
 }
 
 // 执行主函数

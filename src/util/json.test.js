@@ -1,4 +1,4 @@
-const lib = require("./json");
+import * as lib from "./json.js";
 // boolean,number,string,date
 
 console.log(lib.strToJSON("{'a':'a','b':1.2,'c':ture}"))

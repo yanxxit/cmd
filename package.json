@@ -2,11 +2,12 @@
   "name": "it-cmd",
   "version": "1.0.10",
   "description": "cmd tools ",
+  "type": "module",
   "main": "index.js",
   "bin": {
     "x-tool": "index.js",
-    "x-git": "lib/git/sparseCloneWithArgs.js",
-    "x-ask": "lib/ai/ask.js",
+    "x-git-sparse": "bin/git-sparse.js",
+    "x-ask": "bin/ask.js",
     "x-fy": "bin/fy.js",
     "x-say": "bin/say.js",
     "x": "index.js"

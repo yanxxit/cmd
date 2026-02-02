@@ -1,7 +1,7 @@
 
-const { program } = require('commander');
-const path = require('path');
-const server = require("../src/http-server/static");
+import { program } from 'commander';
+import path from 'path';
+import server from "../src/http-server/static.js";
 
 
 program
@@ -37,14 +37,12 @@ async function main() {
     server(option);
 }
 
+// 执行主函数
 try {
-    require('commander');
-    // 执行主函数
     main();
 } catch (err) {
-    console.error('\x1b[31m❌ 错误: 缺少必要的依赖包 "commander"。\x1b[0m');
-    console.log('请运行以下命令安装:');
-    console.log('npm install commander');
+    console.error('\x1b[31m❌ 错误: 执行失败。\x1b[0m');
+    console.error(err);
     process.exit(1);
 }
 

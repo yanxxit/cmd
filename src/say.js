@@ -1,7 +1,7 @@
-const path = require("path");
-const fs = require("fs");
-const { exec } = require('child_process');
-const iconv = require('iconv-lite');
+import path from "path";
+import fs from "fs";
+import { exec } from 'child_process';
+import iconv from 'iconv-lite';
 
 let say_engine = `powershell.exe Add-Type -AssemblyName System.speech; $speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; $speak.Rate = 3; $speak.Speak([Console]::In.ReadLine()); exit`;
 
@@ -38,6 +38,6 @@ const say = async (read_line) => {
 }
 
 
-module.exports = {
+export default {
   say
 }

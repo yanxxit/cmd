@@ -1,5 +1,5 @@
-const moment = require("moment");
-const chalk = require("chalk");
+import moment from "moment";
+import chalk from "chalk";
 function getWeekByDay(week) {
   switch (week) {
     case 1:
@@ -90,7 +90,7 @@ function getCurrentYearCalendars() {
 
 }
 
-module.exports = {
+export {
   getWeekByDay,
   getCurrentThreeCalendars,
   getCalendarByMonth,

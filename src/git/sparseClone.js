@@ -1,45 +1,17 @@
-#!/usr/bin/env node
-
-const { execSync } = require('child_process');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { program } = require('commander');
-
-// 定义命令行选项
-program
-  .version('1.0.0')
-  .description('Git 稀疏检出工具 - 允许从远程仓库拉取特定文件或目录')
-  .option('-u, --repo-url <url>', '远程仓库地址', 'https://gitee.com/yanxxit/conf.git')
-  .option('-b, --branch <branch>', '分支名称', 'main')
-  .option('-t, --target-path <path>', '想要拉取的特定文件或文件夹名', 'vim')
-  .option('-d, --local-dir <dir>', '本地文件夹名称') // 移除默认值，稍后处理
-  .option('-o, --output-dir <dir>', '最终输出目录，默认为当前脚本执行位置', process.cwd())
-  .option('-v, --verbose', '显示详细输出')
-  .parse();
-
-const options = program.opts();
-
-// 处理本地目录默认值 - 如果未指定，则根据仓库URL生成
-if (!options.localDir) {
-  const repoName = options.repoUrl.split('/').pop().replace(/\.git$/, '');
-  options.localDir = path.join(os.tmpdir(), repoName);
-}
-
-// 最终输出目录，默认为当前脚本执行位置
-if (!options.outputDir || options.outputDir === '.') {
-  options.outputDir = process.cwd();
-}
-
+import { execSync } from 'child_process';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
 /**
  * 执行 Shell 命令的辅助函数
  * @param {string} command
  * @param {Object} execOptions
+ * @param {boolean} verbose
  */
-function runCommand(command, execOptions = {}) {
+function runCommand(command, execOptions = {}, verbose = false) {
   try {
-    if (options.verbose) {
+    if (verbose) {
       console.log(`\x1b[36m$ ${command}\x1b[0m`); // 浅蓝色打印命令
     }
     execSync(command, { stdio: 'inherit', ...execOptions });
@@ -50,9 +22,51 @@ function runCommand(command, execOptions = {}) {
 }
 
 /**
- * 主函数
+ * 递归复制目录的辅助函数
+ * @param {string} srcDir 源目录
+ * @param {string} destDir 目标目录
  */
-function main() {
+function copyDirectory(srcDir, destDir) {
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir, { recursive: true });
+  }
+
+  const files = fs.readdirSync(srcDir);
+
+  for (const file of files) {
+    const srcPath = path.join(srcDir, file);
+    const destPath = path.join(destDir, file);
+
+    if (fs.lstatSync(srcPath).isDirectory()) {
+      copyDirectory(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+/**
+ * Git 稀疏检出工具 - 允许从远程仓库拉取特定文件或目录
+ * @param {Object} options - 配置选项
+ * @param {string} options.repoUrl - 远程仓库地址
+ * @param {string} options.branch - 分支名称
+ * @param {string} options.targetPath - 想要拉取的特定文件或文件夹名
+ * @param {string} options.localDir - 本地文件夹名称
+ * @param {string} options.outputDir - 最终输出目录
+ * @param {boolean} options.verbose - 显示详细输出
+ */
+async function sparseClone(options) {
+  // 处理本地目录默认值 - 如果未指定，则根据仓库URL生成
+  if (!options.localDir) {
+    const repoName = options.repoUrl.split('/').pop().replace(/\.git$/, '');
+    options.localDir = path.join(os.tmpdir(), repoName);
+  }
+
+  // 最终输出目录，默认为当前脚本执行位置
+  if (!options.outputDir || options.outputDir === '.') {
+    options.outputDir = process.cwd();
+  }
+
   const { repoUrl, branch, targetPath, localDir, outputDir, verbose } = options;
 
   if (verbose) {
@@ -76,7 +90,7 @@ function main() {
   }
 
   // 创建新的本地目录
-  runCommand(`mkdir -p ${resolvedLocalDir}`);
+  runCommand(`mkdir -p ${resolvedLocalDir}`, {}, verbose);
 
   // 在 Node.js 中，我们需要显式地更改工作目录，以便后续命令在正确的目录下执行
   process.chdir(resolvedLocalDir);
@@ -85,7 +99,7 @@ function main() {
   }
 
   // 2. 初始化 Git 仓库
-  runCommand('git init');
+  runCommand('git init', {}, verbose);
 
   // 删除已有的远程仓库（如果存在）
   try {
@@ -98,14 +112,14 @@ function main() {
   if (verbose) {
     console.log('\n🔗 添加远程仓库...');
   }
-  runCommand(`git remote add origin ${repoUrl}`);
-  runCommand('git fetch origin');
+  runCommand(`git remote add origin ${repoUrl}`, {}, verbose);
+  runCommand('git fetch origin', {}, verbose);
 
   // 4. 开启稀疏检出模式
   if (verbose) {
     console.log('\n⚙️ 配置稀疏检出...');
   }
-  runCommand('git config core.sparsecheckout true');
+  runCommand('git config core.sparsecheckout true', {}, verbose);
 
   // 5. 写入 .git/info/sparse-checkout 配置
   // 注意：.git 是隐藏文件夹，需要确保路径正确
@@ -132,14 +146,14 @@ function main() {
   } else {
     console.log(`📥 正在拉取 ${targetPath} ...`);
   }
-  runCommand(`git pull origin ${branch}`);
+  runCommand(`git pull origin ${branch}`, {}, verbose);
 
   // 7. 确保稀疏检出的文件被正确检出
   if (verbose) {
     console.log(`\n🔄 检出稀疏文件...`);
   }
   // 使用 git read-tree 命令来强制应用稀疏检出规则
-  runCommand('git read-tree -m -u HEAD');
+  runCommand('git read-tree -m -u HEAD', {}, verbose);
 
   // 8. 将拉取的文件移动到指定的输出目录
   const resolvedOutputDir = path.resolve(outputDir);
@@ -181,38 +195,4 @@ function main() {
   console.log('\n\x1b[32m✅ 完成！指定内容已下载并移动到目标位置。\x1b[0m');
 }
 
-/**
- * 递归复制目录的辅助函数
- * @param {string} srcDir 源目录
- * @param {string} destDir 目标目录
- */
-function copyDirectory(srcDir, destDir) {
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
-  }
-
-  const files = fs.readdirSync(srcDir);
-
-  for (const file of files) {
-    const srcPath = path.join(srcDir, file);
-    const destPath = path.join(destDir, file);
-
-    if (fs.lstatSync(srcPath).isDirectory()) {
-      copyDirectory(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
-}
-
-// 检查是否安装了 commander
-try {
-  require('commander');
-  // 执行主函数
-  main();
-} catch (err) {
-  console.error('\x1b[31m❌ 错误: 缺少必要的依赖包 "commander"。\x1b[0m');
-  console.log('请运行以下命令安装:');
-  console.log('npm install commander');
-  process.exit(1);
-}
+export default sparseClone;

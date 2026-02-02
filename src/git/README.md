@@ -14,14 +14,13 @@ node sparseClone.js
 x-clone-dir
 ```
 
-### sparseCloneWithArgs.js
 
 增强版稀疏克隆脚本，支持命令行参数：
 
 ```bash
 # x-tool.git clone --branch develop --target-path vim --local-dir temp
 # x-git -u https://gitee.com/yanxxit/conf.git -b main -t vim
-node sparseCloneWithArgs.js -u <仓库URL> -b <分支名> -t <目标路径> -d <本地目录> -o <输出目录> -v
+node sparseClone.js -u <仓库URL> -b <分支名> -t <目标路径> -d <本地目录> -o <输出目录> -v
 ```
 
 参数说明：
@@ -32,13 +31,6 @@ node sparseCloneWithArgs.js -u <仓库URL> -b <分支名> -t <目标路径> -d <
 - `-o, --output-dir <dir>`: 最终输出目录，默认为当前脚本执行位置（即 `.`）
 - `-v, --verbose`: 显示详细输出
 
-### sparseCloneWithMinimist.js
-
-使用 minimist 库解析命令行参数的版本：
-
-```bash
-node sparseCloneWithMinimist.js --repoUrl <仓库URL> --branch <分支名> --targetPath <目标路径>
-```
 
 ### interactiveSparseClone.js
 

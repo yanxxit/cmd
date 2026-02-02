@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-let { fetch } = require("undici")
-const chalk = require('chalk')
-const Spinner = require('cli-spinner').Spinner
-const isChinese = require('is-chinese')
-const urlencode = require('urlencode')
-const noCase = require('no-case')
-const config = require('./lib/config')
-const Parser = require('./lib/parser')
+import { fetch } from "undici"
+import chalk from 'chalk'
+import { Spinner } from 'cli-spinner'
+import isChinese from 'is-chinese'
+import urlencode from 'urlencode'
+import noCase from 'no-case'
+import config from './lib/config.js'
+import Parser from './lib/parser.js'
 
 const fanyi = async function (word) {
   const spinner = new Spinner('努力查询中... %s')
@@ -34,7 +34,7 @@ const fanyi = async function (word) {
 
 }
 
-module.exports = {
+export default {
   fanyi
 }
 

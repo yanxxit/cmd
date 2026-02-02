@@ -1,5 +1,5 @@
-const { program } = require('commander');
-const dict = require('../src/dict/main');
+import { program } from 'commander';
+import dict from '../src/dict/main.js';
 
 program
     .version('1.0.0')
@@ -18,13 +18,11 @@ async function main() {
     await dict.fanyi(userQuestion)
 }
 
+// 执行主函数
 try {
-    require('commander');
-    // 执行主函数
     main();
 } catch (err) {
-    console.error('\x1b[31m❌ 错误: 缺少必要的依赖包 "commander"。\x1b[0m');
-    console.log('请运行以下命令安装:');
-    console.log('npm install commander');
+    console.error('\x1b[31m❌ 错误: 执行失败。\x1b[0m');
+    console.error(err);
     process.exit(1);
 }

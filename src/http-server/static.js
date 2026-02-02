@@ -1,11 +1,15 @@
-const express = require('express');
-const path = require('path');
-const favicon = require('serve-favicon');
-const http = require('http');
-const morgan = require('morgan');
-const proxy = require('http-proxy-middleware');
+import express from 'express';
+import path from 'path';
+import favicon from 'serve-favicon';
+import http from 'http';
+import morgan from 'morgan';
+import proxy from 'http-proxy-middleware';
+import { fileURLToPath } from 'url';
 
-module.exports = function (options = { port: 3000, dir: __dirname }) {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default function (options = { port: 3000, dir: __dirname }) {
   const app = express();
   /**
    * Get port from environment and store in Express.
@@ -30,12 +34,13 @@ module.exports = function (options = { port: 3000, dir: __dirname }) {
 
   // xtools static -c .\test\proxy.json
   if (options.config) {
-    let proxys = require(options.config);
-    for (const m of proxys) {
-      let pathRewrite = {};
-      pathRewrite[`^/${m.path}`] = "";
-      app.use(`/${m.path}`, proxy.createProxyMiddleware({ target: m.redirect, changeOrigin: true, pathRewrite: pathRewrite }));
-    }
+    import(options.config).then(proxys => {
+      for (const m of proxys.default || proxys) {
+        let pathRewrite = {};
+        pathRewrite[`^/${m.path}`] = "";
+        app.use(`/${m.path}`, proxy.createProxyMiddleware({ target: m.redirect, changeOrigin: true, pathRewrite: pathRewrite }));
+      }
+    });
   }
 
 

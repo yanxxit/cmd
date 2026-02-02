@@ -1,14 +1,18 @@
 #!/usr/bin/env node
-const program = require("commander");
-const moment = require("moment");
-const chalk = require("chalk");
-const path = require("path");
-const os = require("os");
-const pinyin = require("js-pinyin");
-const jsonlib = require("str-to-json");
-const crypto = require("crypto");
-const fs = require('fs');
-const calendar = require('./src/calendar');
+import { program } from "commander";
+import moment from "moment";
+import chalk from "chalk";
+import path from "path";
+import os from "os";
+import pinyin from "js-pinyin";
+import crypto from "crypto";
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import calendar from './src/calendar.js';
+import initAction from './src/github/init.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 function createHash(text, hashtype) {
@@ -32,7 +36,7 @@ program.version("1.0.0", "-v --version"); // 版本 node ./index.js -v
 program
   .command("init <name>")
   .description("init ank project")
-  .action(require('./src/github/init'))
+  .action(initAction)
 
 // 必须传入
 program

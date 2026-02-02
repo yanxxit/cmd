@@ -1,8 +1,10 @@
-const { promisify } = require('util');
+import { promisify } from 'util';
+import downloadGitRepo from 'download-git-repo';
+import ora from 'ora';
 
-module.exports.clone = async function (repo, desc) {
-  const down = promisify(require('download-git-repo'));
-  const ora = require('ora');
+const down = promisify(downloadGitRepo);
+
+export const clone = async function (repo, desc) {
   const progress = ora(`下载中...${repo}`);
   progress.start();
   await down(repo, desc).then(() => {

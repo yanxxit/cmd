@@ -1,10 +1,12 @@
-const { promisify } = require("util");
-const figlet = promisify(require('figlet'));
-const clear = require("clear");
-const chalk = require("chalk");
-const clone = require("./down").clone;
-const child_process = require('child_process');
-const shell = require('shelljs');
+import { promisify } from "util";
+import figlet from 'figlet';
+import clear from "clear";
+import chalk from "chalk";
+import { clone } from "./down.js";
+import child_process from 'child_process';
+import shell from 'shelljs';
+
+const promisifiedFiglet = promisify(figlet);
 /**
  * 封装打印方法
  */
@@ -29,10 +31,10 @@ const spawn = async (...args) => {
   })
 }
 
-module.exports = async name => {
+export default async name => {
   log('创建项目' + name);
   clear();
-  const data = await figlet("welcome cmd");
+  const data = await promisifiedFiglet("welcome cmd");
   log(data);
   // await clone('github:su37josephxia/vue-template', name);
   // await clone('direct:https://github.com/shawflying/apidoc-template/archive/refs/heads/master.zip', name);

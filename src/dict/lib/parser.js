@@ -1,7 +1,8 @@
-const cheerio = require('cheerio')
-const chalk = require('chalk')
-const player = require('play-sound')(opts = {})
-const download = require('download');
+import * as cheerio from 'cheerio';
+import chalk from 'chalk';
+import player from 'play-sound';
+const playerInstance = player({});
+import download from 'download';
 // console.log(chalk.blue('Hello world!'))
 
 /**
@@ -12,7 +13,7 @@ const download = require('download');
 async function say(word = "") {
   let filename = `${word}.mp3`;
   await download(`https://dict.youdao.com/dictvoice?audio=${word}&type=1`, './voice', { filename: filename });
-  player.play(`./voice/${filename}`, function (err) {
+  playerInstance.play(`./voice/${filename}`, function (err) {
     if (err) throw err
   })
 }
@@ -90,4 +91,4 @@ parser.parse = function (isChinese, body, word) {
     '\n\n' + result + '\n' + sentenceSample
   return result
 }
-module.exports = parser
+export default parser
