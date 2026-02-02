@@ -4,10 +4,9 @@ import OpenAI from 'openai';
 import readline from 'readline';
 import fs from 'fs/promises';
 import path from 'path';
-import { marked } from 'marked';
-import { markedTerminal } from 'marked-terminal';
 import chalk from 'chalk';
 import dotenv from 'dotenv';
+import { renderMarkdown, clearLine, ensureLogsDirectory, updateConversationFile as updateLogFileName, checkAndUpdateDate } from './chat.lib.js';
 
 // 加载环境变量
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -18,24 +17,6 @@ if (!process.env['HUNYUAN_API_KEY']) {
   process.exit(1);
 }
 
-// 配置marked使用终端渲染器
-marked.use(markedTerminal({
-  // 自定义样式
-  code: chalk.cyan,
-  codespan: chalk.cyan.italic,
-  blockquote: chalk.gray,
-  heading: chalk.green.bold,
-  firstHeading: chalk.green.bold.underline,
-  strong: chalk.bold,
-  em: chalk.italic,
-  del: chalk.dim.gray.strikethrough,
-  link: chalk.blue.underline,
-  href: chalk.blue.underline,
-  listitem: chalk.yellow,
-  table: chalk.white,
-  tab: chalk.white,
-}));
-
 class EnhancedHunYuanChat {
   constructor() {
     this.client = new OpenAI({
@@ -45,28 +26,14 @@ class EnhancedHunYuanChat {
     this.messages = [];
     this.logsDir = path.resolve(process.cwd(), 'logs');
     this.ensureLogsDirectory();
-    this.updateConversationFile();
+    this.conversationFile = updateLogFileName(this.logsDir);
     this.isRendering = false;
     this.setupReadline();
   }
 
   // 确保日志目录存在
   async ensureLogsDirectory() {
-    try {
-      await fs.mkdir(this.logsDir, { recursive: true });
-    } catch (error) {
-      console.error(chalk.yellow('⚠️ 创建日志目录失败:'), error.message);
-    }
-  }
-
-  // 根据当前日期更新日志文件路径
-  updateConversationFile() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${day}`;
-    this.conversationFile = path.join(this.logsDir, `chat_${formattedDate}.md`);
+    await ensureLogsDirectory(this.logsDir);
   }
 
   setupReadline() {
@@ -77,44 +44,10 @@ class EnhancedHunYuanChat {
     });
   }
 
-  // 清空当前行
-  clearLine() {
-    process.stdout.write('\r\x1b[K');
-  }
-
-  // 渲染Markdown内容到终端
-  renderMarkdown(content, { isPartial = false } = {}) {
-    try {
-      if (!content.trim()) return '';
-
-      // 如果是部分内容且不在代码块中，尝试智能换行处理
-      if (isPartial) {
-        const lines = content.split('\n');
-        if (lines.length > 5) {
-          // 如果有换行符，渲染完整行
-          const completeLines = lines.slice(0, -1);
-          const partialLine = lines[lines.length - 1];
-
-          if (completeLines.length > 0) {
-            const renderedComplete = marked.parse(completeLines.join('\n'));
-            process.stdout.write(renderedComplete);
-          }
-          return partialLine;
-        }
-      }
-
-      const rendered = marked.parse(content);
-      return rendered;
-    } catch (error) {
-      console.error(chalk.red('Markdown渲染错误:'), error.message);
-      return content;
-    }
-  }
-
   // 流式输出AI回复，支持Markdown渲染
   async getAIResponse(userInput) {
     // 检查是否需要更新日志文件（如果跨天了）
-    this.checkAndUpdateDate();
+    this.conversationFile = checkAndUpdateDate(this.conversationFile, this.logsDir);
 
     // 获取当前日期
     const today = new Date();
@@ -163,9 +96,9 @@ class EnhancedHunYuanChat {
           const shouldRender = buffer.length > 500;
 
           if (shouldRender) {
-            this.clearLine();
+            clearLine();
             // process.stdout.write(chalk.green('AI: '));
-            const remaining = this.renderMarkdown(buffer, {
+            const remaining = renderMarkdown(buffer, {
               isPartial: true,
               isCodeBlock: false
             });
@@ -177,9 +110,9 @@ class EnhancedHunYuanChat {
 
       // 渲染剩余内容
       if (buffer && this.isRendering) {
-        this.clearLine();
+        clearLine();
         process.stdout.write(chalk.green('AI: '));
-        this.renderMarkdown(buffer, { isPartial: false });
+        renderMarkdown(buffer, { isPartial: false });
       }
 
       this.messages.push({ role: 'assistant', content: fullResponse });
@@ -195,21 +128,6 @@ class EnhancedHunYuanChat {
       }
     } finally {
       this.isRendering = false;
-    }
-  }
-
-  // 检查日期是否发生变化，如变化则更新日志文件
-  checkAndUpdateDate() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${day}`;
-
-    // 检查当前日志文件名是否包含今天的日期
-    const expectedLogFile = path.join(this.logsDir, `chat_${formattedDate}.md`);
-    if (this.conversationFile !== expectedLogFile) {
-      this.conversationFile = expectedLogFile;
     }
   }
 
