@@ -1,6 +1,9 @@
 import * as cheerio from 'cheerio';
 import chalk from 'chalk';
 import player from 'play-sound';
+import logger from '../../util/logger.js';
+import fs from 'fs/promises';
+import path from 'path';
 const playerInstance = player({});
 import download from 'download';
 // console.log(chalk.blue('Hello world!'))
@@ -8,14 +11,27 @@ import download from 'download';
 /**
  * 播放声音
  * https://dict.youdao.com/dictvoice?audio=about&type=1 英
- * @param {string} word 
+ * @param {string} word
  */
 async function say(word = "") {
   let filename = `${word}.mp3`;
-  await download(`https://dict.youdao.com/dictvoice?audio=${word}&type=1`, './voice', { filename: filename });
-  playerInstance.play(`./voice/${filename}`, function (err) {
-    if (err) throw err
-  })
+  const audioPath = `./logs/dict/voice/${filename}`;
+
+  // 检查音频文件是否已经存在
+  try {
+    await fs.access(audioPath);
+    // 如果文件存在，直接播放
+    playerInstance.play(audioPath, function (err) {
+      if (err) throw err
+    });
+  } catch (error) {
+    // 文件不存在，需要下载
+    logger.info(`Downloading audio ${filename} file...`)
+    await download(`https://dict.youdao.com/dictvoice?audio=${word}&type=1`, './logs/dict/voice', { filename: filename });
+    playerInstance.play(audioPath, function (err) {
+      if (err) throw err
+    });
+  }
 }
 
 let parser = {}

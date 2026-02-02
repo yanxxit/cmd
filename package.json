@@ -16,7 +16,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "local": "npm uninstall -g it-cmd && npm link"
+    "install": "npm uninstall -g it-cmd && npm link"
   },
   "author": "yanxxit",
   "homepage": "https://www.yxxit.com/view/",
