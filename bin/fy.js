@@ -1,5 +1,5 @@
 const { program } = require('commander');
-const dict = require('../dict/main');
+const dict = require('../src/dict/main');
 
 program
     .version('1.0.0')

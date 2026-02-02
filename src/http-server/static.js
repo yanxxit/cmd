@@ -13,7 +13,7 @@ module.exports = function (options = { port: 3000, dir: __dirname }) {
   app.set('port', options.port);
   app.use(morgan('tiny'))
   app.use(express.static(options.dir));
-  app.use(favicon(__dirname + '/favicon.ico'));
+  app.use(favicon(__dirname + '../../../favicon.ico'));
 
   // xtools static .\public\ -P https://condejs.org
   // xtools static .\public\ -P iapi>>http://172.16.1.102:7001

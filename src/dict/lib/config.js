@@ -1,4 +1,4 @@
-const pkg = require('../../package.json')
+const pkg = require('../../../package.json')
 const Configstore = require('configstore')
 const isChinese = require('is-chinese')
 const conf = new Configstore(pkg.name, { color: 'white', spinner: true })

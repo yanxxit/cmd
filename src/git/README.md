@@ -10,6 +10,8 @@
 
 ```bash
 node sparseClone.js
+# 克隆目录
+x-clone-dir
 ```
 
 ### sparseCloneWithArgs.js

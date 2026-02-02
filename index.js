@@ -184,7 +184,7 @@ program
     console.log(dir, option)
     option.dir = dir;
     option.port = option.port || 3000;
-    require("./static")(option);
+    require("./src/http-server/static")(option);
   })
 
 
