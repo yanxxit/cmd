@@ -6,6 +6,7 @@
   "main": "index.js",
   "bin": {
     "x-tool": "index.js",
+    "x-git-clone": "bin/git-clone.js",
     "x-git-sparse": "bin/git-sparse.js",
     "x-ask": "bin/ask.js",
     "x-chat": "bin/chat.js",

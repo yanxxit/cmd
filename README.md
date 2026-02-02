@@ -5,7 +5,7 @@ node.js 开发常用的命令行工具，日常使用。
 - [x] 开启静态服务
 - [x] 实现自定义代理
 - [x] md5
-- [x] 常用时间转换：tool time 
+- [x] 常用时间转换：tool time
 - [x] cal 日历
 - [x] say命令
 - [ ] 读书工具
@@ -22,6 +22,7 @@ node.js 开发常用的命令行工具，日常使用。
 - [ ] json 转换（非标准的转换为标准）
 - [x] AI Ask 助手
 - [x] git 稀疏克隆 下载指定目录
+- [x] git 完整克隆 - 下载完整仓库
 - [ ] 将代码改成 module 模式 重构
 - [ ] 将代码使用 typescript 重构
 - [ ] skill 下载
@@ -33,7 +34,35 @@ node.js 开发常用的命令行工具，日常使用。
 
 ## 使用
 ```sh
-x-tool 
+x-tool
+$ node bin/git-clone.js https://gitee.com/yanxxit/conf.git
+node bin/git-clone.js https://github.com/yanxxit/conf.git conf2
+node bin/git-clone.js https://github.com/yanxxit/node-module-study.git
+
+git clone https://github.com/yanxxit/node-module-study.git
+```
+
+### 新增功能：Git Clone
+
+使用 `x-git-clone` 命令克隆 Git 仓库：
+
+```sh
+# 基本用法
+x-git-clone <repository-url> [destination]
+
+# 示例
+x-git-clone https://github.com/user/repo.git
+x-git-clone git@github.com:user/repo.git
+x-git-clone user/repo  # GitHub 简写格式
+
+# 克隆特定分支
+x-git-clone <repository-url> -b <branch-name>
+
+# 创建浅克隆（只克隆最近的提交）
+x-git-clone <repository-url> --depth 1
+
+# 克隆单一分支
+x-git-clone <repository-url> --single-branch
 ```
 
 ### 本地开发
