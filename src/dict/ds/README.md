@@ -61,6 +61,7 @@ npm install
 ```
 ds/
 ├── package.json         # 项目元数据和依赖
+├── performance-test.js  # 性能测试脚本
 ├── data/
 │   └── endict.txt       # 词典数据文件
 ├── public/
@@ -70,6 +71,20 @@ ds/
     ├── index.js         # 主入口
     ├── cli.js           # 命令行界面
     └── server.js        # Web 服务器实现
+```
+
+## 性能测试
+
+运行性能测试：
+
+```bash
+npm run performance-test
+```
+
+或者直接运行：
+
+```bash
+node performance-test.js
 ```
 
 ## 关键组件
@@ -102,3 +117,38 @@ ds/
 ## 参考
 
 - 当前项目参考：https://github.com/fxsjy/diaosi
+
+# 参考@src/dict/ECDICT/del_bfz.py ，实现一个 duckdb 的版本  
+
+我已经成功参考 @src/dict/ECDICT/del_bfz.py 实现了一个 DuckDB 版本。以下是完成的工作总结：
+
+  创建了两个文件：
+
+   1. `@src/dict/ECDICT/ecdict_duckdb.py` - 完整的 DuckDB 版本 ECDICT 实现
+      - 实现了从 CSV 文件加载数据到 DuckDB 数据库
+      - 包含了 new_inflection 函数，用于处理冗余的词形变化标记
+      - 提供了多种查询功能：精确查询、模糊匹配、模式搜索
+      - 自动创建了必要的索引以优化查询性能
+      - 添加了 strip word (sw) 列用于模糊匹配
+
+   2. `@src/dict/ECDICT/del_bfz_duckdb.py` - 简化版本，专注于原始 del_bfz.py 的核心功能
+      - 实现了与原始 del_bfz.py 类似的核心功能，但使用 DuckDB 作为数据库后端
+      - 提供了 init_ecdict_duckdb() 函数来处理 exchange 字段中的冗余标记
+      - 继承了 new_inflection 函数来清理词形变化标记
+
+  DuckDB 版本的优势：
+
+   1. 性能更好 - DuckDB 是专为分析工作负载设计的列式数据库，查询速度快
+   2. 功能更强 - 支持复杂的 SQL 查询和分析功能
+   3. 资源占用少 - DuckDB 是嵌入式数据库，不需要独立的服务器进程
+   4. 易于部署 - 单文件数据库，便于携带和部署
+
+  测试结果：
+
+   - 成功处理了包含 770,611 个条目的大型词典数据库
+   - 成功执行了 exchange 字段的清理处理
+   - 验证了查询功能正常工作
+
+  这两个文件提供了 DuckDB 版本的 ECDICT 实现，提供了与原始 SQLite 版本类似的功能，但具有更好的性能和扩展能力。
+
+# 参考项目@src/dict/ds，使用将data/endict.txt 数据写入 leveldb 中，创建一个@src/dict/ds-v2 项目

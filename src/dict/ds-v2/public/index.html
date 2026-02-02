@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>屌丝词典 v2</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .search-box {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    
+    #search-input {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 4px 0 0 4px;
+    }
+    
+    #search-button {
+      padding: 12px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 0 4px 4px 0;
+      cursor: pointer;
+    }
+    
+    #search-button:hover {
+      background-color: #0056b3;
+    }
+    
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      background-color: #f8f9fa;
+      min-height: 100px;
+      white-space: pre-line;
+    }
+    
+    .loading {
+      text-align: center;
+      color: #666;
+    }
+    
+    .error {
+      color: #dc3545;
+    }
+    
+    .hint {
+      text-align: center;
+      color: #666;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>屌丝词典 v2</h1>
+    
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="请输入要查询的英文单词..." autofocus>
+      <button id="search-button">查询</button>
+    </div>
+    
+    <div id="result">在这里显示查询结果...</div>
+    
+    <div class="hint">
+      提示：支持前缀查询和拼写纠错
+    </div>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    const resultDiv = document.getElementById('result');
+
+    // 搜索函数
+    async function searchWord(word) {
+      if (!word.trim()) {
+        resultDiv.textContent = '请输入要查询的单词';
+        return;
+      }
+      
+      try {
+        resultDiv.innerHTML = '<div class="loading">查询中...</div>';
+        
+        const response = await fetch(`/api/lookup/${encodeURIComponent(word)}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          resultDiv.textContent = data.result;
+        } else {
+          resultDiv.innerHTML = `<div class="error">${data.error}</div>`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="error">查询出错: ${error.message}</div>`;
+      }
+    }
+
+    // 事件监听器
+    searchButton.addEventListener('click', () => {
+      searchWord(searchInput.value);
+    });
+
+    searchInput.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        searchWord(searchInput.value);
+      }
+    });
+    
+    // ESC 键清空输入
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        searchInput.value = '';
+        resultDiv.textContent = '在这里显示查询结果...';
+        searchInput.focus();
+      }
+    });
+  </script>
+</body>
+</html>

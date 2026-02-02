@@ -38,6 +38,7 @@
     "http-proxy-middleware": "^2.0.1",
     "is-chinese": "^1.4.6",
     "js-pinyin": "^0.1.9",
+    "level": "^8.0.1",
     "log4js": "^6.9.1",
     "marked": "^15.0.12",
     "marked-terminal": "^7.3.0",

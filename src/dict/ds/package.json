@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node src/index.js",
-    "web": "node src/server.js"
+    "web": "node src/server.js",
+    "performance-test": "node performance-test.js"
   },
   "keywords": ["dictionary", "english", "chinese"],
   "author": "diaosi",

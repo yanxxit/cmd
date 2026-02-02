@@ -1,0 +1,25 @@
+{
+  "name": "@src/dict/ds-v2",
+  "version": "2.0.0",
+  "description": "屌丝词典 v2 - 基于 LevelDB 的新版英汉词典",
+  "type": "module",
+  "main": "./src/index.js",
+  "scripts": {
+    "start": "node ./src/index.js",
+    "web": "node ./src/server.js",
+    "import-data": "node ./import-data.js",
+    "performance-test": "node performance-test.js"
+  },
+  "keywords": [
+    "dictionary",
+    "english-chinese",
+    "leveldb",
+    "translation"
+  ],
+  "author": "Qwen",
+  "license": "ISC",
+  "dependencies": {
+    "level": "^8.0.0",
+    "express": "^4.17.1"
+  }
+}
