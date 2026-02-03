@@ -144,10 +144,10 @@ program
   })
 
 program
-  .command('open <word>')
+  .command('open [word]')
   .description("打开文件或目录")
   // .option('-f, --file <fileName>', 'a file')
-  .action(async function (word = ".") {
+  .action(async function (word = "") {
     await openURL(word)
   })
 
