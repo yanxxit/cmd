@@ -2,11 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { marked } from 'marked';
 import express from 'express';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import os from 'os';
-
-const execAsync = promisify(exec);
+import { openURL } from '../open.js';
 
 /**
  * 在浏览器中打开 Markdown 文件
@@ -109,7 +105,10 @@ export async function browseMarkdown(filePath, port = 0) {
       console.log(`\x1b[36mℹ️  按 Ctrl+C 停止服务器\x1b[0m`);
 
       // 在浏览器中打开页面
-      openBrowser(url);
+      openURL(url).catch(() => {
+        // 如果自动打开浏览器失败，提示用户手动打开
+        console.log(`\x1b[33m⚠️  无法自动打开浏览器，请手动访问: ${url}\x1b[0m`);
+      });
     });
 
     // 返回服务器实例以便外部管理
@@ -126,20 +125,3 @@ export async function browseMarkdown(filePath, port = 0) {
   }
 }
 
-// 打开浏览器的函数
-async function openBrowser(url) {
-  const platform = os.platform();
-
-  try {
-    if (platform === 'darwin') {  // macOS
-      await execAsync(`open "${url}"`);
-    } else if (platform === 'win32') {  // Windows
-      await execAsync(`start "${url}"`);
-    } else {  // Linux 和其他平台
-      await execAsync(`xdg-open "${url}"`);
-    }
-  } catch (error) {
-    // 如果自动打开浏览器失败，提示用户手动打开
-    console.log(`\x1b[33m⚠️  无法自动打开浏览器，请手动访问: ${url}\x1b[0m`);
-  }
-}

@@ -6,13 +6,9 @@ program
   .version('1.0.0')
   .description('Markdown 文件浏览器 - 将 Markdown 文件渲染成网页并在浏览器中打开')
   .arguments('<file>')
-  .option('-f, --file <file>', '要浏览的 Markdown 文件路径')
   .option('-p, --port <port>', '指定服务器端口，默认为随机可用端口', '0') // 0 表示使用随机端口
-  .action(async (fileArg) => {
+  .action(async (filePath) => {
     try {
-      // 获取文件路径
-      const filePath = program.opts().file || fileArg;
-
       if (!filePath) {
         console.error('\x1b[31m❌ 错误: 请提供 Markdown 文件路径\x1b[0m');
         process.exit(1);
@@ -33,6 +29,7 @@ program
       });
 
     } catch (error) {
+      console.error('\x1b[31m❌ 错误:', error.message, '\x1b[0m');
       process.exit(1);
     }
   });
