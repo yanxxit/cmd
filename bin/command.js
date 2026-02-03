@@ -10,6 +10,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as calendar from '../src/calendar.js';
 import initAction from '../src/github/init.js';
+import { openURL } from '../src/open.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,11 +24,6 @@ function createHash(text, hashtype) {
 program.name("exec"); // 名字介绍
 program.usage("<path file>"); // 使用方式介绍
 program.version("1.0.0", "-v --version"); // 版本 node ./index.js -v
-// program.version(require('./package')).version;
-
-// 配置选项
-// program.option("-p --port <v>", "设置端口号"); // 参数介绍
-// program.option("-c --config <v>", "配置文件"); // 参数介绍
 
 
 /**
@@ -147,5 +143,12 @@ program
     }
   })
 
+program
+  .command('open <word>')
+  .description("打开文件或目录")
+  // .option('-f, --file <fileName>', 'a file')
+  .action(async function (word = ".") {
+    await openURL(word)
+  })
 
 program.parse(process.argv);

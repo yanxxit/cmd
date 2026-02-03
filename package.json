@@ -12,7 +12,7 @@
     "x-fy": "bin/fy.js",
     "x-say": "bin/say.js",
     "x-ds": "bin/ds.js",
-    "x-tool": "bin/index.js"
+    "x-cmd": "bin/command.js"
   },
   "scripts": {
     "clear": "npm unlink",
