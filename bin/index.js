@@ -8,8 +8,8 @@ import pinyin from "js-pinyin";
 import crypto from "crypto";
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import calendar from './src/calendar.js';
-import initAction from './src/github/init.js';
+import * as calendar from '../src/calendar.js';
+import initAction from '../src/github/init.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
