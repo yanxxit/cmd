@@ -1,4 +1,3 @@
-import { promisify } from "util";
 import figlet from 'figlet';
 import clear from "clear";
 import chalk from "chalk";
@@ -6,7 +5,6 @@ import { clone } from "./down.js";
 import child_process from 'child_process';
 import shell from 'shelljs';
 
-const promisifiedFiglet = promisify(figlet);
 /**
  * 封装打印方法
  */
@@ -34,11 +32,11 @@ const spawn = async (...args) => {
 export default async name => {
   log('创建项目' + name);
   clear();
-  const data = await promisifiedFiglet("welcome cmd");
+  const data = await figlet.text("welcome cmd");
   log(data);
   // await clone('github:su37josephxia/vue-template', name);
-  // await clone('direct:https://github.com/shawflying/apidoc-template/archive/refs/heads/master.zip', name);
-  await clone('direct:https://github.com/shawflying/apis-proxy/archive/refs/heads/master.zip', name);
+  await clone('direct:https://github.com/shawflying/apidoc-template/archive/refs/heads/master.zip', name);
+  // await clone('direct:https://github.com/shawflying/apis-proxy/archive/refs/heads/master.zip', name);
   log('安装依赖');
   // await spawn('npm', ['install'], { cwd: `./${name}` });
   await shell.exec(`cd ./${name} && npm install && node -v`)

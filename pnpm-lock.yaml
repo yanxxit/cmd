@@ -12,7 +12,7 @@ importers:
         specifier: ^4.1.2
         version: 4.1.2
       cheerio:
-        specifier: ^1.0.0-rc.12
+        specifier: ^1.2.0
         version: 1.2.0
       clear:
         specifier: ^0.1.0
@@ -42,17 +42,17 @@ importers:
         specifier: ^4.17.1
         version: 4.22.1
       figlet:
-        specifier: ^1.5.0
+        specifier: ^1.10.0
         version: 1.10.0
       http-proxy-middleware:
         specifier: ^2.0.1
         version: 2.0.9
       is-chinese:
-        specifier: ^1.4.6
-        version: 1.4.8
+        specifier: ^2.0.0
+        version: 2.0.0
       js-pinyin:
-        specifier: ^0.1.9
-        version: 0.1.9
+        specifier: ^0.2.7
+        version: 0.2.7
       level:
         specifier: ^8.0.1
         version: 8.0.1
@@ -92,6 +92,9 @@ importers:
       terminal-kit:
         specifier: ^2.1.6
         version: 2.11.7
+      tmp:
+        specifier: ^0.2.5
+        version: 0.2.5
       undici:
         specifier: ^5.10.0
         version: 5.29.0
@@ -826,8 +829,8 @@ packages:
     resolution: {integrity: sha512-1BC0BVFhS/p0qtw6enp8e+8OD0UrK0oFLztSjNzhcKA3WDuJxxAPXzPuPtKkjEY9UUoEWlX/8fgKeu2S8i9JTA==}
     engines: {node: '>= 0.4'}
 
-  is-chinese@1.4.8:
-    resolution: {integrity: sha512-026BFYAJ59BIXlvvr71KzRiBr9Z1Na9dWXy1QIQDC+9y9xeQqupaHW49wrCaMQ8jFn+Qh+9JKASEJVAhBxfaBw==}
+  is-chinese@2.0.0:
+    resolution: {integrity: sha512-1BTwHrs0wHnNZTyMWM8MPpVEs8u4uvLnUA2QZGt6cFjqY82DZV3lKH6hBGHqu8eJxkAIYcelm1kBR8v8URS4yA==}
 
   is-core-module@2.16.1:
     resolution: {integrity: sha512-UfoeMA6fIJ8wTYFEUjelnaGI67v6+N7qXJEvQuIGa99l4xsCruSYOVSQ0uPANn4dAzm8lkYPaKLrrijLq7x23w==}
@@ -900,8 +903,8 @@ packages:
   jpeg-js@0.4.4:
     resolution: {integrity: sha512-WZzeDOEtTOBK4Mdsar0IqEU5sMr3vSV2RqkAIzUEV2BHnUfKGyswWFPFwK5EeDo93K3FohSHbLAjj0s1Wzd+dg==}
 
-  js-pinyin@0.1.9:
-    resolution: {integrity: sha512-svn/0UsB2daFriHmqfCYX2xFWaNJs0iyoCMHVIwTFdc86mZhP0ZXfgI02/K1BC7aNE4fMjxx2kZMJBZ21kvp+Q==}
+  js-pinyin@0.2.7:
+    resolution: {integrity: sha512-Dbm7qJDwlC2MRHRXQo7GrVrL5w975tEOX6sfc0M8Z3oL9VhR4uUqgkwaETMqh4bAJ14w4zVs3tXsi9pDxWUmNg==}
 
   json-buffer@3.0.0:
     resolution: {integrity: sha512-CuUqjv0FUZIdXkHPI8MezCnFCdaTAacej1TZYulLoAg1h/PhwkdXFN4V/gzY4g+fMBCOV2xF+rp7t2XD2ns/NQ==}
@@ -1491,6 +1494,10 @@ packages:
     resolution: {integrity: sha512-G7r3AhovYtr5YKOWQkta8RKAPb+J9IsO4uVmzjl8AZwfhs8UcUwTiD6gcJYSgOtzyjvQKrKYn41syHbUWMkafA==}
     engines: {node: '>=0.10.0'}
 
+  tmp@0.2.5:
+    resolution: {integrity: sha512-voyz6MApa1rQGUxT3E+BK7/ROe8itEx7vD8/HEvt4xwXucvQ5G5oeEiHkmHZJuBO21RpOf+YYm9MOivj709jow==}
+    engines: {node: '>=14.14'}
+
   to-buffer@1.2.2:
     resolution: {integrity: sha512-db0E3UJjcFhpDhAF4tLo03oli3pwl3dbnzXOUIlRKrp+ldk/VUxzpWYZENsw2SZiuBjHAk7DfB0VU7NKdpb6sw==}
     engines: {node: '>= 0.4'}
@@ -1582,7 +1589,6 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
-    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
@@ -2457,7 +2463,7 @@ snapshots:
 
   is-callable@1.2.7: {}
 
-  is-chinese@1.4.8: {}
+  is-chinese@2.0.0: {}
 
   is-core-module@2.16.1:
     dependencies:
@@ -2506,7 +2512,7 @@ snapshots:
 
   jpeg-js@0.4.4: {}
 
-  js-pinyin@0.1.9: {}
+  js-pinyin@0.2.7: {}
 
   json-buffer@3.0.0: {}
 
@@ -3115,6 +3121,8 @@ snapshots:
   through@2.3.8: {}
 
   timed-out@4.0.1: {}
+
+  tmp@0.2.5: {}
 
   to-buffer@1.2.2:
     dependencies:
