@@ -35,6 +35,21 @@ export const openURL = function (url) {
           }
         })
         break
+
+      case 'linux':
+        cmd = 'xdg-open'
+        child_process.exec(cmd + ' ' + url, (error, stdout, stderr) => {
+          if (error) {
+            reject(error)
+          } else {
+            resolve()
+          }
+        })
+        break
+
+      default:
+        reject(new Error(`不支持的平台: ${process.platform}`))
+        break
     }
   })
 }

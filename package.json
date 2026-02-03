@@ -12,7 +12,9 @@
     "x-fy": "bin/fy.js",
     "x-say": "bin/say.js",
     "x-ds": "bin/ds.js",
-    "x-cmd": "bin/command.js"
+    "x-cmd": "bin/command.js",
+    "x-md-view": "bin/md-view.js",
+    "x-md-browser": "bin/md-browser.js"
   },
   "scripts": {
     "clear": "npm unlink",
@@ -51,6 +53,7 @@
     "shelljs": "^0.8.4",
     "signale": "^1.4.0",
     "terminal-kit": "^2.1.6",
+    "tmp": "^0.2.5",
     "undici": "^5.10.0",
     "urlencode": "^1.1.0"
   }
