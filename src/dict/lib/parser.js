@@ -2,18 +2,22 @@ import * as cheerio from 'cheerio';
 import chalk from 'chalk';
 import player from 'play-sound';
 import logger from '../../util/logger.js';
+import sayLib from '../../say.js';
 import fs from 'fs/promises';
 import path from 'path';
 const playerInstance = player({});
 import download from 'download';
-// console.log(chalk.blue('Hello world!'))
 
 /**
  * 播放声音
  * https://dict.youdao.com/dictvoice?audio=about&type=1 英
  * @param {string} word
  */
-async function say(word = "") {
+async function say(word = "", isChinese) {
+  if (isChinese) {
+    sayLib.say(word)
+    return
+  }
   let filename = `${word}.mp3`;
   const audioPath = `./logs/dict/voice/${filename}`;
 
@@ -61,7 +65,8 @@ parser.parse = function (isChinese, body, word) {
   // 第一行
   console.log(`™  ${chalk.white(word)}  ${chalk.hex('#bc3fbc')(phonetic)}  ${chalk.hex('#8c8c8c')(` ~  fanyi.youdao.com`)}`)
 
-  say(word)
+  say(word, isChinese)
+
   // 第二行
   console.log(phonetics.join(" "))
   if (isChinese) {
@@ -79,18 +84,22 @@ parser.parse = function (isChinese, body, word) {
     console.log()
     // phrase 短语
     let m1 = $('div#webPhrase > div.title').text();
-    console.log("\n", m1, "\n")
+    console.log("\n")
+    console.log(chalk.hex('#bc3fbc').bold(m1))
+    console.log("\n")
 
     $('div#webPhrase > p.wordGroup').each(function (i, elm) {
-      let _str = $(this).text().replace(/\s+/g, ' ')
-      console.log(_str)
+      let _str = $(this).text().replace(/\s+/g, ' ').trim()
+      console.log(chalk.blue(_str).trim())
       // console.log($(this).find("span.contentTitle > a").text())
       // console.log($(this).find("span.contentTitle > a").attr("href"))
       // console.log($(this).html())
     })
 
     // 词组短语
-    console.log("\n词组短语\n")
+    console.log('\n')
+    console.log(chalk.hex('#bc3fbc').bold("词组短语"))
+    console.log('\n')
     $('#bilingual ul li').find('p').each(function (i, elm) {
       if ($(this).attr('class') !== 'example-via') {
         sentenceSample += $(this).text().trim() + '\n'
