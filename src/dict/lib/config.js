@@ -8,7 +8,7 @@ const config = {
 	spinner: conf.get('spinner'),
 	color: conf.get('color'),
 	getURL: function (word) {
-		return isChinese(word) ? 'https://dict.youdao.com/w/eng/' : 'https://dict.youdao.com/w/';
+		return isChinese(word) ? `https://dict.youdao.com/w/${word}#keyfrom=dict2.top` : 'https://dict.youdao.com/w/';
 	}
 };
 
