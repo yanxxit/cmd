@@ -116,11 +116,21 @@ async function generateLearningHTML(outputPath) {
   }
 }
 
+async function generateLearningHTMLWithEJS(templatePath) {
+  try {
+    const exportPath = await History.generateHTMLWithEJS(undefined, templatePath);
+    console.log(`\n使用 EJS 模板学习记录已成功生成为 HTML 文件：${exportPath}`);
+  } catch (error) {
+    console.error('使用 EJS 模板生成 HTML 学习记录失败:', error.message);
+  }
+}
+
 export default {
   fanyi,
   getHistory,
   exportHistory,
   generateLearningHistory,
-  generateLearningHTML
+  generateLearningHTML,
+  generateLearningHTMLWithEJS
 }
 

@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import ejs from 'ejs';
+import { openURL } from '../../open.js';
 
 // 获取当前文件所在目录路径
 const __filename = fileURLToPath(import.meta.url);
@@ -433,6 +435,15 @@ async function generateHTML(history, outputPath) {
     // 写入 HTML 文件
     await fs.promises.writeFile(exportPath, htmlContent);
     
+    // 自动打开网页
+    try {
+        const absolutePath = path.resolve(exportPath);
+        await openURL(absolutePath);
+        console.log('已自动打开生成的网页');
+    } catch (error) {
+        console.log('自动打开网页失败，您可以手动打开文件：', exportPath);
+    }
+    
     return exportPath;
   } catch (error) {
     console.error('生成 HTML 学习记录失败:', error.message);
@@ -440,7 +451,67 @@ async function generateHTML(history, outputPath) {
   }
 }
 
+/**
+ * 使用 EJS 模板引擎生成 HTML 文件记录学习经历
+ * @param {Array} history - 历史记录数组
+ * @param {string} outputPath - 输出文件路径，默认 logs/dict/learning-history.html
+ * @param {string} templatePath - 模板文件路径，默认 src/dict/templates/dict.ejs
+ * @returns {Promise<string>} 生成成功的文件路径
+ */
+async function generateHTMLWithEJS(history, outputPath, templatePath) {
+  try {
+    // 按创建时间倒序排序
+    history.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // 默认输出路径
+    const defaultPath = path.join(historyDir, 'learning-history.html');
+    const exportPath = outputPath || defaultPath;
+    
+    // 默认模板路径
+    const defaultTemplatePath = path.join(__dirname, '../templates/dict.ejs');
+    const usedTemplatePath = templatePath || defaultTemplatePath;
+    
+    // 确保目录存在
+    const exportDir = path.dirname(exportPath);
+    await fs.promises.mkdir(exportDir, { recursive: true });
+    
+    // 按日期分组
+    const historyByDate = {};
+    history.forEach(item => {
+      const date = new Date(item.timestamp).toLocaleDateString();
+      if (!historyByDate[date]) {
+        historyByDate[date] = [];
+      }
+      historyByDate[date].push(item);
+    });
+    
+    // 渲染 EJS 模板
+    const htmlContent = await ejs.renderFile(usedTemplatePath, {
+      historyByDate,
+      history
+    });
+    
+    // 写入 HTML 文件
+    await fs.promises.writeFile(exportPath, htmlContent);
+    
+    // 自动打开网页
+    try {
+        const absolutePath = path.resolve(exportPath);
+        await openURL(absolutePath);
+        console.log('已自动打开生成的网页');
+    } catch (error) {
+        console.log('自动打开网页失败，您可以手动打开文件：', exportPath);
+    }
+    
+    return exportPath;
+  } catch (error) {
+    console.error('使用 EJS 模板生成 HTML 学习记录失败:', error.message);
+    throw error;
+  }
+}
+
 export default {
   generateMarkdown,
-  generateHTML
+  generateHTML,
+  generateHTMLWithEJS
 };

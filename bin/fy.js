@@ -8,10 +8,11 @@ program
     .description('翻译工具')
     .arguments('[question]')
     .option('-n, --no-cache', '跳过缓存，重新查询')
-    .option('-h, --history [days]', '查询最近几天的历史记录，默认7天')
+    .option('-d, --day [days]', '查询最近几天的历史记录，默认7天')
     .option('-e, --export [path]', '导出历史记录到JSON文件，默认logs/dict/history.json')
     .option('-m, --markdown [path]', '生成学习记录Markdown文件，默认logs/dict/learning-history.md')
     .option('-t, --html [path]', '生成学习记录HTML文件，默认logs/dict/learning-history.html')
+    .option('-j, --ejs [template]', '使用EJS模板引擎生成HTML文件，默认模板为dict.ejs')
     .action((question) => {
         program.question = question;
     });
@@ -21,12 +22,12 @@ async function main() {
     program.parse(process.argv);
 
     // 获取用户问题
-    const userQuestion = program.question || "";
+    const userQuestion = (program.question || "").trim();
     const options = program.opts();
-    
-    if (options.history !== undefined) {
+
+    if (options.day !== undefined) {
         // 查询历史记录
-        const days = options.history === true ? 7 : parseInt(options.history) || 7;
+        const days = options.day === true ? 7 : parseInt(options.day) || 7;
         await dict.getHistory(days);
     } else if (options.export !== undefined) {
         // 导出历史记录
@@ -40,9 +41,15 @@ async function main() {
         // 生成HTML学习记录
         const htmlPath = options.html === true ? undefined : options.html;
         await dict.generateLearningHTML(htmlPath);
+    } else if (options.ejs !== undefined) {
+        // 使用EJS模板引擎生成HTML学习记录
+        const templatePath = options.ejs === true ? undefined : options.ejs;
+        await dict.generateLearningHTMLWithEJS(templatePath);
     } else {
-        // 执行翻译
-        await dict.fanyi(userQuestion, options.noCache);
+        if (userQuestion) {
+            // 执行翻译
+            await dict.fanyi(userQuestion, options.noCache);
+        }
     }
 }
 

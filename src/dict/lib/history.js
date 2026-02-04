@@ -199,6 +199,28 @@ async function generateHTML(outputPath) {
   }
 }
 
+/**
+ * 使用 EJS 模板引擎生成 HTML 文件记录学习经历
+ * @param {string} outputPath - 输出文件路径，默认 logs/dict/learning-history.html
+ * @param {string} templatePath - 模板文件路径，默认 src/dict/templates/dict.ejs
+ * @returns {Promise<string>} 生成成功的文件路径
+ */
+async function generateHTMLWithEJS(outputPath, templatePath) {
+  const database = await initDB();
+  const history = [];
+  
+  try {
+    for await (const [key, value] of database.iterator()) {
+      history.push(value);
+    }
+    
+    return await Generators.generateHTMLWithEJS(history, outputPath, templatePath);
+  } catch (error) {
+    console.error('使用 EJS 模板生成 HTML 学习记录失败:', error.message);
+    throw error;
+  }
+}
+
 export default {
   readHistory,
   writeHistory,
@@ -206,5 +228,6 @@ export default {
   closeDB,
   exportToJSON,
   generateMarkdown,
-  generateHTML
+  generateHTML,
+  generateHTMLWithEJS
 };

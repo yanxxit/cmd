@@ -1,4 +1,4 @@
-import History from './src/dict/lib/history.js';
+import History from '../src/dict/lib/history.js';
 
 async function testGenerators() {
   try {
