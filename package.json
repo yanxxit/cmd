@@ -15,7 +15,8 @@
     "x-cmd": "bin/command.js",
     "x-md-view": "bin/md-view.js",
     "x-md-browser": "bin/md-browser.js",
-    "x-clean-node": "bin/clean-node.js"
+    "x-clean-node": "bin/clean-node.js",
+    "x-ls-size": "bin/ls-size.js"
   },
   "scripts": {
     "clear": "npm unlink",
