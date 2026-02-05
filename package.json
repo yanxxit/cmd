@@ -14,7 +14,8 @@
     "x-ds": "bin/ds.js",
     "x-cmd": "bin/command.js",
     "x-md-view": "bin/md-view.js",
-    "x-md-browser": "bin/md-browser.js"
+    "x-md-browser": "bin/md-browser.js",
+    "x-clean-node": "bin/clean-node.js"
   },
   "scripts": {
     "clear": "npm unlink",
