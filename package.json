@@ -1,6 +1,6 @@
 {
   "name": "it-cmd",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "cmd tools ",
   "type": "module",
   "main": "index.js",
@@ -16,7 +16,8 @@
     "x-md-view": "bin/md-view.js",
     "x-md-browser": "bin/md-browser.js",
     "x-clean-node": "bin/clean-node.js",
-    "x-ls-size": "bin/ls-size.js"
+    "x-ls-size": "bin/ls-size.js",
+    "x-ls-size-fast": "bin/ls-size-fast.js"
   },
   "scripts": {
     "clear": "npm unlink",

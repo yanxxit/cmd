@@ -108,15 +108,19 @@ async function main() {
             updateInterval = setInterval(() => {
                 if (isProcessing) {
                     const elapsedTime = Math.floor((Date.now() - fileStartTime) / 1000);
-                    process.stdout.clearLine();
-                    process.stdout.cursorTo(0);
+                    if (process.stdout.clearLine) {
+                        process.stdout.clearLine();
+                        process.stdout.cursorTo(0);
+                    }
                     process.stdout.write(`${file} 查询中 ${elapsedTime}s`);
                 }
             }, 1000);
-            
+
             // 显示初始状态
-            process.stdout.clearLine();
-            process.stdout.cursorTo(0);
+            if (process.stdout.clearLine) {
+                process.stdout.clearLine();
+                process.stdout.cursorTo(0);
+            }
             process.stdout.write(`${file} 查询中 0s`);
             
             // 计算大小
