@@ -87,10 +87,12 @@ async function main() {
     
     const options = program.opts();
     const directory = options.dir || process.cwd();
+    const number = options.number;
     
     try {
         // 读取目录下的文件和子目录
         const files = await readdir(directory);
+        const items = [];
         
         console.log(chalk.blue(`📁 目录: ${directory}`));
         console.log(chalk.blue('='.repeat(80)));
@@ -118,8 +120,9 @@ async function main() {
             process.stdout.write(`${file} 查询中 0s`);
             
             // 计算大小
+            let size = 0;
             try {
-                await getSize(filePath);
+                size = await getSize(filePath);
             } catch (error) {
                 // 忽略无权限的错误
                 if (error.message !== 'EACCES') {
@@ -129,13 +132,32 @@ async function main() {
                 // 停止处理
                 isProcessing = false;
                 clearInterval(updateInterval);
+                // 存储结果
+                items.push({
+                    name: file,
+                    size: size,
+                    formattedSize: formatSize(size)
+                });
             }
         }
         
-        // 确保最后一行输出完成
-        process.stdout.write('\n');
+        // 按大小倒序排序
+        items.sort((a, b) => b.size - a.size);
+        
+        // 限制展示数量
+        const displayItems = number ? items.slice(0, number) : items;
+        
+        // 显示最终结果
         console.log(chalk.blue('='.repeat(80)));
-        console.log(chalk.green('✅ 处理完成'));
+        console.log(chalk.blue('排序后的结果:'));
+        console.log(chalk.blue('='.repeat(80)));
+        
+        for (const item of displayItems) {
+            console.log(`${item.formattedSize}    ${item.name}`);
+        }
+        
+        console.log(chalk.blue('='.repeat(80)));
+        console.log(chalk.green(`✅ 处理完成，共 ${items.length} 项`));
         
     } catch (error) {
         console.error(chalk.red('❌ 错误: 执行失败。'));
