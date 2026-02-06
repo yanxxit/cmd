@@ -115,6 +115,8 @@ async function getAvailableRepoUrl(repo, mirror) {
         return `https://kkgithub.com/${parsed.owner}/${parsed.repo}`;
       } else if (mirror === 'ghproxy') {
         return `https://ghproxy.com/github.com/${parsed.owner}/${parsed.repo}`;
+      } else if (mirror === 'gitee') {
+        return `https://gitee.com/mirrors/${parsed.repo}`;
       } else if (mirror === 'ghapi') {
         return `https://gh.api.99988866.xyz/https://github.com/${parsed.owner}/${parsed.repo}`;
       } else if (mirror === 'gitclone') {
@@ -135,6 +137,15 @@ async function getAvailableRepoUrl(repo, mirror) {
     
     // GitHub 不可访问，尝试镜像站点
     console.log('GitHub 不可访问，尝试使用镜像站点...');
+    
+    // 尝试使用 Gitee 镜像（优先级最高，仅支持部分热门项目）
+    console.log('尝试使用 Gitee 镜像...');
+    const giteeUrl = `https://gitee.com/mirrors/${parsed.repo}`;
+    const isGiteeAccessible = await checkNetwork('https://gitee.com');
+    if (isGiteeAccessible) {
+      console.log('使用 Gitee 镜像...');
+      return giteeUrl;
+    }
     
     // 构建镜像站点 URL
     const kkgithubUrl = `https://kkgithub.com/${parsed.owner}/${parsed.repo}`;
@@ -254,7 +265,7 @@ program
   .option('-b, --branch <branch>', 'Clone a specific branch')
   .option('--single-branch', 'Clone only the history leading to the tip of a single branch')
   .option('-d, --depth <depth>', 'Create a shallow clone with a history truncated to the specified number of commits')
-  .option('--mirror <mirror>', 'Specify mirror site to use (kkgithub, ghproxy, ghapi, gitclone, yumenaka or ghproxynet)', ['kkgithub', 'ghproxy', 'ghapi', 'gitclone', 'yumenaka', 'ghproxynet'])
+  .option('--mirror <mirror>', 'Specify mirror site to use (kkgithub, ghproxy, gitee, ghapi, gitclone, yumenaka or ghproxynet)', ['kkgithub', 'ghproxy', 'gitee', 'ghapi', 'gitclone', 'yumenaka', 'ghproxynet'])
   .action(async (repository, destination, options) => {
     try {
       // 检查是否安装了 git

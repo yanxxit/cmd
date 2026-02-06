@@ -28,11 +28,14 @@ node.js 开发常用的命令行工具，日常使用。
 - [ ] skill 下载
 - [ ] 是否要集成 python 相关脚本
 - [ ] 校验网络，测试网速？
-- [ ] github 代码加速下载
+- [x] github 代码加速下载
     - [x] 使用 git clone --depth 1 只克隆最新的提交，而不是完整的历史记录。
     - [x] git clone时，检查 github 网络，如果无法访问github 时，则切换到其他镜像站点。
     - [x] 优先尝试 https://kgithub.com 和 https://ghproxy.com/github.com 方案
-    - [ ] 推荐方案：使用 giteee 或者 gitcode
+    - [x] 推荐方案：使用 giteee 或者 gitcode
+    - [x] https://gitee.com/organizations/mirrors/projects
+    - [x] https://gitee.com/mirrors/everything-claude-code
+- [ ] github Release / ZIP / Raw 文件 文件下载
 - [ ] 开发环境，下载并安装，并统一配置。先从配置入手。
 - [x] 实现命令行的 markdown 查看器
 - [x] 实现命令行使用浏览器方式打开 markdown文件
