@@ -5,6 +5,7 @@
   "type": "module",
   "main": "index.js",
   "bin": {
+    "it-cmd": "bin/command.js",
     "x-git-clone": "bin/git-clone.js",
     "x-git-sparse": "bin/git-sparse.js",
     "x-ask": "bin/ask.js",
@@ -17,7 +18,9 @@
     "x-md-browser": "bin/md-browser.js",
     "x-clean-node": "bin/clean-node.js",
     "x-ls-size": "bin/ls-size.js",
-    "x-ls-size-fast": "bin/ls-size-fast.js"
+    "x-ls-size-fast": "bin/ls-size-fast.js",
+    "x-static": "bin/static.js",
+    "x-file-viewer": "bin/static.js"
   },
   "scripts": {
     "clear": "npm unlink",
@@ -41,6 +44,7 @@
     "ejs": "^3.1.10",
     "express": "^4.17.1",
     "figlet": "^1.10.0",
+    "formidable": "^3.5.0",
     "http-proxy-middleware": "^2.0.1",
     "is-chinese": "^2.0.0",
     "js-pinyin": "^0.2.7",

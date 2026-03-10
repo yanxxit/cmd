@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📁 本地文件查看器</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📁</text></svg>">
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    // 配置 PDF.js worker
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="title">
+          <span class="logo">📁</span>
+          <span>本地文件查看器</span>
+        </h1>
+      </div>
+      <div class="header-right">
+        <button id="themeToggle" class="btn btn-icon" title="切换主题">
+          <span class="icon">🌙</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 搜索栏 -->
+    <div class="search-bar">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="搜索文件名 (Ctrl+F) 或按 Enter 搜索代码内容 (Ctrl+Shift+F)..."
+          autocomplete="off"
+        >
+        <button id="clearSearch" class="btn btn-icon search-clear" title="清除搜索">
+          <span class="icon">✕</span>
+        </button>
+      </div>
+      <div class="search-options">
+        <button id="searchModeToggle" class="btn btn-sm" title="切换搜索模式">
+          <span class="icon">📄</span>
+          <span id="searchModeText">文件名</span>
+        </button>
+        <label class="search-option">
+          <input type="checkbox" id="searchSubdir" checked>
+          <span>子目录</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 代码搜索选项 -->
+    <div class="code-search-options hidden" id="codeSearchOptions">
+      <label class="search-option">
+        <input type="checkbox" id="searchCaseSensitive">
+        <span>区分大小写</span>
+      </label>
+      <label class="search-option">
+        <input type="checkbox" id="searchWholeWord" checked>
+        <span>全字匹配</span>
+      </label>
+      <label class="search-option">
+        <input type="checkbox" id="searchUseRegex">
+        <span>正则表达式</span>
+      </label>
+    </div>
+
+    <!-- 路径导航 -->
+    <div class="breadcrumb-bar">
+      <div class="breadcrumb" id="breadcrumb">
+        <!-- 动态生成 -->
+      </div>
+      <button id="backBtn" class="btn btn-back" title="返回上级" disabled>
+        <span class="icon">↑</span>
+        <span>返回</span>
+      </button>
+    </div>
+
+    <!-- 当前路径显示 -->
+    <div class="current-path">
+      <span class="icon">📂</span>
+      <span id="currentPathText" class="path-text">加载中...</span>
+      <button id="uploadBtn" class="btn btn-primary btn-sm" title="上传文件">
+        <span class="icon">⬆️</span>
+        <span>上传</span>
+      </button>
+    </div>
+
+    <!-- 拖拽上传区域 -->
+    <div id="dropZone" class="drop-zone hidden">
+      <div class="drop-zone-content">
+        <span class="drop-zone-icon">📥</span>
+        <h3>拖拽文件到此处上传</h3>
+        <p>支持多文件拖拽上传，最大 100MB/文件</p>
+      </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="file-list" id="fileList">
+      <!-- 动态生成 -->
+    </div>
+
+    <!-- 上传进度 -->
+    <div id="uploadProgress" class="upload-progress hidden">
+      <div class="upload-progress-header">
+        <span>📤 上传中...</span>
+        <button id="cancelUpload" class="btn btn-icon btn-sm">
+          <span class="icon">✕</span>
+        </button>
+      </div>
+      <div class="progress-bar">
+        <div id="progressBar" class="progress-bar-fill" style="width: 0%"></div>
+      </div>
+      <div id="progressInfo" class="progress-info"></div>
+    </div>
+
+    <!-- 搜索结果 -->
+    <div class="search-results hidden" id="searchResults">
+      <div class="search-results-header">
+        <h3>🔍 搜索结果</h3>
+        <div class="search-actions">
+          <button id="switchSearchType" class="btn btn-sm btn-back">
+            <span class="icon">🔄</span>
+            <span id="switchSearchText">切换到代码搜索</span>
+          </button>
+          <button id="closeSearch" class="btn btn-back btn-sm">
+            <span class="icon">✕</span>
+            <span>关闭</span>
+          </button>
+        </div>
+      </div>
+      <div class="search-info" id="searchInfo"></div>
+      <div class="file-list" id="searchResultsList"></div>
+    </div>
+
+    <!-- 代码搜索结果 -->
+    <div class="code-search-results hidden" id="codeSearchResults">
+      <div class="search-results-header">
+        <h3>💻 代码搜索结果</h3>
+        <div class="search-actions">
+          <button id="switchToFileSearch" class="btn btn-sm btn-back">
+            <span class="icon">🔄</span>
+            <span>切换到文件名搜索</span>
+          </button>
+          <button id="closeCodeSearch" class="btn btn-back btn-sm">
+            <span class="icon">✕</span>
+            <span>关闭</span>
+          </button>
+        </div>
+      </div>
+      <div class="search-info" id="codeSearchInfo"></div>
+      <div class="code-results-list" id="codeSearchResultsList"></div>
+    </div>
+
+    <!-- 加载状态 -->
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <span>加载中...</span>
+    </div>
+
+    <!-- 错误提示 -->
+    <div id="error" class="error hidden">
+      <span class="error-icon">⚠️</span>
+      <span id="errorText"></span>
+    </div>
+
+    <!-- 空状态 -->
+    <div id="empty" class="empty hidden">
+      <span class="empty-icon">📂</span>
+      <p>此目录为空</p>
+    </div>
+  </div>
+
+  <!-- 文件内容模态框 -->
+  <div id="fileModal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle" class="modal-title">文件预览</h2>
+        <div class="modal-actions">
+          <button id="downloadBtn" class="btn btn-primary btn-sm" title="下载文件">
+            <span class="icon">⬇️</span>
+            <span>下载</span>
+          </button>
+          <button id="closeModal" class="btn btn-icon" title="关闭">
+            <span class="icon">✕</span>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <!-- 文本内容 -->
+        <pre id="fileContent" class="file-content hidden"><code id="codeContent"></code></pre>
+        <!-- 图片预览 -->
+        <div id="imagePreview" class="media-preview hidden">
+          <img id="imageElement" src="" alt="图片预览">
+        </div>
+        <!-- 视频预览 -->
+        <div id="videoPreview" class="media-preview hidden">
+          <video id="videoElement" controls preload="metadata">
+            <source src="" type="video/mp4">
+            您的浏览器不支持视频播放
+          </video>
+        </div>
+        <!-- 音频预览 -->
+        <div id="audioPreview" class="media-preview hidden">
+          <audio id="audioElement" controls preload="metadata">
+            <source src="" type="audio/mpeg">
+            您的浏览器不支持音频播放
+          </audio>
+        </div>
+        <!-- PDF 预览 -->
+        <div id="pdfPreview" class="pdf-preview hidden">
+          <div class="pdf-toolbar" id="pdfToolbar">
+            <button id="pdfZoomOut" class="pdf-toolbar-btn" title="缩小">🔍-</button>
+            <span id="pdfZoomLevel" class="pdf-zoom-level">100%</span>
+            <button id="pdfZoomIn" class="pdf-toolbar-btn" title="放大">🔍+</button>
+            <span class="pdf-divider"></span>
+            <button id="pdfPrev" class="pdf-toolbar-btn" title="上一页">◀</button>
+            <span id="pdfPageInfo" class="pdf-page-info">1 / 1</span>
+            <button id="pdfNext" class="pdf-toolbar-btn" title="下一页">▶</button>
+            <span class="pdf-divider"></span>
+            <button id="pdfFit" class="pdf-toolbar-btn" title="适应页面">📄</button>
+            <button id="pdfDownload" class="pdf-toolbar-btn" title="下载">⬇️</button>
+          </div>
+          <div class="pdf-container" id="pdfContainer">
+            <canvas id="pdfCanvas"></canvas>
+          </div>
+        </div>
+        <!-- 二进制文件信息 -->
+        <div id="binaryInfo" class="binary-info hidden">
+          <div class="binary-header">
+            <span class="binary-icon">📦</span>
+            <span class="binary-title">二进制文件</span>
+          </div>
+          <div class="binary-details" id="binaryDetails"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="file-info">
+          <span id="fileSize"></span>
+          <span id="fileModified"></span>
+          <span id="fileType"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 隐藏的文件输入 -->
+  <input type="file" id="fileInput" multiple style="display: none;">
+
+  <script src="app.js"></script>
+</body>
+</html>

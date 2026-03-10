@@ -7,7 +7,7 @@ import server from "../src/http-server/static.js";
 
 program
     .arguments('[dir]')
-    .description("本地静态文件")
+    .description("本地静态文件查看器")
     .option('-p, --port [port=3000]', '端口号')
     .option('-P, --proxy [proxy]', '代理地址')
     .option('-c, --config [config]', '本地代理配置文件 [{"path":"iapi","redirect":"http://172.16.1.102:7001"}]')
@@ -22,7 +22,6 @@ program
                 option.config = path.join(process.cwd(), option.config)
             }
         }
-        console.log(dir, option)
         option.dir = dir;
         option.port = option.port || 3000;
         program.params = option

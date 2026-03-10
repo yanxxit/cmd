@@ -5,9 +5,12 @@ import http from 'http';
 import morgan from 'morgan';
 import proxy from 'http-proxy-middleware';
 import { fileURLToPath } from 'url';
+import fileViewerRouter from './file-viewer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// 项目根目录（static.js 在 src/http-server 目录下）
+const ROOT_DIR = path.join(__dirname, '../..');
 
 export default function (options = { port: 3000, dir: __dirname }) {
   const app = express();
@@ -15,9 +18,28 @@ export default function (options = { port: 3000, dir: __dirname }) {
    * Get port from environment and store in Express.
    */
   app.set('port', options.port);
+
+  // 设置文件查看器根目录
+  app.set('fileViewerRoot', options.dir);
+
   app.use(morgan('tiny'))
+  
+  // 挂载文件查看器路由（优先于静态资源）
+  app.use('/api', fileViewerRouter);
+  
+  // 文件查看器前端页面（优先于用户目录静态资源）
+  const fileViewerDir = path.join(ROOT_DIR, 'public/file-viewer');
+  app.use('/file-viewer', express.static(fileViewerDir));
+  
+  // 用户目录静态资源
   app.use(express.static(options.dir));
+  
   app.use(favicon(__dirname + '../../../favicon.ico'));
+  
+  // 重定向根路径到文件查看器
+  app.get('/', (req, res) => {
+    res.redirect('/file-viewer/');
+  });
 
   // xtools static .\public\ -P https://condejs.org
   // xtools static .\public\ -P iapi>>http://172.16.1.102:7001
