@@ -17,7 +17,14 @@ const state = {
   confirmCallback: null,
   // 缓存相关
   fileCache: new Map(), // 文件列表缓存
-  cacheMaxAge: 5 * 60 * 1000 // 缓存有效期 5 分钟
+  cacheMaxAge: 5 * 60 * 1000, // 缓存有效期 5 分钟
+  // 键盘导航相关
+  selectedIndex: -1, // 当前选中的文件索引
+  currentItems: [], // 当前文件列表项
+  // 筛选和排序相关
+  filterType: 'all', // 筛选类型
+  sortType: 'name', // 排序类型
+  sortOrderAsc: true // 升序/降序
 };
 
 // DOM 元素
@@ -48,6 +55,10 @@ const elements = {
   clearSearch: document.getElementById('clearSearch'),
   closeSearch: document.getElementById('closeSearch'),
   searchSubdir: document.getElementById('searchSubdir'),
+  // 筛选和排序相关元素
+  filterType: document.getElementById('filterType'),
+  sortType: document.getElementById('sortType'),
+  sortOrder: document.getElementById('sortOrder'),
   // 代码搜索相关元素
   searchModeToggle: document.getElementById('searchModeToggle'),
   searchModeText: document.getElementById('searchModeText'),
@@ -168,6 +179,11 @@ function init() {
 
   // 监听键盘事件
   document.addEventListener('keydown', (e) => {
+    // 如果模态框打开，不处理文件列表键盘事件
+    const isModalOpen = !elements.fileModal.classList.contains('hidden');
+    const isInputDialogOpen = !elements.inputDialog.classList.contains('hidden');
+    const isConfirmDialogOpen = !elements.confirmDialog.classList.contains('hidden');
+    
     if (e.key === 'Escape') {
       closeModal();
       if (state.isSearching) {
@@ -196,9 +212,70 @@ function init() {
       elements.fileInput.click();
     }
     // F 键切换全屏（在模态框打开时）
-    if (e.key === 'f' && !e.ctrlKey && !e.metaKey && !elements.fileModal.classList.contains('hidden')) {
+    if (e.key === 'f' && !e.ctrlKey && !e.metaKey && !isModalOpen) {
       e.preventDefault();
       toggleFullscreen();
+    }
+    
+    // 文件列表键盘导航（仅在搜索框未聚焦且模态框未打开时）
+    if (document.activeElement !== elements.searchInput && !isModalOpen && !isInputDialogOpen && !isConfirmDialogOpen) {
+      // 方向键上
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (state.selectedIndex > 0) {
+          updateSelectedIndex(state.selectedIndex - 1);
+        }
+      }
+      // 方向键下
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (state.selectedIndex < state.currentItems.length - 1) {
+          updateSelectedIndex(state.selectedIndex + 1);
+        }
+      }
+      // Enter 键 - 打开文件/进入目录
+      if (e.key === 'Enter' && state.selectedIndex >= 0) {
+        e.preventDefault();
+        const selectedItem = state.currentItems[state.selectedIndex];
+        if (selectedItem) {
+          if (selectedItem.type === 'directory') {
+            loadFiles(selectedItem.path);
+          } else {
+            viewFile(selectedItem);
+          }
+        }
+      }
+      // Backspace 键 - 返回上级
+      if (e.key === 'Backspace' && !elements.backBtn.disabled) {
+        e.preventDefault();
+        goBack();
+      }
+      // Delete 键 - 删除文件
+      if (e.key === 'Delete' && state.selectedIndex >= 0) {
+        e.preventDefault();
+        const selectedItem = state.currentItems[state.selectedIndex];
+        if (selectedItem) {
+          const isDir = selectedItem.type === 'directory';
+          showConfirmDialog(
+            '确认删除',
+            `确定要删除${isDir ? '目录' : '文件'} "${selectedItem.name}" 吗？${isDir ? '\n\n注意：目录及其所有内容将被删除！' : ''}`,
+            async () => {
+              await deleteFile(selectedItem);
+              state.selectedIndex = -1;
+            }
+          );
+        }
+      }
+      // F2 键 - 重命名
+      if (e.key === 'F2' && state.selectedIndex >= 0) {
+        e.preventDefault();
+        const selectedItem = state.currentItems[state.selectedIndex];
+        if (selectedItem) {
+          showInputDialog('重命名', '请输入新名称', selectedItem.name, async (newName) => {
+            await renameFile(selectedItem, newName);
+          });
+        }
+      }
     }
   });
 
@@ -206,8 +283,80 @@ function init() {
   const params = new URLSearchParams(window.location.search);
   const initialPath = params.get('path') || '';
 
+  // 加载筛选和排序设置
+  loadFilterSettings();
+
   // 加载文件列表
   loadFiles(initialPath);
+}
+
+/**
+ * 加载筛选和排序设置
+ */
+function loadFilterSettings() {
+  // 从 localStorage 加载设置
+  const savedFilter = localStorage.getItem('fileViewerFilterType');
+  const savedSort = localStorage.getItem('fileViewerSortType');
+  const savedOrder = localStorage.getItem('fileViewerSortOrder');
+
+  if (savedFilter) {
+    state.filterType = savedFilter;
+    elements.filterType.value = savedFilter;
+  }
+
+  if (savedSort) {
+    state.sortType = savedSort;
+    elements.sortType.value = savedSort;
+  }
+
+  if (savedOrder) {
+    state.sortOrderAsc = savedOrder === 'asc';
+    elements.sortOrder.querySelector('.icon').textContent = state.sortOrderAsc ? '↑' : '↓';
+    elements.sortOrder.title = state.sortOrderAsc ? '升序' : '降序';
+  }
+
+  // 绑定事件
+  elements.filterType.addEventListener('change', (e) => {
+    state.filterType = e.target.value;
+    localStorage.setItem('fileViewerFilterType', e.target.value);
+    // 重新渲染文件列表
+    const currentPath = state.currentPath;
+    if (currentPath) {
+      // 从缓存或 API 获取数据后重新渲染
+      const cachedData = state.fileCache.get(currentPath || 'root');
+      if (cachedData) {
+        renderFileList(cachedData.data.items);
+      }
+    }
+  });
+
+  elements.sortType.addEventListener('change', (e) => {
+    state.sortType = e.target.value;
+    localStorage.setItem('fileViewerSortType', e.target.value);
+    // 重新渲染文件列表
+    const currentPath = state.currentPath;
+    if (currentPath) {
+      const cachedData = state.fileCache.get(currentPath || 'root');
+      if (cachedData) {
+        renderFileList(cachedData.data.items);
+      }
+    }
+  });
+
+  elements.sortOrder.addEventListener('click', () => {
+    state.sortOrderAsc = !state.sortOrderAsc;
+    localStorage.setItem('fileViewerSortOrder', state.sortOrderAsc ? 'asc' : 'desc');
+    elements.sortOrder.querySelector('.icon').textContent = state.sortOrderAsc ? '↑' : '↓';
+    elements.sortOrder.title = state.sortOrderAsc ? '升序' : '降序';
+    // 重新渲染文件列表
+    const currentPath = state.currentPath;
+    if (currentPath) {
+      const cachedData = state.fileCache.get(currentPath || 'root');
+      if (cachedData) {
+        renderFileList(cachedData.data.items);
+      }
+    }
+  });
 }
 
 /**
@@ -447,20 +596,96 @@ async function loadFiles(path = '') {
  */
 function renderFileList(items) {
   elements.fileList.innerHTML = '';
-  
-  if (items.length === 0) {
+
+  // 筛选和排序
+  let filteredItems = filterFiles(items);
+  filteredItems = sortFiles(filteredItems);
+
+  // 保存当前文件列表项
+  state.currentItems = filteredItems;
+  state.selectedIndex = -1; // 重置选中索引
+
+  if (filteredItems.length === 0) {
     elements.empty.classList.remove('hidden');
     elements.fileList.classList.add('hidden');
     return;
   }
-  
+
   elements.empty.classList.add('hidden');
   elements.fileList.classList.remove('hidden');
-  
-  for (const item of items) {
+
+  for (const item of filteredItems) {
     const fileItem = createFileItem(item);
     elements.fileList.appendChild(fileItem);
   }
+}
+
+/**
+ * 筛选文件
+ */
+function filterFiles(items) {
+  const filterType = state.filterType;
+  
+  if (filterType === 'all') {
+    return items;
+  }
+  
+  // 定义类型映射
+  const typeMap = {
+    'directory': ['directory'],
+    'image': ['image'],
+    'text': ['text', 'document'],
+    'code': ['text'], // 代码文件也是文本类型，需要额外判断
+    'media': ['video', 'audio'],
+    'archive': ['archive']
+  };
+  
+  const allowedTypes = typeMap[filterType] || [];
+  
+  return items.filter(item => {
+    if (allowedTypes.includes(item.type)) {
+      // 对于 code 类型，需要额外判断扩展名
+      if (filterType === 'code') {
+        const codeExts = ['.js', '.ts', '.jsx', '.tsx', '.vue', '.html', '.css', '.scss', '.less', '.py', '.java', '.c', '.cpp', '.go', '.rs', '.php', '.rb', '.sh', '.sql'];
+        const ext = item.name.substring(item.name.lastIndexOf('.')).toLowerCase();
+        return codeExts.includes(ext);
+      }
+      return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * 排序文件
+ */
+function sortFiles(items) {
+  const sortType = state.sortType;
+  const asc = state.sortOrderAsc;
+  const direction = asc ? 1 : -1;
+  
+  return [...items].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortType) {
+      case 'name':
+        comparison = a.name.localeCompare(b.name, 'zh');
+        break;
+      case 'size':
+        const aSize = a.size?.bytes || 0;
+        const bSize = b.size?.bytes || 0;
+        comparison = aSize - bSize;
+        break;
+      case 'date':
+        comparison = new Date(a.modified) - new Date(b.modified);
+        break;
+      case 'type':
+        comparison = a.type.localeCompare(b.type);
+        break;
+    }
+    
+    return comparison * direction;
+  });
 }
 
 /**
@@ -479,12 +704,104 @@ function createFileItem(item) {
       ${item.size ? `<span class="file-size">${item.size.formatted}</span>` : ''}
       <span class="file-date">${formatDate(item.modified)}</span>
     </div>
+    <div class="file-actions">
+      <button class="file-action-btn" title="下载" data-action="download">
+        <span>⬇️</span>
+      </button>
+      <button class="file-action-btn" title="重命名" data-action="rename">
+        <span>✏️</span>
+      </button>
+      <button class="file-action-btn" title="删除" data-action="delete">
+        <span>🗑️</span>
+      </button>
+    </div>
   `;
 
-  // 绑定点击事件
-  div.addEventListener('click', () => handleFileClick(item));
+  // 绑定点击事件（排除操作按钮区域）
+  div.addEventListener('click', (e) => {
+    if (e.target.closest('.file-actions')) {
+      return;
+    }
+    handleFileClick(item);
+  });
+  
+  // 绑定操作按钮事件
+  const actionBtns = div.querySelectorAll('.file-action-btn');
+  actionBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = btn.dataset.action;
+      handleFileAction(action, item);
+    });
+  });
+
+  // 绑定双击事件（打开文件）
+  div.addEventListener('dblclick', () => {
+    if (item.type === 'directory') {
+      loadFiles(item.path);
+    } else {
+      viewFile(item);
+    }
+  });
 
   return div;
+}
+
+/**
+ * 处理文件操作按钮点击
+ */
+async function handleFileAction(action, item) {
+  switch (action) {
+    case 'download':
+      downloadCurrentFileByItem(item);
+      break;
+    case 'rename':
+      showInputDialog('重命名', '请输入新名称', item.name, async (newName) => {
+        await renameFile(item, newName);
+      });
+      break;
+    case 'delete':
+      const isDir = item.type === 'directory';
+      showConfirmDialog(
+        '确认删除',
+        `确定要删除${isDir ? '目录' : '文件'} "${item.name}" 吗？${isDir ? '\n\n注意：目录及其所有内容将被删除！' : ''}`,
+        async () => {
+          await deleteFile(item);
+        }
+      );
+      break;
+  }
+}
+
+/**
+ * 下载指定文件
+ */
+function downloadCurrentFileByItem(item) {
+  const downloadUrl = `/api/file/download?path=${encodeURIComponent(item.path)}`;
+  window.open(downloadUrl, '_blank');
+}
+
+/**
+ * 更新选中状态
+ */
+function updateSelectedIndex(index) {
+  // 清除之前的选中状态
+  const previousSelected = elements.fileList.querySelector('.file-item-selected');
+  if (previousSelected) {
+    previousSelected.classList.remove('file-item-selected');
+  }
+  
+  // 设置新的选中状态
+  if (index >= 0 && index < state.currentItems.length) {
+    state.selectedIndex = index;
+    const items = elements.fileList.querySelectorAll('.file-item');
+    if (items[index]) {
+      items[index].classList.add('file-item-selected');
+      items[index].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  } else {
+    state.selectedIndex = -1;
+  }
 }
 
 /**

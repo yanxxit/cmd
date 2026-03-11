@@ -80,6 +80,34 @@
       </div>
     </div>
 
+    <!-- 文件筛选和排序栏 -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label class="filter-label">类型：</label>
+        <select id="filterType" class="filter-select">
+          <option value="all">全部</option>
+          <option value="directory">📁 文件夹</option>
+          <option value="image">🖼️ 图片</option>
+          <option value="text">📝 文档</option>
+          <option value="code">💻 代码</option>
+          <option value="media">🎬 媒体</option>
+          <option value="archive">📦 压缩包</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">排序：</label>
+        <select id="sortType" class="filter-select">
+          <option value="name">名称</option>
+          <option value="size">大小</option>
+          <option value="date">修改时间</option>
+          <option value="type">类型</option>
+        </select>
+        <button id="sortOrder" class="btn btn-icon btn-sm" title="升序">
+          <span class="icon">↑</span>
+        </button>
+      </div>
+    </div>
+
     <!-- 代码搜索选项 -->
     <div class="code-search-options hidden" id="codeSearchOptions">
       <label class="search-option">
