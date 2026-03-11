@@ -939,12 +939,12 @@ router.get('/file/meta', (req, res) => {
     const fileType = getFileType(fileName, stats);
     meta.fileType = fileType;
     meta.icon = getFileIcon(fileType);
-    
-    // 媒体文件额外信息
-    if (fileType === 'image' || fileType === 'video' || fileType === 'audio') {
-      meta.isMedia = true;
+
+    // 媒体文件和 PDF 额外信息
+    if (fileType === 'image' || fileType === 'video' || fileType === 'audio' || fileType === 'document') {
+      meta.isMedia = fileType === 'image' || fileType === 'video' || fileType === 'audio';
       meta.mimeType = getMimeType(ext);
-      
+
       // 图片尺寸信息
       if (fileType === 'image') {
         meta.mediaType = 'image';
@@ -955,6 +955,10 @@ router.get('/file/meta', (req, res) => {
       } else if (fileType === 'audio') {
         meta.mediaType = 'audio';
         meta.previewUrl = `/api/file/stream?path=${encodeURIComponent(safePathResult)}`;
+      } else if (fileType === 'document') {
+        // PDF 文档
+        meta.mediaType = 'document';
+        meta.previewUrl = `/api/file/preview?path=${encodeURIComponent(safePathResult)}`;
       }
     }
     
@@ -985,48 +989,53 @@ router.get('/file/meta', (req, res) => {
 
 /**
  * GET /api/file/preview
- * 获取文件预览（图片）
+ * 获取文件预览（图片/PDF）
  */
 router.get('/file/preview', (req, res) => {
   try {
     const rootDir = req.app.get('fileViewerRoot') || process.cwd();
     let requestedPath = req.query.path;
-    
+
     if (!requestedPath) {
       return res.status(400).json({
         success: false,
         error: '缺少文件路径参数'
       });
     }
-    
+
     // 如果是相对路径，转换为绝对路径
     if (!path.isAbsolute(requestedPath)) {
       requestedPath = path.join(rootDir, requestedPath);
     }
-    
+
     const safePathResult = safePath(requestedPath, rootDir);
-    
+
     if (!safePathResult) {
       return res.status(403).json({
         success: false,
         error: '禁止访问该文件'
       });
     }
-    
+
     if (!fs.existsSync(safePathResult)) {
       return res.status(404).json({
         success: false,
         error: '文件不存在'
       });
     }
-    
+
     const stats = fs.statSync(safePathResult);
     const ext = path.extname(requestedPath).toLowerCase();
-    
+
     // 设置正确的 Content-Type
     const mimeType = getMimeType(ext);
     res.setHeader('Content-Type', mimeType);
     
+    // 设置缓存控制（PDF 文件禁用缓存，确保最新内容）
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     // 流式传输文件
     const stream = fs.createReadStream(safePathResult);
     stream.pipe(res);
@@ -1277,39 +1286,47 @@ router.post('/file/upload', async (req, res) => {
  */
 router.post('/file/upload-to', async (req, res) => {
   const targetPath = req.query.path;
-  
+
   if (!targetPath) {
     return res.status(400).json({
       success: false,
       error: '缺少目标路径参数'
     });
   }
-  
+
   const rootDir = req.app.get('fileViewerRoot') || process.cwd();
-  
+
+  // 构建目标路径（统一使用绝对路径处理）
   let safeTargetPath;
-  if (!path.isAbsolute(targetPath)) {
-    safeTargetPath = path.join(rootDir, targetPath);
+  if (path.isAbsolute(targetPath)) {
+    // 如果是绝对路径，直接使用
+    safeTargetPath = path.resolve(targetPath);
   } else {
-    safeTargetPath = targetPath;
+    // 如果是相对路径，相对于 rootDir 构建
+    safeTargetPath = path.resolve(rootDir, targetPath);
   }
-  
+
+  // 安全检查：确保目标路径在 rootDir 内
   safeTargetPath = safePath(safeTargetPath, rootDir);
-  
+
   if (!safeTargetPath) {
+    console.error('上传失败：路径不安全', { targetPath, rootDir });
     return res.status(403).json({
       success: false,
       error: '禁止访问该路径'
     });
   }
-  
+
   if (!fs.existsSync(safeTargetPath)) {
+    console.error('上传失败：目标路径不存在', { safeTargetPath });
     return res.status(404).json({
       success: false,
       error: '目标路径不存在'
     });
   }
-  
+
+  console.log('文件上传：目标路径 =', safeTargetPath);
+
   try {
     let formidable;
     try {
@@ -1321,7 +1338,7 @@ router.post('/file/upload-to', async (req, res) => {
         error: '文件上传功能未安装依赖。请运行：npm install formidable'
       });
     }
-    
+
     const form = formidable({
       uploadDir: safeTargetPath,
       keepExtensions: true,
@@ -1340,14 +1357,17 @@ router.post('/file/upload-to', async (req, res) => {
 
       const uploadedFiles = [];
       const fileArray = files.file ? (Array.isArray(files.file) ? files.file : [files.file]) : [];
-      
+
+      console.log('上传文件数量:', fileArray.length);
+
       for (const file of fileArray) {
         try {
           const fileName = file.originalFilename || file.newFilename;
           const newPath = path.join(safeTargetPath, fileName);
-          
+
+          console.log('保存文件:', newPath);
           fs.renameSync(file.filepath, newPath);
-          
+
           const stats = fs.statSync(newPath);
           uploadedFiles.push({
             name: fileName,
@@ -1415,7 +1435,7 @@ router.post('/file/create-dir', (req, res) => {
   try {
     const newDirPath = path.join(safeTargetPath, dirName);
     fs.mkdirSync(newDirPath, { recursive: true });
-    
+
     res.json({
       success: true,
       data: {
@@ -1429,6 +1449,155 @@ router.post('/file/create-dir', (req, res) => {
     res.status(500).json({
       success: false,
       error: '创建目录失败：' + err.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/file
+ * 删除文件或空目录
+ */
+router.delete('/file', (req, res) => {
+  try {
+    const rootDir = req.app.get('fileViewerRoot') || process.cwd();
+    let requestedPath = req.query.path;
+
+    if (!requestedPath) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少文件路径参数'
+      });
+    }
+
+    // 如果是相对路径，转换为绝对路径
+    if (!path.isAbsolute(requestedPath)) {
+      requestedPath = path.join(rootDir, requestedPath);
+    }
+
+    const safePathResult = safePath(requestedPath, rootDir);
+
+    if (!safePathResult) {
+      return res.status(403).json({
+        success: false,
+        error: '禁止访问该路径'
+      });
+    }
+
+    if (!fs.existsSync(safePathResult)) {
+      return res.status(404).json({
+        success: false,
+        error: '文件不存在'
+      });
+    }
+
+    const stats = fs.statSync(safePathResult);
+
+    // 如果是目录，检查是否为空
+    if (stats.isDirectory()) {
+      const entries = fs.readdirSync(safePathResult);
+      if (entries.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: '无法删除非空目录，请先清空目录内容'
+        });
+      }
+    }
+
+    // 删除文件或目录
+    fs.rmSync(safePathResult, { recursive: true, force: true });
+
+    res.json({
+      success: true,
+      data: {
+        path: safePathResult,
+        relativePath: path.relative(rootDir, safePathResult),
+        deleted: true
+      }
+    });
+  } catch (err) {
+    console.error('删除文件失败:', err);
+    res.status(500).json({
+      success: false,
+      error: '删除失败：' + err.message
+    });
+  }
+});
+
+/**
+ * POST /api/file/rename
+ * 重命名文件或目录
+ */
+router.post('/file/rename', (req, res) => {
+  try {
+    const rootDir = req.app.get('fileViewerRoot') || process.cwd();
+    const oldPath = req.query.path;
+    const newName = req.query.name;
+
+    if (!oldPath || !newName) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少路径或新名称参数'
+      });
+    }
+
+    // 如果是相对路径，转换为绝对路径
+    let safeOldPath = !path.isAbsolute(oldPath) ? path.join(rootDir, oldPath) : oldPath;
+    safeOldPath = safePath(safeOldPath, rootDir);
+
+    if (!safeOldPath) {
+      return res.status(403).json({
+        success: false,
+        error: '禁止访问该路径'
+      });
+    }
+
+    if (!fs.existsSync(safeOldPath)) {
+      return res.status(404).json({
+        success: false,
+        error: '原路径不存在'
+      });
+    }
+
+    // 构建新路径
+    const parentDir = path.dirname(safeOldPath);
+    const safeNewPath = path.join(parentDir, newName);
+
+    // 检查新路径是否安全
+    const validatedNewPath = safePath(safeNewPath, rootDir);
+    if (!validatedNewPath) {
+      return res.status(403).json({
+        success: false,
+        error: '新路径不合法'
+      });
+    }
+
+    // 检查新名称是否已存在
+    if (fs.existsSync(safeNewPath)) {
+      return res.status(400).json({
+        success: false,
+        error: '新名称已存在'
+      });
+    }
+
+    // 重命名
+    fs.renameSync(safeOldPath, safeNewPath);
+
+    const stats = fs.statSync(safeNewPath);
+    res.json({
+      success: true,
+      data: {
+        oldPath: safeOldPath,
+        newPath: safeNewPath,
+        relativePath: path.relative(rootDir, safeNewPath),
+        name: newName,
+        isDirectory: stats.isDirectory()
+      }
+    });
+  } catch (err) {
+    console.error('重命名失败:', err);
+    res.status(500).json({
+      success: false,
+      error: '重命名失败：' + err.message
     });
   }
 });

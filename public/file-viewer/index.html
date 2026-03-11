@@ -14,6 +14,27 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
   </script>
+  <!-- Prism.js 代码高亮 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" id="prism-light-theme">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" id="prism-dark-theme" disabled>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-vue.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-scss.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-html.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -188,6 +209,9 @@
       <div class="modal-header">
         <h2 id="modalTitle" class="modal-title">文件预览</h2>
         <div class="modal-actions">
+          <button id="fullscreenBtn" class="btn btn-icon" title="全屏 (F)" data-fullscreen="false">
+            <span class="icon">⛶</span>
+          </button>
           <button id="downloadBtn" class="btn btn-primary btn-sm" title="下载文件">
             <span class="icon">⬇️</span>
             <span>下载</span>
@@ -199,7 +223,7 @@
       </div>
       <div class="modal-body">
         <!-- 文本内容 -->
-        <pre id="fileContent" class="file-content hidden"><code id="codeContent"></code></pre>
+        <pre id="fileContent" class="file-content hidden"><code id="codeContent" class="language-plaintext"></code></pre>
         <!-- 图片预览 -->
         <div id="imagePreview" class="media-preview hidden">
           <img id="imageElement" src="" alt="图片预览">
@@ -257,6 +281,65 @@
 
   <!-- 隐藏的文件输入 -->
   <input type="file" id="fileInput" multiple style="display: none;">
+
+  <!-- 右键菜单 -->
+  <div id="contextMenu" class="context-menu hidden">
+    <div class="context-menu-item" data-action="open">
+      <span class="context-menu-icon">📂</span>
+      <span>打开</span>
+    </div>
+    <div class="context-menu-item" data-action="rename">
+      <span class="context-menu-icon">✏️</span>
+      <span>重命名</span>
+    </div>
+    <div class="context-menu-item" data-action="delete">
+      <span class="context-menu-icon">🗑️</span>
+      <span>删除</span>
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" data-action="new-file">
+      <span class="context-menu-icon">📄</span>
+      <span>新建文件</span>
+    </div>
+    <div class="context-menu-item" data-action="new-dir">
+      <span class="context-menu-icon">📁</span>
+      <span>新建文件夹</span>
+    </div>
+  </div>
+
+  <!-- 确认对话框 -->
+  <div id="confirmDialog" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2 id="confirmTitle" class="modal-title">确认操作</h2>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <p id="confirmMessage" style="margin: 0;">确定要执行此操作吗？</p>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button id="confirmCancel" class="btn">取消</button>
+        <button id="confirmOk" class="btn btn-primary">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 输入对话框 -->
+  <div id="inputDialog" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2 id="inputTitle" class="modal-title">输入名称</h2>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <input type="text" id="inputField" class="search-input" placeholder="请输入名称" style="width: 100%;">
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button id="inputCancel" class="btn">取消</button>
+        <button id="inputOk" class="btn btn-primary">确定</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

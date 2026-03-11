@@ -11,7 +11,13 @@ const state = {
   isSearching: false,
   searchResults: [],
   searchMode: 'filename', // 'filename' or 'code'
-  codeSearchResults: []
+  codeSearchResults: [],
+  // 文件管理相关状态
+  contextMenuItem: null,
+  confirmCallback: null,
+  // 缓存相关
+  fileCache: new Map(), // 文件列表缓存
+  cacheMaxAge: 5 * 60 * 1000 // 缓存有效期 5 分钟
 };
 
 // DOM 元素
@@ -31,6 +37,7 @@ const elements = {
   fileContent: document.getElementById('fileContent'),
   closeModal: document.getElementById('closeModal'),
   downloadBtn: document.getElementById('downloadBtn'),
+  fullscreenBtn: document.getElementById('fullscreenBtn'),
   fileSize: document.getElementById('fileSize'),
   fileModified: document.getElementById('fileModified'),
   // 搜索相关元素
@@ -85,7 +92,19 @@ const elements = {
   pdfNext: document.getElementById('pdfNext'),
   pdfPageInfo: document.getElementById('pdfPageInfo'),
   pdfFit: document.getElementById('pdfFit'),
-  pdfDownload: document.getElementById('pdfDownload')
+  pdfDownload: document.getElementById('pdfDownload'),
+  // 文件管理相关元素
+  contextMenu: document.getElementById('contextMenu'),
+  confirmDialog: document.getElementById('confirmDialog'),
+  confirmTitle: document.getElementById('confirmTitle'),
+  confirmMessage: document.getElementById('confirmMessage'),
+  confirmCancel: document.getElementById('confirmCancel'),
+  confirmOk: document.getElementById('confirmOk'),
+  inputDialog: document.getElementById('inputDialog'),
+  inputTitle: document.getElementById('inputTitle'),
+  inputField: document.getElementById('inputField'),
+  inputCancel: document.getElementById('inputCancel'),
+  inputOk: document.getElementById('inputOk')
 };
 
 // PDF 相关状态
@@ -109,6 +128,7 @@ function init() {
   elements.themeToggle.addEventListener('click', toggleTheme);
   elements.closeModal.addEventListener('click', closeModal);
   elements.downloadBtn.addEventListener('click', downloadCurrentFile);
+  elements.fullscreenBtn.addEventListener('click', toggleFullscreen);
   elements.fileModal.querySelector('.modal-overlay').addEventListener('click', closeModal);
 
   // 搜索相关事件
@@ -143,6 +163,9 @@ function init() {
   // 上传相关事件
   initUploadHandlers();
 
+  // 文件管理相关事件
+  initFileManagement();
+
   // 监听键盘事件
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -152,6 +175,8 @@ function init() {
         closeCodeSearchResults();
       }
       hideDropZone();
+      hideContextMenu();
+      hideInputDialog();
     }
     // Ctrl/Cmd + F 聚焦搜索框（文件名搜索）
     if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !e.shiftKey) {
@@ -169,6 +194,11 @@ function init() {
     if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
       e.preventDefault();
       elements.fileInput.click();
+    }
+    // F 键切换全屏（在模态框打开时）
+    if (e.key === 'f' && !e.ctrlKey && !e.metaKey && !elements.fileModal.classList.contains('hidden')) {
+      e.preventDefault();
+      toggleFullscreen();
     }
   });
 
@@ -327,40 +357,85 @@ function debounce(func, wait) {
  */
 async function loadFiles(path = '') {
   showLoading();
-  
+
   try {
-    const url = path 
+    const cacheKey = path || 'root';
+    const cachedData = state.fileCache.get(cacheKey);
+    const now = Date.now();
+
+    // 检查缓存是否有效
+    if (cachedData && (now - cachedData.timestamp) < state.cacheMaxAge) {
+      console.log('使用缓存数据:', cacheKey);
+      
+      const { currentPath, parentPath, rootPath, items } = cachedData.data;
+
+      // 更新状态
+      state.currentPath = currentPath;
+      state.rootPath = rootPath;
+
+      // 更新 UI
+      renderBreadcrumb(currentPath, parentPath, rootPath);
+      renderFileList(items);
+      updateCurrentPath(currentPath);
+      updateBackButton(parentPath !== null);
+
+      // 添加到历史记录
+      if (state.history[state.history.length - 1] !== currentPath) {
+        state.history.push(currentPath);
+      }
+
+      hideLoading();
+      return;
+    }
+
+    // 从 API 加载
+    const url = path
       ? `/api/files?path=${encodeURIComponent(path)}`
       : '/api/files';
-    
+
     const response = await fetch(url);
     const result = await response.json();
-    
+
     if (!result.success) {
       showError(result.error || '加载失败');
       return;
     }
-    
+
     const { currentPath, parentPath, rootPath, items } = result.data;
-    
+
+    // 更新缓存
+    state.fileCache.set(cacheKey, {
+      data: result.data,
+      timestamp: now
+    });
+
+    // 清理过期缓存（保留最近 10 个）
+    if (state.fileCache.size > 10) {
+      const entries = Array.from(state.fileCache.entries());
+      entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+      for (let i = 10; i < entries.length; i++) {
+        state.fileCache.delete(entries[i][0]);
+      }
+    }
+
     // 更新状态
     state.currentPath = currentPath;
     state.rootPath = rootPath;
-    
+
     // 更新 UI
     renderBreadcrumb(currentPath, parentPath, rootPath);
     renderFileList(items);
     updateCurrentPath(currentPath);
     updateBackButton(parentPath !== null);
-    
+
     // 添加到历史记录
     if (state.history[state.history.length - 1] !== currentPath) {
       state.history.push(currentPath);
     }
-    
+
     // 隐藏加载状态
     hideLoading();
-    
+
   } catch (err) {
     console.error('加载文件列表失败:', err);
     showError('网络错误，请稍后重试');
@@ -394,6 +469,9 @@ function renderFileList(items) {
 function createFileItem(item) {
   const div = document.createElement('div');
   div.className = 'file-item';
+  div.dataset.path = item.path;
+  div.dataset.name = item.name;
+  div.dataset.type = item.type;
   div.innerHTML = `
     <span class="file-icon">${item.icon}</span>
     <span class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
@@ -402,10 +480,10 @@ function createFileItem(item) {
       <span class="file-date">${formatDate(item.modified)}</span>
     </div>
   `;
-  
+
   // 绑定点击事件
   div.addEventListener('click', () => handleFileClick(item));
-  
+
   return div;
 }
 
@@ -596,7 +674,7 @@ function showBinaryInfo(meta) {
 async function viewFileContent(item) {
   elements.fileContent.classList.remove('hidden');
   elements.codeContent.textContent = '加载中...';
-  
+
   try {
     const response = await fetch(`/api/file/content?path=${encodeURIComponent(item.path)}`);
     const result = await response.json();
@@ -606,11 +684,21 @@ async function viewFileContent(item) {
       return;
     }
 
-    const { content, size, modified } = result.data;
-    elements.codeContent.textContent = content;
+    const { content, language, size, modified } = result.data;
+    
+    // 设置代码语言和类名
+    const codeElement = elements.codeContent;
+    codeElement.className = `language-${language || 'plaintext'}`;
+    codeElement.textContent = content;
+    
+    // 使用 Prism 高亮
+    if (typeof Prism !== 'undefined') {
+      Prism.highlightElement(codeElement);
+    }
+    
     elements.fileSize.textContent = `大小：${size.formatted}`;
     elements.fileModified.textContent = `修改时间：${formatDate(modified)}`;
-    elements.fileType.textContent = `类型：文本文件`;
+    elements.fileType.textContent = `类型：文本文件 (${language || 'plaintext'})`;
 
   } catch (err) {
     console.error('加载文件内容失败:', err);
@@ -632,8 +720,47 @@ function downloadCurrentFile() {
  * 关闭模态框
  */
 function closeModal() {
+  // 如果是全屏模式，先退出全屏
+  const modalContent = elements.fileModal.querySelector('.modal-content');
+  if (modalContent.classList.contains('modal-fullscreen')) {
+    modalContent.classList.remove('modal-fullscreen');
+    document.body.style.overflow = '';
+  }
+  
   elements.fileModal.classList.add('hidden');
   currentFile = null;
+}
+
+/**
+ * 切换全屏模式
+ */
+function toggleFullscreen() {
+  const modal = elements.fileModal;
+  const modalContent = modal.querySelector('.modal-content');
+  
+  if (modal.classList.contains('hidden')) {
+    return;
+  }
+  
+  // 检查是否已经是全屏
+  const isFullscreen = modalContent.classList.contains('modal-fullscreen');
+  
+  if (isFullscreen) {
+    // 退出全屏
+    modalContent.classList.remove('modal-fullscreen');
+    document.body.style.overflow = '';
+  } else {
+    // 进入全屏
+    modalContent.classList.add('modal-fullscreen');
+    document.body.style.overflow = 'hidden';
+  }
+  
+  // 更新按钮图标和提示
+  const btn = elements.fullscreenBtn;
+  const icon = btn.querySelector('.icon');
+  icon.textContent = isFullscreen ? '⛶' : '❐';
+  btn.dataset.fullscreen = isFullscreen ? 'false' : 'true';
+  btn.title = isFullscreen ? '全屏 (F)' : '退出全屏 (F)';
 }
 
 /**
@@ -762,11 +889,24 @@ function showError(message) {
 function toggleTheme() {
   state.theme = state.theme === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', state.theme);
-  
+
   // 更新图标
   const icon = elements.themeToggle.querySelector('.icon');
   icon.textContent = state.theme === 'light' ? '🌙' : '☀️';
-  
+
+  // 同步切换 Prism 代码高亮主题
+  const lightTheme = document.getElementById('prism-light-theme');
+  const darkTheme = document.getElementById('prism-dark-theme');
+  if (lightTheme && darkTheme) {
+    if (state.theme === 'light') {
+      lightTheme.disabled = false;
+      darkTheme.disabled = true;
+    } else {
+      lightTheme.disabled = true;
+      darkTheme.disabled = false;
+    }
+  }
+
   // 保存主题设置
   localStorage.setItem('fileViewerTheme', state.theme);
 }
@@ -779,9 +919,22 @@ function loadTheme() {
   if (savedTheme) {
     state.theme = savedTheme;
     document.documentElement.setAttribute('data-theme', savedTheme);
-    
+
     const icon = elements.themeToggle.querySelector('.icon');
     icon.textContent = savedTheme === 'light' ? '🌙' : '☀️';
+
+    // 同步加载 Prism 代码高亮主题
+    const lightTheme = document.getElementById('prism-light-theme');
+    const darkTheme = document.getElementById('prism-dark-theme');
+    if (lightTheme && darkTheme) {
+      if (savedTheme === 'light') {
+        lightTheme.disabled = false;
+        darkTheme.disabled = true;
+      } else {
+        lightTheme.disabled = true;
+        darkTheme.disabled = false;
+      }
+    }
   }
 }
 
@@ -1218,7 +1371,8 @@ let currentUploadXhr = null;
 function uploadFiles(files) {
   if (!files || files.length === 0) return;
 
-  const uploadPath = state.currentPath || state.rootPath;
+  // 使用相对路径上传（相对于 rootPath）
+  const uploadPath = getRelativePath(state.currentPath, state.rootPath);
   let uploaded = 0;
   let failed = 0;
   let totalSize = 0;
@@ -1268,6 +1422,37 @@ function uploadFiles(files) {
   for (let i = 0; i < concurrent; i++) {
     uploadNext();
   }
+}
+
+/**
+ * 获取相对路径
+ */
+function getRelativePath(absolutePath, rootPath) {
+  if (!absolutePath || !rootPath) return '';
+  
+  // 如果已经是相对路径，直接返回
+  if (!pathIsAbsolute(absolutePath)) {
+    return absolutePath;
+  }
+  
+  // 计算相对路径
+  if (absolutePath.startsWith(rootPath)) {
+    let relative = absolutePath.substring(rootPath.length);
+    // 移除开头的斜杠
+    if (relative.startsWith('/')) {
+      relative = relative.substring(1);
+    }
+    return relative || '';
+  }
+  
+  return '';
+}
+
+/**
+ * 判断路径是否为绝对路径
+ */
+function pathIsAbsolute(p) {
+  return p && typeof p === 'string' && (p.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(p));
 }
 
 /**
@@ -1432,38 +1617,365 @@ function updatePDFToolbar() {
  */
 async function renderPDFPage() {
   if (!pdfDoc) return;
-  
+
   try {
     const page = await pdfDoc.getPage(pdfCurrentPage);
-    
+
+    // 获取视口
     let viewport = page.getViewport({ scale: pdfScale });
-    
+
     // 适应页面宽度
     if (pdfFitPage) {
       const containerWidth = elements.pdfContainer.clientWidth - 40;
-      const containerScale = containerWidth / page.getViewport({ scale: 1 }).width;
+      const unscaledViewport = page.getViewport({ scale: 1 });
+      const containerScale = containerWidth / unscaledViewport.width;
       viewport = page.getViewport({ scale: containerScale });
       pdfScale = containerScale;
     }
+
+    // 设置 canvas 尺寸（使用高分辨率渲染）
+    const canvas = elements.pdfCanvas;
+    const context = canvas.getContext('2d');
     
-    // 设置 canvas 尺寸
-    elements.pdfCanvas.height = viewport.height;
-    elements.pdfCanvas.width = viewport.width;
+    // 设置实际渲染尺寸（高分辨率）
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
     
+    // 设置 CSS 显示尺寸（与 canvas 尺寸一致，避免缩放）
+    canvas.style.height = viewport.height + 'px';
+    canvas.style.width = viewport.width + 'px';
+
+    // 配置渲染上下文（优化文本渲染质量）
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+
     // 渲染页面
     const renderContext = {
-      canvasContext: elements.pdfCanvas.getContext('2d'),
-      viewport: viewport
+      canvasContext: context,
+      viewport: viewport,
+      intent: 'display' // 使用显示模式（更好的质量）
     };
-    
+
     await page.render(renderContext).promise;
-    
+
     // 更新工具栏
     updatePDFToolbar();
-    
+
   } catch (err) {
     console.error('渲染 PDF 页面失败:', err);
   }
+}
+
+/**
+ * 初始化文件管理功能
+ */
+function initFileManagement() {
+  // 右键菜单事件
+  document.addEventListener('contextmenu', (e) => {
+    const fileItem = e.target.closest('.file-item');
+    if (fileItem) {
+      e.preventDefault();
+      
+      // 从 data 属性获取文件信息
+      state.contextMenuItem = {
+        path: fileItem.dataset.path,
+        name: fileItem.dataset.name,
+        type: fileItem.dataset.type,
+        icon: fileItem.querySelector('.file-icon')?.textContent || '📄'
+      };
+      
+      showContextMenu(e.clientX, e.clientY, state.contextMenuItem);
+    } else {
+      hideContextMenu();
+    }
+  });
+
+  // 点击其他地方关闭菜单
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.context-menu')) {
+      hideContextMenu();
+    }
+  });
+
+  // 菜单项点击事件
+  elements.contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const action = item.dataset.action;
+      handleContextMenuAction(action);
+      hideContextMenu();
+    });
+  });
+
+  // 确认对话框事件
+  elements.confirmCancel.addEventListener('click', hideConfirmDialog);
+  elements.confirmOk.addEventListener('click', () => {
+    if (state.confirmCallback) {
+      state.confirmCallback();
+    }
+    hideConfirmDialog();
+  });
+
+  // 输入对话框事件
+  elements.inputCancel.addEventListener('click', hideInputDialog);
+  elements.inputOk.addEventListener('click', handleInputOk);
+  elements.inputField.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      handleInputOk();
+    }
+  });
+}
+
+/**
+ * 获取当前路径的文件列表
+ */
+function getCurrentPathItems() {
+  // 从 DOM 中获取当前显示的文件列表
+  const items = [];
+  elements.fileList.querySelectorAll('.file-item').forEach(el => {
+    items.push({
+      name: el.querySelector('.file-name')?.textContent || '',
+      type: el.querySelector('.file-icon')?.textContent === '📁' ? 'directory' : 'file'
+    });
+  });
+  return items;
+}
+
+/**
+ * 显示右键菜单
+ */
+function showContextMenu(x, y, item) {
+  const menu = elements.contextMenu;
+  menu.classList.remove('hidden');
+  
+  // 调整菜单位置，确保不超出屏幕
+  const rect = menu.getBoundingClientRect();
+  const maxX = window.innerWidth - rect.width - 10;
+  const maxY = window.innerHeight - rect.height - 10;
+  
+  menu.style.left = Math.min(x, maxX) + 'px';
+  menu.style.top = Math.min(y, maxY) + 'px';
+  
+  // 根据文件类型显示/隐藏菜单项
+  const isDirectory = item?.type === 'directory';
+  const newFileItem = menu.querySelector('[data-action="new-file"]');
+  const newDirItem = menu.querySelector('[data-action="new-dir"]');
+  
+  if (newFileItem && newDirItem) {
+    if (isDirectory) {
+      newFileItem.style.display = 'flex';
+      newDirItem.style.display = 'flex';
+    } else {
+      newFileItem.style.display = 'none';
+      newDirItem.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * 隐藏右键菜单
+ */
+function hideContextMenu() {
+  elements.contextMenu.classList.add('hidden');
+  state.contextMenuItem = null;
+}
+
+/**
+ * 处理右键菜单操作
+ */
+async function handleContextMenuAction(action) {
+  const item = state.contextMenuItem;
+  if (!item) return;
+
+  switch (action) {
+    case 'open':
+      if (item.type === 'directory') {
+        loadFiles(item.path);
+      } else {
+        viewFile(item);
+      }
+      break;
+    case 'rename':
+      showInputDialog('重命名', '请输入新名称', item.name, async (newName) => {
+        await renameFile(item, newName);
+      });
+      break;
+    case 'delete':
+      const isDir = item.type === 'directory';
+      showConfirmDialog(
+        '确认删除',
+        `确定要删除${isDir ? '目录' : '文件'} "${item.name}" 吗？${isDir ? '\n\n注意：目录及其所有内容将被删除！' : ''}`,
+        async () => {
+          await deleteFile(item);
+        }
+      );
+      break;
+    case 'new-file':
+      showInputDialog('新建文件', '请输入文件名称', '新建文件.txt', async (fileName) => {
+        await createFile(item, fileName);
+      });
+      break;
+    case 'new-dir':
+      showInputDialog('新建文件夹', '请输入文件夹名称', '新建文件夹', async (dirName) => {
+        await createDirectory(item, dirName);
+      });
+      break;
+  }
+}
+
+/**
+ * 显示确认对话框
+ */
+function showConfirmDialog(title, message, onConfirm) {
+  elements.confirmTitle.textContent = title;
+  elements.confirmMessage.textContent = message;
+  state.confirmCallback = onConfirm;
+  elements.confirmDialog.classList.remove('hidden');
+}
+
+/**
+ * 隐藏确认对话框
+ */
+function hideConfirmDialog() {
+  elements.confirmDialog.classList.add('hidden');
+  state.confirmCallback = null;
+}
+
+/**
+ * 显示输入对话框
+ */
+function showInputDialog(title, placeholder, defaultValue, onInput) {
+  elements.inputTitle.textContent = title;
+  elements.inputField.placeholder = placeholder;
+  elements.inputField.value = defaultValue || '';
+  elements.inputDialog.dataset.onInput = onInput?.toString() || '';
+  elements.inputDialog.classList.remove('hidden');
+  elements.inputField.focus();
+  elements.inputField.select();
+  
+  // 存储回调（使用闭包）
+  elements.inputDialog._onInputCallback = onInput;
+}
+
+/**
+ * 隐藏输入对话框
+ */
+function hideInputDialog() {
+  elements.inputDialog.classList.add('hidden');
+  elements.inputDialog._onInputCallback = null;
+}
+
+/**
+ * 处理输入对话框确认
+ */
+async function handleInputOk() {
+  const value = elements.inputField.value.trim();
+  if (!value) {
+    elements.inputField.focus();
+    return;
+  }
+  
+  const callback = elements.inputDialog._onInputCallback;
+  hideInputDialog();
+  
+  if (callback) {
+    await callback(value);
+  }
+}
+
+/**
+ * 重命名文件/目录
+ */
+async function renameFile(item, newName) {
+  try {
+    const url = `/api/file/rename?path=${encodeURIComponent(item.path)}&name=${encodeURIComponent(newName)}`;
+    const response = await fetch(url, { method: 'POST' });
+    const result = await response.json();
+    
+    if (!result.success) {
+      alert('重命名失败：' + (result.error || '未知错误'));
+      return;
+    }
+    
+    // 清除缓存
+    clearFileCache();
+    
+    // 刷新文件列表
+    loadFiles(state.currentPath);
+  } catch (err) {
+    console.error('重命名失败:', err);
+    alert('重命名失败，请稍后重试');
+  }
+}
+
+/**
+ * 删除文件/目录
+ */
+async function deleteFile(item) {
+  try {
+    const url = `/api/file?path=${encodeURIComponent(item.path)}`;
+    const response = await fetch(url, { method: 'DELETE' });
+    const result = await response.json();
+    
+    if (!result.success) {
+      alert('删除失败：' + (result.error || '未知错误'));
+      return;
+    }
+    
+    // 清除缓存
+    clearFileCache();
+    
+    // 刷新文件列表
+    loadFiles(state.currentPath);
+  } catch (err) {
+    console.error('删除失败:', err);
+    alert('删除失败，请稍后重试');
+  }
+}
+
+/**
+ * 创建文件
+ */
+async function createFile(item, fileName) {
+  try {
+    // 创建空文件可以通过上传空内容实现，这里简化处理，提示用户使用其他方式
+    alert('新建文件功能暂未实现，请在目录中手动创建文件');
+  } catch (err) {
+    console.error('创建文件失败:', err);
+    alert('创建文件失败，请稍后重试');
+  }
+}
+
+/**
+ * 创建目录
+ */
+async function createDirectory(item, dirName) {
+  try {
+    const url = `/api/file/create-dir?path=${encodeURIComponent(item.path)}&name=${encodeURIComponent(dirName)}`;
+    const response = await fetch(url, { method: 'POST' });
+    const result = await response.json();
+
+    if (!result.success) {
+      alert('创建目录失败：' + (result.error || '未知错误'));
+      return;
+    }
+
+    // 清除缓存
+    clearFileCache();
+
+    // 刷新文件列表
+    loadFiles(state.currentPath);
+  } catch (err) {
+    console.error('创建目录失败:', err);
+    alert('创建目录失败，请稍后重试');
+  }
+}
+
+/**
+ * 清除文件列表缓存
+ */
+function clearFileCache() {
+  state.fileCache.clear();
+  console.log('文件列表缓存已清除');
 }
 
 // 启动应用

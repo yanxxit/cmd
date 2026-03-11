@@ -180,7 +180,7 @@ async function getAvailableRepoUrl(repo, mirror) {
       console.log('使用 gitclone.com 镜像...');
       return gitcloneUrl;
     }
-    
+     
     // 尝试 git.yumenaka.net 镜像
     const yumenakaUrl = `https://git.yumenaka.net/https://github.com/${parsed.owner}/${parsed.repo}`;
     const isYumenakaAccessible = await checkNetwork('https://git.yumenaka.net');
