@@ -1001,27 +1001,28 @@ function handleSearchInput(e) {
  */
 async function performSearch(query) {
   if (!query) return;
-  
+
   showSearchLoading();
-  
+
   try {
     const searchPath = state.currentPath || state.rootPath;
     const searchSubdir = elements.searchSubdir?.checked || true;
     const url = `/api/files/search?q=${encodeURIComponent(query)}&path=${encodeURIComponent(searchPath)}${searchSubdir ? '' : '&depth=1'}`;
-    
+
     const response = await fetch(url);
     const result = await response.json();
-    
+
     if (!result.success) {
       showError('搜索失败：' + (result.error || '未知错误'));
       return;
     }
-    
+
     state.isSearching = true;
     state.searchResults = result.data.results;
-    
+    state.searchQuery = query; // 保存搜索关键词用于高亮
+
     renderSearchResults(result.data);
-    
+
   } catch (err) {
     console.error('搜索失败:', err);
     showError('网络错误，请稍后重试');
@@ -1076,27 +1077,49 @@ function renderSearchResults(data) {
 function createSearchResultItem(item) {
   const div = document.createElement('div');
   div.className = 'file-item';
-  
+
   // 显示相对路径
   const pathDisplay = item.relativePath || item.path;
   
+  // 高亮搜索关键词
+  const query = state.searchQuery || '';
+  const highlightedName = highlightText(item.name, query);
+  const highlightedPath = highlightText(pathDisplay, query);
+
   div.innerHTML = `
     <span class="file-icon">${item.icon}</span>
     <div style="flex: 1; overflow: hidden;">
-      <div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+      <div class="file-name" title="${escapeHtml(item.name)}">${highlightedName}</div>
       <div class="file-path" style="font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-        ${escapeHtml(pathDisplay)}
+        ${highlightedPath}
       </div>
     </div>
     <div class="file-meta">
       ${item.size ? `<span class="file-size">${item.size.formatted}</span>` : ''}
     </div>
   `;
-  
+
   // 绑定点击事件
   div.addEventListener('click', () => handleSearchResultClick(item));
-  
+
   return div;
+}
+
+/**
+ * 高亮文本中的关键词
+ */
+function highlightText(text, query) {
+  if (!query) return escapeHtml(text);
+  
+  const escapedText = escapeHtml(text);
+  const escapedQuery = escapeHtml(query);
+  
+  try {
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    return escapedText.replace(regex, '<mark class="search-highlight">$1</mark>');
+  } catch (err) {
+    return escapedText;
+  }
 }
 
 /**
@@ -1313,19 +1336,42 @@ function createCodeResultFile(fileResult) {
 function createCodeMatchElement(match) {
   const div = document.createElement('div');
   div.className = 'code-result-match';
-  
+
   // 高亮匹配内容
-  let highlightedLine = match.line;
-  
-  // 简单的高亮处理
-  const highlightClass = 'code-result-highlight';
-  
+  const highlightedLine = highlightCodeMatches(match.line, match.lineMatches);
+
   div.innerHTML = `
     <span class="code-result-line-num">${match.lineNumber}</span>
-    <span class="code-result-line-content">${escapeHtml(highlightedLine)}</span>
+    <span class="code-result-line-content">${highlightedLine}</span>
   `;
-  
+
   return div;
+}
+
+/**
+ * 高亮代码匹配位置
+ */
+function highlightCodeMatches(line, lineMatches) {
+  if (!lineMatches || lineMatches.length === 0) {
+    return escapeHtml(line);
+  }
+  
+  const escapedLine = escapeHtml(line);
+  
+  // 按照匹配位置高亮
+  let result = escapedLine;
+  // 从后向前替换，避免索引偏移
+  const sortedMatches = [...lineMatches].sort((a, b) => b.start - a.start);
+  
+  for (const m of sortedMatches) {
+    const start = m.start;
+    const end = m.end;
+    const originalText = escapedLine.substring(start, end);
+    const highlighted = `<mark class="code-result-highlight">${originalText}</mark>`;
+    result = result.substring(0, start) + highlighted + result.substring(end);
+  }
+  
+  return result;
 }
 
 /**
@@ -1892,18 +1938,18 @@ async function renameFile(item, newName) {
     const result = await response.json();
     
     if (!result.success) {
-      alert('重命名失败：' + (result.error || '未知错误'));
+      showToast('重命名失败：' + (result.error || '未知错误'), 'error');
       return;
     }
     
     // 清除缓存
     clearFileCache();
     
-    // 刷新文件列表
+    showToast('重命名成功', 'success');
     loadFiles(state.currentPath);
   } catch (err) {
     console.error('重命名失败:', err);
-    alert('重命名失败，请稍后重试');
+    showToast('重命名失败，请稍后重试', 'error');
   }
 }
 
@@ -1917,18 +1963,18 @@ async function deleteFile(item) {
     const result = await response.json();
     
     if (!result.success) {
-      alert('删除失败：' + (result.error || '未知错误'));
+      showToast('删除失败：' + (result.error || '未知错误'), 'error');
       return;
     }
     
     // 清除缓存
     clearFileCache();
     
-    // 刷新文件列表
+    showToast('删除成功', 'success');
     loadFiles(state.currentPath);
   } catch (err) {
     console.error('删除失败:', err);
-    alert('删除失败，请稍后重试');
+    showToast('删除失败，请稍后重试', 'error');
   }
 }
 
@@ -1937,11 +1983,22 @@ async function deleteFile(item) {
  */
 async function createFile(item, fileName) {
   try {
-    // 创建空文件可以通过上传空内容实现，这里简化处理，提示用户使用其他方式
-    alert('新建文件功能暂未实现，请在目录中手动创建文件');
+    const url = `/api/file/create?path=${encodeURIComponent(item.path)}&name=${encodeURIComponent(fileName)}`;
+    const response = await fetch(url, { method: 'POST' });
+    const result = await response.json();
+    
+    if (!result.success) {
+      showToast('创建失败：' + (result.error || '未知错误'), 'error');
+      return;
+    }
+    
+    // 清除缓存并刷新文件列表
+    clearFileCache();
+    showToast('文件创建成功', 'success');
+    loadFiles(state.currentPath);
   } catch (err) {
     console.error('创建文件失败:', err);
-    alert('创建文件失败，请稍后重试');
+    showToast('创建文件失败，请稍后重试', 'error');
   }
 }
 
@@ -1955,18 +2012,18 @@ async function createDirectory(item, dirName) {
     const result = await response.json();
 
     if (!result.success) {
-      alert('创建目录失败：' + (result.error || '未知错误'));
+      showToast('创建目录失败：' + (result.error || '未知错误'), 'error');
       return;
     }
 
     // 清除缓存
     clearFileCache();
 
-    // 刷新文件列表
+    showToast('目录创建成功', 'success');
     loadFiles(state.currentPath);
   } catch (err) {
     console.error('创建目录失败:', err);
-    alert('创建目录失败，请稍后重试');
+    showToast('创建目录失败，请稍后重试', 'error');
   }
 }
 
@@ -1976,6 +2033,42 @@ async function createDirectory(item, dirName) {
 function clearFileCache() {
   state.fileCache.clear();
   console.log('文件列表缓存已清除');
+}
+
+/**
+ * Toast 提示
+ */
+function showToast(message, type = 'info', duration = 3000) {
+  const container = elements.toastContainer;
+  
+  // 创建 Toast 元素
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  
+  // 图标
+  const icons = {
+    success: '✓',
+    error: '✕',
+    warning: '⚠',
+    info: 'ℹ'
+  };
+  
+  toast.innerHTML = `
+    <span class="toast-icon">${icons[type] || icons.info}</span>
+    <span class="toast-message">${escapeHtml(message)}</span>
+  `;
+  
+  container.appendChild(toast);
+  
+  // 自动移除
+  setTimeout(() => {
+    toast.classList.add('toast-hiding');
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }, duration);
 }
 
 // 启动应用

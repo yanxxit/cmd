@@ -1454,6 +1454,74 @@ router.post('/file/create-dir', (req, res) => {
 });
 
 /**
+ * POST /api/file/create
+ * 创建新文件（空文件）
+ */
+router.post('/file/create', (req, res) => {
+  const rootDir = req.app.get('fileViewerRoot') || process.cwd();
+  let targetPath = req.query.path;
+  const fileName = req.query.name;
+
+  if (!fileName) {
+    return res.status(400).json({
+      success: false,
+      error: '缺少文件名称'
+    });
+  }
+
+  if (!targetPath) {
+    targetPath = rootDir;
+  }
+
+  // 如果是相对路径，转换为绝对路径
+  let safeTargetPath;
+  if (!path.isAbsolute(targetPath)) {
+    safeTargetPath = path.join(rootDir, targetPath);
+  } else {
+    safeTargetPath = targetPath;
+  }
+
+  safeTargetPath = safePath(safeTargetPath, rootDir);
+
+  if (!safeTargetPath) {
+    return res.status(403).json({
+      success: false,
+      error: '禁止访问该路径'
+    });
+  }
+
+  try {
+    const newFilePath = path.join(safeTargetPath, fileName);
+
+    // 检查文件是否已存在
+    if (fs.existsSync(newFilePath)) {
+      return res.status(400).json({
+        success: false,
+        error: '文件已存在'
+      });
+    }
+
+    // 创建空文件
+    fs.writeFileSync(newFilePath, '');
+
+    res.json({
+      success: true,
+      data: {
+        path: newFilePath,
+        relativePath: path.relative(rootDir, newFilePath),
+        name: fileName
+      }
+    });
+  } catch (err) {
+    console.error('创建文件失败:', err);
+    res.status(500).json({
+      success: false,
+      error: '创建文件失败：' + err.message
+    });
+  }
+});
+
+/**
  * DELETE /api/file
  * 删除文件或空目录
  */
