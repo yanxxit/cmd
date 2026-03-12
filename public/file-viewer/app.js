@@ -24,7 +24,13 @@ const state = {
   // 筛选和排序相关
   filterType: 'all', // 筛选类型
   sortType: 'name', // 排序类型
-  sortOrderAsc: true // 升序/降序
+  sortOrderAsc: true, // 升序/降序
+  // 多选相关
+  selectedFiles: [], // 已选择的文件列表
+  lastClickedIndex: -1, // 上次点击的文件索引（用于 Shift 连选）
+  // 复制/粘贴相关
+  clipboardFiles: [], // 剪贴板中的文件
+  clipboardAction: null // 复制操作类型：'copy' 或 'cut'
 };
 
 // DOM 元素
@@ -42,9 +48,17 @@ const elements = {
   modalTitle: document.getElementById('modalTitle'),
   codeContent: document.getElementById('codeContent'),
   fileContent: document.getElementById('fileContent'),
+  docxPreview: document.getElementById('docxPreview'),
+  xlsxPreview: document.getElementById('xlsxPreview'),
+  xlsxToolbar: document.getElementById('xlsxToolbar'),
+  xlsxSheetTabs: document.getElementById('xlsxSheetTabs'),
+  xlsxSheetContent: document.getElementById('xlsxSheetContent'),
+  xlsxSheetSearch: document.getElementById('xlsxSheetSearch'),
+  xlsxSheetSearchResults: document.getElementById('xlsxSheetSearchResults'),
   closeModal: document.getElementById('closeModal'),
   downloadBtn: document.getElementById('downloadBtn'),
   fullscreenBtn: document.getElementById('fullscreenBtn'),
+  refreshBtn: document.getElementById('refreshBtn'),
   fileSize: document.getElementById('fileSize'),
   fileModified: document.getElementById('fileModified'),
   // 搜索相关元素
@@ -59,6 +73,22 @@ const elements = {
   filterType: document.getElementById('filterType'),
   sortType: document.getElementById('sortType'),
   sortOrder: document.getElementById('sortOrder'),
+  // 多选相关元素
+  selectionToolbar: document.getElementById('selectionToolbar'),
+  selectedCount: document.getElementById('selectedCount'),
+  batchDownloadBtn: document.getElementById('batchDownloadBtn'),
+  batchDeleteBtn: document.getElementById('batchDeleteBtn'),
+  clearSelectionBtn: document.getElementById('clearSelectionBtn'),
+  // 快速预览相关元素
+  quickPreview: document.getElementById('quickPreview'),
+  quickPreviewTitle: document.getElementById('quickPreviewTitle'),
+  quickPreviewContent: document.getElementById('quickPreviewContent'),
+  quickPreviewImage: document.getElementById('quickPreviewImage'),
+  quickPreviewMessage: document.getElementById('quickPreviewMessage'),
+  quickPreviewInfo: document.getElementById('quickPreviewInfo'),
+  quickPreviewPrev: document.getElementById('quickPreviewPrev'),
+  quickPreviewNext: document.getElementById('quickPreviewNext'),
+  quickPreviewClose: document.getElementById('quickPreviewClose'),
   // 代码搜索相关元素
   searchModeToggle: document.getElementById('searchModeToggle'),
   searchModeText: document.getElementById('searchModeText'),
@@ -87,6 +117,7 @@ const elements = {
   // 上传相关元素
   dropZone: document.getElementById('dropZone'),
   uploadBtn: document.getElementById('uploadBtn'),
+  refreshListBtn: document.getElementById('refreshListBtn'),
   uploadProgress: document.getElementById('uploadProgress'),
   progressBar: document.getElementById('progressBar'),
   progressInfo: document.getElementById('progressInfo'),
@@ -124,6 +155,10 @@ let pdfCurrentPage = 1;
 let pdfScale = 1.5;
 let pdfFitPage = false;
 
+// XLSX 相关状态
+let xlsxWorkbook = null;
+let xlsxCurrentSheet = 0;
+
 // 当前查看的文件信息
 let currentFile = null;
 
@@ -140,6 +175,7 @@ function init() {
   elements.closeModal.addEventListener('click', closeModal);
   elements.downloadBtn.addEventListener('click', downloadCurrentFile);
   elements.fullscreenBtn.addEventListener('click', toggleFullscreen);
+  elements.refreshBtn.addEventListener('click', refreshCurrentFile);
   elements.fileModal.querySelector('.modal-overlay').addEventListener('click', closeModal);
 
   // 搜索相关事件
@@ -216,7 +252,37 @@ function init() {
       e.preventDefault();
       toggleFullscreen();
     }
-    
+    // F5 刷新文件（在模态框打开时）
+    if (e.key === 'F5' && !isModalOpen) {
+      e.preventDefault();
+      refreshCurrentFile();
+    }
+    // Ctrl/Cmd + C 复制选中的文件
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !isModalOpen && !isInputDialogOpen) {
+      const selectedItem = state.currentItems[state.selectedIndex];
+      if (selectedItem) {
+        e.preventDefault();
+        state.clipboardFiles = [selectedItem];
+        state.clipboardAction = 'copy';
+        showToast(`已复制：${selectedItem.name}`, 'info');
+        updatePasteMenu();
+      }
+    }
+    // Ctrl/Cmd + V 粘贴文件
+    if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isModalOpen && !isInputDialogOpen) {
+      if (state.clipboardFiles.length > 0 && state.clipboardAction) {
+        e.preventDefault();
+        const targetDir = state.currentItems[state.selectedIndex];
+        if (targetDir && targetDir.type === 'directory') {
+          pasteFiles(targetDir);
+        } else {
+          // 粘贴到当前目录
+          const currentDir = { path: state.currentPath, type: 'directory' };
+          pasteFiles(currentDir);
+        }
+      }
+    }
+
     // 文件列表键盘导航（仅在搜索框未聚焦且模态框未打开时）
     if (document.activeElement !== elements.searchInput && !isModalOpen && !isInputDialogOpen && !isConfirmDialogOpen) {
       // 方向键上
@@ -286,8 +352,209 @@ function init() {
   // 加载筛选和排序设置
   loadFilterSettings();
 
+  // 绑定批量操作事件
+  bindBatchOperations();
+
+  // 绑定快速预览事件
+  bindQuickPreview();
+
   // 加载文件列表
   loadFiles(initialPath);
+}
+
+/**
+ * 绑定批量操作事件
+ */
+function bindBatchOperations() {
+  // 批量下载
+  elements.batchDownloadBtn.addEventListener('click', () => {
+    if (state.selectedFiles.length === 0) return;
+    
+    // 逐个下载选中的文件
+    state.selectedFiles.forEach(file => {
+      const downloadUrl = `/api/file/download?path=${encodeURIComponent(file.path)}`;
+      window.open(downloadUrl, '_blank');
+    });
+    
+    showToast(`已开始下载 ${state.selectedFiles.length} 个文件`, 'success');
+    clearFileSelection();
+  });
+  
+  // 批量删除
+  elements.batchDeleteBtn.addEventListener('click', () => {
+    if (state.selectedFiles.length === 0) return;
+    
+    const count = state.selectedFiles.length;
+    const hasDir = state.selectedFiles.some(f => f.type === 'directory');
+    
+    showConfirmDialog(
+      '确认批量删除',
+      `确定要删除选中的 ${count} 个文件${hasDir ? '（包含目录）' : ''} 吗？\n\n注意：此操作不可恢复！`,
+      async () => {
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const file of state.selectedFiles) {
+          try {
+            const url = `/api/file?path=${encodeURIComponent(file.path)}`;
+            const response = await fetch(url, { method: 'DELETE' });
+            const result = await response.json();
+            
+            if (result.success) {
+              successCount++;
+            } else {
+              failCount++;
+              console.error('删除失败:', file.name, result.error);
+            }
+          } catch (err) {
+            failCount++;
+            console.error('删除失败:', file.name, err);
+          }
+        }
+        
+        clearFileCache();
+        showToast(`删除完成：成功 ${successCount} 个，失败 ${failCount} 个`, failCount > 0 ? 'warning' : 'success');
+        clearFileSelection();
+        loadFiles(state.currentPath);
+      }
+    );
+  });
+  
+  // 清除选择
+  elements.clearSelectionBtn.addEventListener('click', () => {
+    clearFileSelection();
+  });
+  
+  // Esc 键清除选择
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state.selectedFiles.length > 0) {
+      clearFileSelection();
+    }
+  });
+}
+
+/**
+ * 绑定快速预览事件
+ */
+function bindQuickPreview() {
+  // 空格键打开快速预览
+  document.addEventListener('keydown', (e) => {
+    const isModalOpen = !elements.fileModal.classList.contains('hidden');
+    const isInputDialogOpen = !elements.inputDialog.classList.contains('hidden');
+    const isConfirmDialogOpen = !elements.confirmDialog.classList.contains('hidden');
+    const isQuickPreviewOpen = !elements.quickPreview.classList.contains('hidden');
+    
+    if (e.key === ' ' && !isModalOpen && !isInputDialogOpen && !isConfirmDialogOpen && !isQuickPreviewOpen) {
+      e.preventDefault();
+      if (state.selectedIndex >= 0 && state.currentItems[state.selectedIndex]) {
+        openQuickPreview(state.currentItems[state.selectedIndex]);
+      }
+    }
+    
+    // 快速预览中切换文件
+    if (isQuickPreviewOpen) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        quickPreviewPrev();
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        quickPreviewNext();
+      }
+    }
+  });
+  
+  // 关闭按钮
+  elements.quickPreviewClose.addEventListener('click', closeQuickPreview);
+  
+  // 点击遮罩关闭
+  elements.quickPreview.querySelector('.quick-preview-overlay').addEventListener('click', closeQuickPreview);
+  
+  // 上一个/下一个
+  elements.quickPreviewPrev.addEventListener('click', quickPreviewPrev);
+  elements.quickPreviewNext.addEventListener('click', quickPreviewNext);
+}
+
+/**
+ * 打开快速预览
+ */
+async function openQuickPreview(item) {
+  elements.quickPreview.classList.remove('hidden');
+  elements.quickPreviewTitle.textContent = item.name;
+  
+  // 重置内容
+  elements.quickPreviewContent.classList.add('hidden');
+  elements.quickPreviewImage.classList.add('hidden');
+  elements.quickPreviewMessage.textContent = '';
+  
+  try {
+    if (item.type === 'directory') {
+      elements.quickPreviewMessage.textContent = '目录无法预览';
+      elements.quickPreviewInfo.textContent = '';
+      return;
+    }
+    
+    // 获取文件元数据
+    const metaResponse = await fetch(`/api/file/meta?path=${encodeURIComponent(item.path)}`);
+    const metaResult = await metaResponse.json();
+    
+    if (!metaResult.success) {
+      elements.quickPreviewMessage.textContent = '无法获取文件信息';
+      return;
+    }
+    
+    const meta = metaResult.data;
+    elements.quickPreviewInfo.textContent = `${meta.size?.formatted || '未知'} | ${formatDate(meta.modified)}`;
+    
+    // 根据文件类型显示内容
+    if (meta.fileType === 'image' && !meta.isBinary) {
+      elements.quickPreviewImage.classList.remove('hidden');
+      elements.quickPreviewImage.querySelector('img').src = meta.previewUrl + '&t=' + Date.now();
+    } else if (meta.fileType === 'text' || !meta.isBinary) {
+      // 文本文件
+      const contentResponse = await fetch(`/api/file/content?path=${encodeURIComponent(item.path)}`);
+      const contentResult = await contentResponse.json();
+      
+      if (contentResult.success) {
+        elements.quickPreviewContent.classList.remove('hidden');
+        elements.quickPreviewContent.querySelector('code').textContent = contentResult.data.content;
+      } else {
+        elements.quickPreviewMessage.textContent = '无法读取文件内容';
+      }
+    } else {
+      elements.quickPreviewMessage.textContent = '二进制文件无法预览';
+    }
+  } catch (err) {
+    console.error('快速预览失败:', err);
+    elements.quickPreviewMessage.textContent = '预览失败';
+  }
+}
+
+/**
+ * 关闭快速预览
+ */
+function closeQuickPreview() {
+  elements.quickPreview.classList.add('hidden');
+}
+
+/**
+ * 上一个文件
+ */
+function quickPreviewPrev() {
+  if (state.selectedIndex > 0) {
+    state.selectedIndex--;
+    openQuickPreview(state.currentItems[state.selectedIndex]);
+  }
+}
+
+/**
+ * 下一个文件
+ */
+function quickPreviewNext() {
+  if (state.selectedIndex < state.currentItems.length - 1) {
+    state.selectedIndex++;
+    openQuickPreview(state.currentItems[state.selectedIndex]);
+  }
 }
 
 /**
@@ -366,6 +633,11 @@ function initUploadHandlers() {
   // 点击上传按钮
   elements.uploadBtn.addEventListener('click', () => {
     elements.fileInput.click();
+  });
+
+  // 点击刷新列表按钮
+  elements.refreshListBtn.addEventListener('click', () => {
+    refreshFileList();
   });
 
   // 文件选择变化
@@ -614,8 +886,9 @@ function renderFileList(items) {
   elements.empty.classList.add('hidden');
   elements.fileList.classList.remove('hidden');
 
-  for (const item of filteredItems) {
-    const fileItem = createFileItem(item);
+  for (let i = 0; i < filteredItems.length; i++) {
+    const item = filteredItems[i];
+    const fileItem = createFileItem(item, i);
     elements.fileList.appendChild(fileItem);
   }
 }
@@ -663,10 +936,15 @@ function sortFiles(items) {
   const sortType = state.sortType;
   const asc = state.sortOrderAsc;
   const direction = asc ? 1 : -1;
-  
+
   return [...items].sort((a, b) => {
+    // 文件夹始终在前
+    if (a.type === 'directory' && b.type !== 'directory') return -1;
+    if (a.type !== 'directory' && b.type === 'directory') return 1;
+
+    // 同类型文件按指定方式排序
     let comparison = 0;
-    
+
     switch (sortType) {
       case 'name':
         comparison = a.name.localeCompare(b.name, 'zh');
@@ -683,7 +961,7 @@ function sortFiles(items) {
         comparison = a.type.localeCompare(b.type);
         break;
     }
-    
+
     return comparison * direction;
   });
 }
@@ -691,12 +969,13 @@ function sortFiles(items) {
 /**
  * 创建文件项元素
  */
-function createFileItem(item) {
+function createFileItem(item, index) {
   const div = document.createElement('div');
   div.className = 'file-item';
   div.dataset.path = item.path;
   div.dataset.name = item.name;
   div.dataset.type = item.type;
+  div.dataset.index = index;
   div.innerHTML = `
     <span class="file-icon">${item.icon}</span>
     <span class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
@@ -722,9 +1001,9 @@ function createFileItem(item) {
     if (e.target.closest('.file-actions')) {
       return;
     }
-    handleFileClick(item);
+    handleFileClickWithSelect(item, index, e);
   });
-  
+
   // 绑定操作按钮事件
   const actionBtns = div.querySelectorAll('.file-action-btn');
   actionBtns.forEach(btn => {
@@ -748,37 +1027,112 @@ function createFileItem(item) {
 }
 
 /**
- * 处理文件操作按钮点击
+ * 处理文件点击（支持多选）
  */
-async function handleFileAction(action, item) {
-  switch (action) {
-    case 'download':
-      downloadCurrentFileByItem(item);
-      break;
-    case 'rename':
-      showInputDialog('重命名', '请输入新名称', item.name, async (newName) => {
-        await renameFile(item, newName);
-      });
-      break;
-    case 'delete':
-      const isDir = item.type === 'directory';
-      showConfirmDialog(
-        '确认删除',
-        `确定要删除${isDir ? '目录' : '文件'} "${item.name}" 吗？${isDir ? '\n\n注意：目录及其所有内容将被删除！' : ''}`,
-        async () => {
-          await deleteFile(item);
-        }
-      );
-      break;
+function handleFileClickWithSelect(item, index, event) {
+  const isCtrlClick = event.ctrlKey || event.metaKey;
+  const isShiftClick = event.shiftKey;
+  
+  if (isCtrlClick) {
+    // Ctrl + 点击：切换选择状态
+    toggleFileSelection(item, index);
+  } else if (isShiftClick && state.lastClickedIndex >= 0) {
+    // Shift + 点击：连选范围
+    selectRange(item, index);
+  } else {
+    // 普通点击：取消其他选择，只选当前
+    if (state.selectedFiles.length > 0) {
+      clearFileSelection();
+    }
+    state.lastClickedIndex = index;
+  }
+  
+  updateSelectionUI();
+}
+
+/**
+ * 切换文件选择状态
+ */
+function toggleFileSelection(item, index) {
+  const selectedIndex = state.selectedFiles.findIndex(f => f.path === item.path);
+  
+  if (selectedIndex >= 0) {
+    // 已选择，取消选择
+    state.selectedFiles.splice(selectedIndex, 1);
+  } else {
+    // 未选择，添加
+    state.selectedFiles.push(item);
+  }
+  
+  updateFileItemSelectionStyle(index);
+}
+
+/**
+ * 选择范围（Shift + 点击）
+ */
+function selectRange(item, endIndex) {
+  const startIndex = state.lastClickedIndex;
+  const items = state.currentItems;
+  
+  if (startIndex < 0 || endIndex < 0) return;
+  
+  const min = Math.min(startIndex, endIndex);
+  const max = Math.max(startIndex, endIndex);
+  
+  // 清除当前选择
+  state.selectedFiles = [];
+  
+  // 添加范围内的所有文件
+  for (let i = min; i <= max; i++) {
+    state.selectedFiles.push(items[i]);
+    updateFileItemSelectionStyle(i);
+  }
+  
+  state.lastClickedIndex = endIndex;
+}
+
+/**
+ * 更新文件项选择样式
+ */
+function updateFileItemSelectionStyle(index) {
+  const items = elements.fileList.querySelectorAll('.file-item');
+  if (items[index]) {
+    const isSelected = state.selectedFiles.some(f => f.path === state.currentItems[index].path);
+    if (isSelected) {
+      items[index].classList.add('file-item-selected');
+    } else {
+      items[index].classList.remove('file-item-selected');
+    }
   }
 }
 
 /**
- * 下载指定文件
+ * 清除文件选择
  */
-function downloadCurrentFileByItem(item) {
-  const downloadUrl = `/api/file/download?path=${encodeURIComponent(item.path)}`;
-  window.open(downloadUrl, '_blank');
+function clearFileSelection() {
+  state.selectedFiles = [];
+  state.lastClickedIndex = -1;
+  
+  const items = elements.fileList.querySelectorAll('.file-item');
+  items.forEach(item => {
+    item.classList.remove('file-item-selected');
+  });
+  
+  updateSelectionUI();
+}
+
+/**
+ * 更新选择 UI
+ */
+function updateSelectionUI() {
+  const count = state.selectedFiles.length;
+  
+  if (count > 0) {
+    elements.selectionToolbar.classList.remove('hidden');
+    elements.selectedCount.textContent = count;
+  } else {
+    elements.selectionToolbar.classList.add('hidden');
+  }
 }
 
 /**
@@ -852,6 +1206,10 @@ async function viewFile(item) {
     // 根据文件类型显示不同内容
     if (meta.extension === '.pdf') {
       showPDFPreview(meta);
+    } else if (meta.extension === '.docx') {
+      await showDocxPreview(meta);
+    } else if (meta.extension === '.xlsx' || meta.extension === '.xls') {
+      await showXlsxPreview(meta);
     } else if (meta.mediaType === 'image') {
       showImagePreview(meta);
     } else if (meta.mediaType === 'video') {
@@ -877,16 +1235,24 @@ async function viewFile(item) {
  */
 function resetModalContent() {
   elements.fileContent.classList.add('hidden');
+  elements.docxPreview.classList.add('hidden');
+  elements.xlsxPreview.classList.add('hidden');
+  elements.xlsxToolbar.classList.add('hidden');
   elements.imagePreview.classList.add('hidden');
   elements.videoPreview.classList.add('hidden');
   elements.audioPreview.classList.add('hidden');
   elements.pdfPreview.classList.add('hidden');
   elements.binaryInfo.classList.add('hidden');
   elements.codeContent.textContent = '';
+  elements.docxPreview.innerHTML = '';
+  // 不要清空 xlsxPreview.innerHTML，因为它包含结构
+  elements.xlsxSheetContent.innerHTML = '';
+  elements.xlsxSheetSearchResults.innerHTML = '';
+  elements.xlsxSheetSearchResults.classList.add('hidden');
   elements.imageElement.src = '';
   elements.videoElement.src = '';
   elements.audioElement.src = '';
-  
+
   // 重置 PDF 状态
   pdfDoc = null;
   pdfCurrentPage = 1;
@@ -894,6 +1260,12 @@ function resetModalContent() {
   pdfFitPage = false;
   const ctx = elements.pdfCanvas.getContext('2d');
   ctx.clearRect(0, 0, elements.pdfCanvas.width, elements.pdfCanvas.height);
+  
+  // 重置 XLSX 状态
+  xlsxWorkbook = null;
+  xlsxCurrentSheet = 0;
+  
+  console.log('🔄 模态框内容已重置');
 }
 
 /**
@@ -1043,9 +1415,53 @@ function closeModal() {
     modalContent.classList.remove('modal-fullscreen');
     document.body.style.overflow = '';
   }
-  
+
   elements.fileModal.classList.add('hidden');
   currentFile = null;
+}
+
+/**
+ * 刷新当前文件
+ */
+async function refreshCurrentFile() {
+  if (!currentFile) return;
+  
+  // 显示加载状态
+  const codeElement = elements.codeContent;
+  const originalText = codeElement.textContent;
+  codeElement.textContent = '刷新中...';
+  
+  try {
+    // 重新获取文件内容
+    const response = await fetch(`/api/file/content?path=${encodeURIComponent(currentFile.path)}&t=${Date.now()}`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      codeElement.textContent = `错误：${result.error}`;
+      return;
+    }
+    
+    const { content, language, size, modified } = result.data;
+    
+    // 更新代码内容
+    codeElement.className = `language-${language || 'plaintext'}`;
+    codeElement.textContent = content;
+    
+    // 使用 Prism 高亮
+    if (typeof Prism !== 'undefined') {
+      Prism.highlightElement(codeElement);
+    }
+    
+    // 更新文件信息
+    elements.fileSize.textContent = `大小：${size.formatted}`;
+    elements.fileModified.textContent = `修改时间：${formatDate(modified)}`;
+    
+    showToast('文件已刷新', 'success');
+  } catch (err) {
+    console.error('刷新文件失败:', err);
+    codeElement.textContent = originalText;
+    showToast('刷新失败，请稍后重试', 'error');
+  }
 }
 
 /**
@@ -1758,9 +2174,10 @@ function uploadFiles(files) {
       setTimeout(() => {
         hideUploadProgress();
         showUploadComplete(uploaded, failed);
-        // 刷新文件列表
+        // 清除缓存并刷新文件列表
+        clearFileCache();
         loadFiles(state.currentPath);
-      }, 1000);
+      }, 500);
       return;
     }
 
@@ -1903,6 +2320,18 @@ function showUploadComplete(uploaded, failed) {
 }
 
 /**
+ * 刷新文件列表
+ */
+function refreshFileList() {
+  // 清除缓存
+  clearFileCache();
+  // 重新加载文件列表
+  loadFiles(state.currentPath);
+  // 显示 Toast 提示
+  showToast('文件列表已刷新', 'success');
+}
+
+/**
  * 格式化大小
  */
 function formatSize(bytes) {
@@ -1917,6 +2346,257 @@ function formatSize(bytes) {
   }
 
   return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+/**
+ * 显示 DOCX 预览
+ */
+async function showDocxPreview(meta) {
+  console.log('📄 开始加载 DOCX:', meta.name);
+  console.log('📄 docx 对象:', typeof docx);
+  console.log('📄 JSZip 对象:', typeof JSZip);
+
+  elements.docxPreview.classList.remove('hidden');
+  elements.docxPreview.innerHTML = '<div class="loading"><div class="spinner"></div><span>加载 DOCX 文档...</span></div>';
+
+  try {
+    // 获取文件二进制数据
+    console.log('📄 获取文件二进制数据:', meta.path);
+    const response = await fetch(`/api/file/binary?path=${encodeURIComponent(meta.path)}&t=${Date.now()}`);
+    console.log('📄 响应状态:', response.status);
+
+    const blob = await response.blob();
+    console.log('📄 Blob 类型:', blob.type);
+    console.log('📄 Blob 大小:', blob.size, 'bytes');
+
+    // 使用 docx-preview 渲染
+    if (typeof docx !== 'undefined') {
+      console.log('📄 开始渲染...');
+      elements.docxPreview.innerHTML = '';
+
+      // 使用简化的配置
+      await docx.renderAsync(blob, elements.docxPreview, null, {
+        className: 'docx',
+        inWrapper: false
+      });
+
+      console.log('📄 渲染完成');
+
+      elements.fileSize.textContent = `大小：${meta.size?.formatted || '未知'}`;
+      elements.fileModified.textContent = `修改时间：${formatDate(meta.modified)}`;
+      elements.fileType.textContent = `类型：Word 文档 (.docx)`;
+    } else {
+      console.error('📄 DOCX 库未加载');
+      elements.docxPreview.innerHTML = '<div class="empty"><p>DOCX 预览库未加载，请检查网络连接</p></div>';
+    }
+
+  } catch (err) {
+    console.error('📄 加载 DOCX 失败:', err);
+    console.error('📄 错误堆栈:', err.stack);
+    elements.docxPreview.innerHTML = `<div class="empty"><p>加载失败：${err.message}</p><p style="margin-top:10px;font-size:12px;color:var(--text-muted)">提示：某些 DOCX 文件可能包含不支持的特性</p></div>`;
+  }
+}
+
+/**
+ * 显示 XLSX 预览
+ */
+async function showXlsxPreview(meta) {
+  console.log('📊 开始加载 XLSX:', meta.name);
+  console.log('📊 XLSX 对象:', typeof XLSX);
+  
+  elements.xlsxPreview.classList.remove('hidden');
+  elements.xlsxPreview.innerHTML = '<div class="loading"><div class="spinner"></div><span>加载 Excel 表格...</span></div>';
+
+  try {
+    // 获取文件二进制数据
+    console.log('📊 获取文件二进制数据:', meta.path);
+    const response = await fetch(`/api/file/binary?path=${encodeURIComponent(meta.path)}&t=${Date.now()}`);
+    console.log('📊 响应状态:', response.status);
+    
+    const arrayBuffer = await response.arrayBuffer();
+    console.log('📊 ArrayBuffer 大小:', arrayBuffer.byteLength, 'bytes');
+
+    // 使用 XLSX 读取
+    if (typeof XLSX !== 'undefined') {
+      console.log('📊 开始解析...');
+      xlsxWorkbook = XLSX.read(arrayBuffer, { type: 'array' });
+      xlsxCurrentSheet = 0;
+      
+      console.log('📊 工作表数量:', xlsxWorkbook.SheetNames.length);
+      console.log('📊 工作表名称:', xlsxWorkbook.SheetNames);
+
+      // 重建 HTML 结构
+      elements.xlsxPreview.innerHTML = `
+        <div class="xlsx-toolbar hidden" id="xlsxToolbar">
+          <div class="xlsx-sheet-tabs" id="xlsxSheetTabs"></div>
+          <div class="xlsx-sheet-search">
+            <input type="text" id="xlsxSheetSearch" class="xlsx-search-input" placeholder="搜索工作表...">
+            <div id="xlsxSheetSearchResults" class="xlsx-search-results hidden"></div>
+          </div>
+        </div>
+        <div class="xlsx-sheet-content" id="xlsxSheetContent"></div>
+      `;
+      
+      // 重新获取元素引用
+      elements.xlsxToolbar = document.getElementById('xlsxToolbar');
+      elements.xlsxSheetTabs = document.getElementById('xlsxSheetTabs');
+      elements.xlsxSheetContent = document.getElementById('xlsxSheetContent');
+      elements.xlsxSheetSearch = document.getElementById('xlsxSheetSearch');
+      elements.xlsxSheetSearchResults = document.getElementById('xlsxSheetSearchResults');
+
+      // 显示工具栏（仅当有多个工作表时）
+      if (xlsxWorkbook.SheetNames.length > 1) {
+        elements.xlsxToolbar.classList.remove('hidden');
+        renderSheetTabs();
+        bindSheetSearch();
+      } else {
+        elements.xlsxToolbar.classList.add('hidden');
+      }
+
+      // 渲染当前工作表
+      console.log('📊 渲染工作表:', xlsxWorkbook.SheetNames[0]);
+      renderCurrentSheet();
+      
+      console.log('📊 渲染完成');
+
+      elements.fileSize.textContent = `大小：${meta.size?.formatted || '未知'}`;
+      elements.fileModified.textContent = `修改时间：${formatDate(meta.modified)}`;
+      elements.fileType.textContent = `类型：Excel 表格 (${meta.extension}) - ${xlsxWorkbook.SheetNames.length} 个工作表`;
+
+    } else {
+      console.error('📊 XLSX 库未加载');
+      elements.xlsxPreview.innerHTML = '<div class="empty"><p>XLSX 预览库未加载，请检查网络连接</p></div>';
+    }
+
+  } catch (err) {
+    console.error('📊 加载 XLSX 失败:', err);
+    console.error('📊 错误堆栈:', err.stack);
+    elements.xlsxPreview.innerHTML = `<div class="empty"><p>加载失败：${err.message}</p></div>`;
+  }
+}
+
+/**
+ * 渲染工作表选项卡
+ */
+function renderSheetTabs() {
+  if (!xlsxWorkbook) return;
+  
+  const tabsContainer = elements.xlsxSheetTabs;
+  tabsContainer.innerHTML = '';
+  
+  xlsxWorkbook.SheetNames.forEach((sheetName, index) => {
+    const tab = document.createElement('div');
+    tab.className = `xlsx-sheet-tab${index === xlsxCurrentSheet ? ' active' : ''}`;
+    tab.textContent = sheetName;
+    tab.title = sheetName;
+    tab.addEventListener('click', () => switchToSheet(index));
+    tabsContainer.appendChild(tab);
+  });
+}
+
+/**
+ * 切换到指定工作表
+ */
+function switchToSheet(index) {
+  if (index < 0 || index >= xlsxWorkbook.SheetNames.length) return;
+  
+  xlsxCurrentSheet = index;
+  renderSheetTabs();
+  renderCurrentSheet();
+}
+
+/**
+ * 渲染当前工作表
+ */
+function renderCurrentSheet() {
+  if (!xlsxWorkbook) return;
+
+  const sheetName = xlsxWorkbook.SheetNames[xlsxCurrentSheet];
+  const worksheet = xlsxWorkbook.Sheets[sheetName];
+  const html = XLSX.utils.sheet_to_html(worksheet);
+
+  elements.xlsxSheetContent.innerHTML = `
+    <div class="xlsx-sheet-name">
+      <span>📊 ${escapeHtml(sheetName)}</span>
+      <span class="xlsx-sheet-index">(${xlsxCurrentSheet + 1}/${xlsxWorkbook.SheetNames.length})</span>
+    </div>
+    <div class="xlsx-table-container">${html}</div>
+  `;
+
+  // 如果有多个工作表，显示提示
+  if (xlsxWorkbook.SheetNames.length > 1) {
+    const info = `共 ${xlsxWorkbook.SheetNames.length} 个工作表，当前显示第 ${xlsxCurrentSheet + 1} 个`;
+    elements.xlsxSheetContent.innerHTML += `<div class="xlsx-info">${info}</div>`;
+  }
+}
+
+/**
+ * 绑定工作表搜索
+ */
+function bindSheetSearch() {
+  if (!elements.xlsxSheetSearch) return;
+  
+  // 移除旧的事件监听器
+  const newElement = elements.xlsxSheetSearch.cloneNode(true);
+  elements.xlsxSheetSearch.parentNode.replaceChild(newElement, elements.xlsxSheetSearch);
+  elements.xlsxSheetSearch = newElement;
+  
+  // 添加输入事件
+  elements.xlsxSheetSearch.addEventListener('input', (e) => {
+    const query = e.target.value.trim().toLowerCase();
+    
+    if (!query) {
+      elements.xlsxSheetSearchResults.classList.add('hidden');
+      return;
+    }
+    
+    // 搜索匹配的工作表
+    const matches = xlsxWorkbook.SheetNames
+      .map((name, index) => ({ name, index }))
+      .filter(item => item.name.toLowerCase().includes(query));
+    
+    // 显示搜索结果
+    const resultsContainer = elements.xlsxSheetSearchResults;
+    resultsContainer.innerHTML = '';
+    
+    if (matches.length === 0) {
+      resultsContainer.innerHTML = '<div class="xlsx-search-empty">未找到匹配的工作表</div>';
+    } else {
+      matches.forEach(item => {
+        const resultItem = document.createElement('div');
+        resultItem.className = 'xlsx-search-item';
+        resultItem.innerHTML = `
+          <span class="xlsx-search-icon">📊</span>
+          <span class="xlsx-search-name">${highlightSearchText(item.name, query)}</span>
+        `;
+        resultItem.addEventListener('click', () => {
+          switchToSheet(item.index);
+          elements.xlsxSheetSearchResults.classList.add('hidden');
+          elements.xlsxSheetSearch.value = '';
+        });
+        resultsContainer.appendChild(resultItem);
+      });
+    }
+    
+    resultsContainer.classList.remove('hidden');
+  });
+  
+  // 点击外部关闭搜索结果
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.xlsx-sheet-search')) {
+      elements.xlsxSheetSearchResults.classList.add('hidden');
+    }
+  });
+}
+
+/**
+ * 高亮搜索文本
+ */
+function highlightSearchText(text, query) {
+  if (!query) return escapeHtml(text);
+  
+  const regex = new RegExp(`(${escapeHtml(query)})`, 'gi');
+  return escapeHtml(text).replace(regex, '<mark class="xlsx-search-highlight">$1</mark>');
 }
 
 /**
@@ -2157,6 +2837,26 @@ async function handleContextMenuAction(action) {
         viewFile(item);
       }
       break;
+    case 'copy':
+      // 复制到剪贴板
+      state.clipboardFiles = [item];
+      state.clipboardAction = 'copy';
+      showToast(`已复制：${item.name}`, 'info');
+      updatePasteMenu();
+      break;
+    case 'cut':
+      // 剪切到剪贴板
+      state.clipboardFiles = [item];
+      state.clipboardAction = 'cut';
+      showToast(`已剪切：${item.name}`, 'info');
+      updatePasteMenu();
+      break;
+    case 'paste':
+      // 粘贴
+      if (state.clipboardFiles.length > 0 && state.clipboardAction) {
+        await pasteFiles(item);
+      }
+      break;
     case 'rename':
       showInputDialog('重命名', '请输入新名称', item.name, async (newName) => {
         await renameFile(item, newName);
@@ -2183,6 +2883,67 @@ async function handleContextMenuAction(action) {
       });
       break;
   }
+}
+
+/**
+ * 更新粘贴菜单项显示
+ */
+function updatePasteMenu() {
+  const pasteItem = document.getElementById('contextMenuPaste');
+  if (pasteItem) {
+    if (state.clipboardFiles.length > 0) {
+      pasteItem.style.display = 'flex';
+    } else {
+      pasteItem.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * 粘贴文件
+ */
+async function pasteFiles(targetDir) {
+  if (!targetDir || targetDir.type !== 'directory') {
+    showToast('请选择目标目录进行粘贴', 'error');
+    return;
+  }
+  
+  const files = state.clipboardFiles;
+  const action = state.clipboardAction;
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const file of files) {
+    try {
+      const actionType = action === 'cut' ? 'move' : 'copy';
+      const url = `/api/file/${actionType}?path=${encodeURIComponent(file.path)}&target=${encodeURIComponent(targetDir.path)}`;
+      
+      const response = await fetch(url, { 
+        method: action === 'cut' ? 'POST' : 'POST'
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        successCount++;
+        // 如果是剪切，清除剪贴板
+        if (action === 'cut') {
+          state.clipboardFiles = [];
+          state.clipboardAction = null;
+        }
+      } else {
+        failCount++;
+        console.error('粘贴失败:', file.name, result.error);
+      }
+    } catch (err) {
+      failCount++;
+      console.error('粘贴失败:', file.name, err);
+    }
+  }
+  
+  updatePasteMenu();
+  clearFileCache();
+  showToast(`粘贴完成：成功 ${successCount} 个，失败 ${failCount} 个`, failCount > 0 ? 'warning' : 'success');
+  loadFiles(state.currentPath);
 }
 
 /**

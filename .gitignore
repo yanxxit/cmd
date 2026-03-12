@@ -29,3 +29,8 @@ dictionary-db
 *.mp4
 
 *.pdf
+
+public/*.pdf
+public/*.md
+public/*.xlsx
+public/*.docx

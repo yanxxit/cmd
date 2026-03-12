@@ -35,6 +35,19 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <!-- DOCX 预览 -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.0/dist/docx-preview.min.js"></script>
+  <!-- XLSX 预览 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    // 检查库是否加载成功
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('📄 DOCX 预览库:', typeof docx !== 'undefined' ? '✅ 已加载' : '❌ 未加载');
+      console.log('📄 JSZip:', typeof JSZip !== 'undefined' ? '✅ 已加载' : '❌ 未加载');
+      console.log('📊 XLSX 预览库:', typeof XLSX !== 'undefined' ? '✅ 已加载' : '❌ 未加载');
+    });
+  </script>
 </head>
 <body>
   <div class="container">
@@ -135,10 +148,32 @@
       </button>
     </div>
 
+    <!-- 多选工具栏 -->
+    <div id="selectionToolbar" class="selection-toolbar hidden">
+      <span class="selection-count">已选择 <span id="selectedCount">0</span> 个文件</span>
+      <div class="selection-actions">
+        <button id="batchDownloadBtn" class="btn btn-sm" title="批量下载">
+          <span class="icon">⬇️</span>
+          <span>下载</span>
+        </button>
+        <button id="batchDeleteBtn" class="btn btn-sm btn-danger" title="批量删除">
+          <span class="icon">🗑️</span>
+          <span>删除</span>
+        </button>
+        <button id="clearSelectionBtn" class="btn btn-sm" title="取消选择">
+          <span class="icon">✕</span>
+          <span>取消选择</span>
+        </button>
+      </div>
+    </div>
+
     <!-- 当前路径显示 -->
     <div class="current-path">
       <span class="icon">📂</span>
       <span id="currentPathText" class="path-text">加载中...</span>
+      <button id="refreshListBtn" class="btn btn-icon btn-sm" title="刷新列表">
+        <span class="icon">🔄</span>
+      </button>
       <button id="uploadBtn" class="btn btn-primary btn-sm" title="上传文件">
         <span class="icon">⬆️</span>
         <span>上传</span>
@@ -237,6 +272,9 @@
       <div class="modal-header">
         <h2 id="modalTitle" class="modal-title">文件预览</h2>
         <div class="modal-actions">
+          <button id="refreshBtn" class="btn btn-icon" title="刷新 (F5)">
+            <span class="icon">🔄</span>
+          </button>
           <button id="fullscreenBtn" class="btn btn-icon" title="全屏 (F)" data-fullscreen="false">
             <span class="icon">⛶</span>
           </button>
@@ -252,6 +290,19 @@
       <div class="modal-body">
         <!-- 文本内容 -->
         <pre id="fileContent" class="file-content hidden"><code id="codeContent" class="language-plaintext"></code></pre>
+        <!-- DOCX 预览 -->
+        <div id="docxPreview" class="docx-preview hidden"></div>
+        <!-- XLSX 预览 -->
+        <div id="xlsxPreview" class="xlsx-preview hidden">
+          <div class="xlsx-toolbar hidden" id="xlsxToolbar">
+            <div class="xlsx-sheet-tabs" id="xlsxSheetTabs"></div>
+            <div class="xlsx-sheet-search">
+              <input type="text" id="xlsxSheetSearch" class="xlsx-search-input" placeholder="搜索工作表...">
+              <div id="xlsxSheetSearchResults" class="xlsx-search-results hidden"></div>
+            </div>
+          </div>
+          <div class="xlsx-sheet-content" id="xlsxSheetContent"></div>
+        </div>
         <!-- 图片预览 -->
         <div id="imagePreview" class="media-preview hidden">
           <img id="imageElement" src="" alt="图片预览">
@@ -316,6 +367,20 @@
       <span class="context-menu-icon">📂</span>
       <span>打开</span>
     </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" data-action="copy">
+      <span class="context-menu-icon">📋</span>
+      <span>复制</span>
+    </div>
+    <div class="context-menu-item" data-action="cut">
+      <span class="context-menu-icon">✂️</span>
+      <span>剪切</span>
+    </div>
+    <div class="context-menu-item" data-action="paste" id="contextMenuPaste" style="display: none;">
+      <span class="context-menu-icon">📥</span>
+      <span>粘贴</span>
+    </div>
+    <div class="context-menu-divider"></div>
     <div class="context-menu-item" data-action="rename">
       <span class="context-menu-icon">✏️</span>
       <span>重命名</span>
@@ -371,6 +436,40 @@
 
   <!-- Toast 提示容器 -->
   <div id="toastContainer" class="toast-container"></div>
+
+  <!-- 快速预览窗口 -->
+  <div id="quickPreview" class="quick-preview hidden">
+    <div class="quick-preview-overlay"></div>
+    <div class="quick-preview-content">
+      <div class="quick-preview-header">
+        <h3 id="quickPreviewTitle" class="quick-preview-title">文件预览</h3>
+        <div class="quick-preview-actions">
+          <button id="quickPreviewPrev" class="btn btn-icon btn-sm" title="上一个 (←)">
+            <span class="icon">◀</span>
+          </button>
+          <button id="quickPreviewNext" class="btn btn-icon btn-sm" title="下一个 (→)">
+            <span class="icon">▶</span>
+          </button>
+          <button id="quickPreviewClose" class="btn btn-icon" title="关闭 (Esc)">
+            <span class="icon">✕</span>
+          </button>
+        </div>
+      </div>
+      <div class="quick-preview-body">
+        <!-- 文本内容 -->
+        <pre id="quickPreviewContent" class="quick-preview-content-text hidden"><code></code></pre>
+        <!-- 图片预览 -->
+        <div id="quickPreviewImage" class="quick-preview-media hidden">
+          <img src="" alt="预览">
+        </div>
+        <!-- 提示信息 -->
+        <div id="quickPreviewMessage" class="quick-preview-message"></div>
+      </div>
+      <div class="quick-preview-footer">
+        <span id="quickPreviewInfo" class="quick-preview-info"></span>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

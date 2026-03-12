@@ -108,6 +108,72 @@ body {
   margin-bottom: 16px;
 }
 
+/* 多选工具栏样式 */
+.selection-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+  animation: toolbarSlideIn 0.3s ease-out;
+}
+
+@keyframes toolbarSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.selection-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.selection-actions .btn {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.selection-actions .btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.selection-actions .btn-danger {
+  background-color: rgba(255, 77, 79, 0.8);
+}
+
+.selection-actions .btn-danger:hover {
+  background-color: rgba(255, 77, 79, 1);
+}
+
+/* 文件选中状态 */
+.file-item-selected {
+  background-color: var(--accent-color) !important;
+  color: #ffffff;
+}
+
+.file-item-selected .file-name,
+.file-item-selected .file-icon,
+.file-item-selected .file-size,
+.file-item-selected .file-date {
+  color: #ffffff;
+}
+
 .filter-group {
   display: flex;
   align-items: center;
@@ -526,8 +592,8 @@ body {
 .pdf-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 6px 10px; /* 更紧凑 */
   background-color: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
@@ -537,11 +603,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 10px;
+  padding: 4px 8px; /* 更紧凑 */
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.15s ease;
   color: var(--text-primary);
@@ -559,21 +625,21 @@ body {
 
 .pdf-zoom-level,
 .pdf-page-info {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
-  min-width: 60px;
+  min-width: 50px;
   text-align: center;
 }
 
 .pdf-page-info {
-  min-width: 80px;
+  min-width: 70px;
 }
 
 .pdf-divider {
   width: 1px;
-  height: 20px;
+  height: 16px; /* 更短 */
   background-color: var(--border-color);
-  margin: 0 4px;
+  margin: 0 2px;
 }
 
 .pdf-container {
@@ -818,6 +884,19 @@ body {
 .path-text {
   font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
   word-break: break-all;
+}
+
+/* 刷新列表按钮 */
+#refreshListBtn {
+  transition: transform 0.3s ease;
+}
+
+#refreshListBtn:hover {
+  transform: rotate(90deg);
+}
+
+#refreshListBtn:active {
+  transform: rotate(180deg);
 }
 
 /* 文件列表 */
@@ -1072,57 +1151,65 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 10px 16px; /* 更紧凑的内边距 */
   border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  flex-shrink: 0; /* 防止头部被压缩 */
 }
 
 .modal-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 600px;
+  max-width: calc(100% - 200px);
 }
 
 .modal-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .modal-body {
   flex: 1;
   overflow: auto;
   padding: 0;
+  min-height: 0; /* 允许内容区域正确滚动 */
 }
 
 .file-content {
   margin: 0;
-  padding: 20px;
+  padding: 16px; /* 更紧凑的内边距 */
   font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
   background-color: var(--bg-secondary);
-  min-height: 300px;
-  max-height: calc(85vh - 140px);
+  min-height: 200px;
+  max-height: calc(100vh - 100px);
   overflow: auto;
   color: var(--text-primary);
 }
 
 .modal-footer {
-  padding: 12px 20px;
+  padding: 8px 16px; /* 更紧凑的内边距 */
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-primary);
+  flex-shrink: 0; /* 防止底部被压缩 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .file-info {
   display: flex;
-  gap: 16px;
-  font-size: 13px;
+  gap: 12px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
@@ -1334,4 +1421,363 @@ body {
 .toast-message {
   flex: 1;
   word-break: break-word;
+}
+
+/* 快速预览窗口样式 */
+.quick-preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-preview-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.quick-preview-content {
+  position: relative;
+  background-color: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  width: 90%;
+  max-width: 800px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: previewSlideIn 0.2s ease-out;
+}
+
+@keyframes previewSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.quick-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px; /* 更紧凑 */
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  flex-shrink: 0;
+}
+
+.quick-preview-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: calc(100% - 150px);
+}
+
+.quick-preview-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.quick-preview-body {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+  background-color: var(--bg-secondary);
+  min-height: 0;
+}
+
+.quick-preview-content-text {
+  margin: 0;
+  padding: 12px; /* 更紧凑 */
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: calc(100vh - 90px);
+  overflow: auto;
+  color: var(--text-primary);
+}
+
+.quick-preview-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  max-height: calc(100vh - 90px);
+}
+
+.quick-preview-media img {
+  max-width: 100%;
+  max-height: calc(100vh - 90px);
+  object-fit: contain;
+  border-radius: 0; /* 移除圆角，更简洁 */
+}
+
+.quick-preview-message {
+  padding: 30px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.quick-preview-footer {
+  padding: 6px 12px; /* 更紧凑 */
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  flex-shrink: 0;
+}
+
+.quick-preview-info {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* DOCX 预览样式 */
+.docx-preview {
+  padding: 20px;
+  background-color: var(--bg-primary);
+  overflow: auto;
+  max-height: calc(100vh - 100px);
+}
+
+.docx-rendered {
+  max-width: 100%;
+  font-family: 'Calibri', 'Microsoft YaHei', sans-serif;
+  line-height: 1.5;
+}
+
+.docx-rendered p {
+  margin: 0.5em 0;
+}
+
+.docx-rendered table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.docx-rendered td,
+.docx-rendered th {
+  border: 1px solid var(--border-color);
+  padding: 8px;
+}
+
+/* XLSX 预览样式 */
+.xlsx-preview {
+  padding: 0;
+  background-color: var(--bg-primary);
+  overflow: auto;
+  max-height: calc(100vh - 100px);
+}
+
+.xlsx-sheet-name {
+  padding: 12px 20px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.xlsx-table-container {
+  padding: 20px;
+  overflow: auto;
+}
+
+.xlsx-table-container table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+.xlsx-table-container td,
+.xlsx-table-container th {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.xlsx-table-container th {
+  background-color: var(--bg-secondary);
+  font-weight: 600;
+}
+
+.xlsx-table-container tr:hover {
+  background-color: var(--bg-hover);
+}
+
+.xlsx-info {
+  padding: 12px 20px;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* XLSX 工具栏 */
+.xlsx-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  gap: 12px;
+}
+
+/* 工作表选项卡 */
+.xlsx-sheet-tabs {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.xlsx-sheet-tab {
+  padding: 6px 12px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px 4px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.xlsx-sheet-tab:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.xlsx-sheet-tab.active {
+  background-color: var(--accent-color);
+  color: #ffffff;
+  border-color: var(--accent-color);
+}
+
+/* 工作表搜索 */
+.xlsx-sheet-search {
+  position: relative;
+  min-width: 200px;
+}
+
+.xlsx-search-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.xlsx-search-input:focus {
+  border-color: var(--accent-color);
+}
+
+.xlsx-search-results {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 250px;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  margin-top: 4px;
+}
+
+.xlsx-search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.xlsx-search-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.xlsx-search-icon {
+  font-size: 14px;
+}
+
+.xlsx-search-name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xlsx-search-highlight {
+  background-color: #fff566;
+  color: #000;
+  padding: 1px 2px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .xlsx-search-highlight {
+  background-color: #d4b106;
+  color: #000;
+}
+
+.xlsx-search-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* 工作表名称栏 */
+.xlsx-sheet-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.xlsx-sheet-index {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
 }

@@ -84,6 +84,7 @@ function getFileType(fileName, stats) {
   if (textExts.includes(ext)) return 'text';
   if (docExts.includes(ext)) return 'document';
 
+  // 未知扩展名，返回 'file'，后续根据内容判断是否为文本
   return 'file';
 }
 
@@ -937,41 +938,47 @@ router.get('/file/meta', (req, res) => {
     
     // 获取文件类型
     const fileType = getFileType(fileName, stats);
+    let actualFileType = fileType;
     meta.fileType = fileType;
     meta.icon = getFileIcon(fileType);
 
+    // 对于未知类型（file），检查是否为文本文件
+    if (fileType === 'file') {
+      const buffer = fs.readFileSync(safePathResult, { flag: 'r' });
+      const isBinary = isBinaryFile(buffer);
+      
+      if (!isBinary) {
+        // 非二进制文件，当作文本文件处理
+        actualFileType = 'text';
+        meta.fileType = 'text';
+        meta.icon = getFileIcon('text');
+      }
+      
+      meta.isBinary = isBinary;
+      meta.header = buffer.slice(0, 16).toString('hex').toUpperCase().match(/.{2}/g).join(' ');
+      meta.detectedType = detectFileType(buffer, ext);
+    }
+
     // 媒体文件和 PDF 额外信息
-    if (fileType === 'image' || fileType === 'video' || fileType === 'audio' || fileType === 'document') {
-      meta.isMedia = fileType === 'image' || fileType === 'video' || fileType === 'audio';
+    if (actualFileType === 'image' || actualFileType === 'video' || actualFileType === 'audio' || actualFileType === 'document') {
+      meta.isMedia = actualFileType === 'image' || actualFileType === 'video' || actualFileType === 'audio';
       meta.mimeType = getMimeType(ext);
 
       // 图片尺寸信息
-      if (fileType === 'image') {
+      if (actualFileType === 'image') {
         meta.mediaType = 'image';
         meta.previewUrl = `/api/file/preview?path=${encodeURIComponent(safePathResult)}`;
-      } else if (fileType === 'video') {
+      } else if (actualFileType === 'video') {
         meta.mediaType = 'video';
         meta.previewUrl = `/api/file/stream?path=${encodeURIComponent(safePathResult)}`;
-      } else if (fileType === 'audio') {
+      } else if (actualFileType === 'audio') {
         meta.mediaType = 'audio';
         meta.previewUrl = `/api/file/stream?path=${encodeURIComponent(safePathResult)}`;
-      } else if (fileType === 'document') {
+      } else if (actualFileType === 'document') {
         // PDF 文档
         meta.mediaType = 'document';
         meta.previewUrl = `/api/file/preview?path=${encodeURIComponent(safePathResult)}`;
       }
-    }
-    
-    // 二进制文件信息
-    if (fileType !== 'text' && fileType !== 'directory') {
-      const buffer = fs.readFileSync(safePathResult, { flag: 'r' });
-      meta.isBinary = isBinaryFile(buffer);
-      
-      // 文件头信息（前 16 字节十六进制）
-      meta.header = buffer.slice(0, 16).toString('hex').toUpperCase().match(/.{2}/g).join(' ');
-      
-      // 尝试识别文件类型
-      meta.detectedType = detectFileType(buffer, ext);
     }
     
     res.json({
@@ -984,6 +991,76 @@ router.get('/file/meta', (req, res) => {
       success: false,
       error: err.message
     });
+  }
+});
+
+/**
+ * GET /api/file/binary
+ * 获取文件二进制数据（用于 DOCX/XLSX 预览）
+ */
+router.get('/file/binary', (req, res) => {
+  try {
+    const rootDir = req.app.get('fileViewerRoot') || process.cwd();
+    let requestedPath = req.query.path;
+
+    if (!requestedPath) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少文件路径参数'
+      });
+    }
+
+    // 如果是相对路径，转换为绝对路径
+    if (!path.isAbsolute(requestedPath)) {
+      requestedPath = path.join(rootDir, requestedPath);
+    }
+
+    const safePathResult = safePath(requestedPath, rootDir);
+
+    if (!safePathResult) {
+      return res.status(403).json({
+        success: false,
+        error: '禁止访问该文件'
+      });
+    }
+
+    if (!fs.existsSync(safePathResult)) {
+      return res.status(404).json({
+        success: false,
+        error: '文件不存在'
+      });
+    }
+
+    const stats = fs.statSync(safePathResult);
+
+    if (stats.isDirectory()) {
+      return res.status(400).json({
+        success: false,
+        error: '无法获取目录的二进制数据'
+      });
+    }
+
+    // 设置正确的 Content-Type
+    const ext = path.extname(requestedPath).toLowerCase();
+    const mimeType = getMimeType(ext);
+    res.setHeader('Content-Type', mimeType);
+    
+    // 设置缓存控制
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // 流式传输文件
+    const stream = fs.createReadStream(safePathResult);
+    stream.pipe(res);
+  } catch (err) {
+    console.error('获取文件二进制数据失败:', err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        error: err.message
+      });
+    }
   }
 });
 
@@ -1666,6 +1743,172 @@ router.post('/file/rename', (req, res) => {
     res.status(500).json({
       success: false,
       error: '重命名失败：' + err.message
+    });
+  }
+});
+
+/**
+ * POST /api/file/copy
+ * 复制文件到目标目录
+ */
+router.post('/file/copy', (req, res) => {
+  try {
+    const rootDir = req.app.get('fileViewerRoot') || process.cwd();
+    const sourcePath = req.query.path;
+    const targetDir = req.query.target;
+
+    if (!sourcePath || !targetDir) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少路径参数'
+      });
+    }
+
+    // 标准化源路径
+    let safeSourcePath = !path.isAbsolute(sourcePath) ? path.join(rootDir, sourcePath) : sourcePath;
+    safeSourcePath = safePath(safeSourcePath, rootDir);
+
+    if (!safeSourcePath) {
+      return res.status(403).json({
+        success: false,
+        error: '禁止访问源路径'
+      });
+    }
+
+    // 标准化目标路径
+    let safeTargetDir = !path.isAbsolute(targetDir) ? path.join(rootDir, targetDir) : targetDir;
+    safeTargetDir = safePath(safeTargetDir, rootDir);
+
+    if (!safeTargetDir) {
+      return res.status(403).json({
+        success: false,
+        error: '禁止访问目标路径'
+      });
+    }
+
+    if (!fs.existsSync(safeSourcePath)) {
+      return res.status(404).json({
+        success: false,
+        error: '源文件不存在'
+      });
+    }
+
+    if (!fs.existsSync(safeTargetDir)) {
+      return res.status(404).json({
+        success: false,
+        error: '目标目录不存在'
+      });
+    }
+
+    // 复制文件
+    const fileName = path.basename(safeSourcePath);
+    const targetPath = path.join(safeTargetDir, fileName);
+
+    if (fs.existsSync(targetPath)) {
+      return res.status(400).json({
+        success: false,
+        error: '目标文件已存在'
+      });
+    }
+
+    fs.copyFileSync(safeSourcePath, targetPath);
+
+    res.json({
+      success: true,
+      data: {
+        sourcePath: safeSourcePath,
+        targetPath: targetPath,
+        copied: true
+      }
+    });
+  } catch (err) {
+    console.error('复制文件失败:', err);
+    res.status(500).json({
+      success: false,
+      error: '复制失败：' + err.message
+    });
+  }
+});
+
+/**
+ * POST /api/file/move
+ * 移动文件到目标目录
+ */
+router.post('/file/move', (req, res) => {
+  try {
+    const rootDir = req.app.get('fileViewerRoot') || process.cwd();
+    const sourcePath = req.query.path;
+    const targetDir = req.query.target;
+
+    if (!sourcePath || !targetDir) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少路径参数'
+      });
+    }
+
+    // 标准化源路径
+    let safeSourcePath = !path.isAbsolute(sourcePath) ? path.join(rootDir, sourcePath) : sourcePath;
+    safeSourcePath = safePath(safeSourcePath, rootDir);
+
+    if (!safeSourcePath) {
+      return res.status(403).json({
+        success: false,
+        error: '禁止访问源路径'
+      });
+    }
+
+    // 标准化目标路径
+    let safeTargetDir = !path.isAbsolute(targetDir) ? path.join(rootDir, targetDir) : targetDir;
+    safeTargetDir = safePath(safeTargetDir, rootDir);
+
+    if (!safeTargetDir) {
+      return res.status(403).json({
+        success: false,
+        error: '禁止访问目标路径'
+      });
+    }
+
+    if (!fs.existsSync(safeSourcePath)) {
+      return res.status(404).json({
+        success: false,
+        error: '源文件不存在'
+      });
+    }
+
+    if (!fs.existsSync(safeTargetDir)) {
+      return res.status(404).json({
+        success: false,
+        error: '目标目录不存在'
+      });
+    }
+
+    // 移动文件
+    const fileName = path.basename(safeSourcePath);
+    const targetPath = path.join(safeTargetDir, fileName);
+
+    if (fs.existsSync(targetPath)) {
+      return res.status(400).json({
+        success: false,
+        error: '目标文件已存在'
+      });
+    }
+
+    fs.renameSync(safeSourcePath, targetPath);
+
+    res.json({
+      success: true,
+      data: {
+        sourcePath: safeSourcePath,
+        targetPath: targetPath,
+        moved: true
+      }
+    });
+  } catch (err) {
+    console.error('移动文件失败:', err);
+    res.status(500).json({
+      success: false,
+      error: '移动失败：' + err.message
     });
   }
 });
