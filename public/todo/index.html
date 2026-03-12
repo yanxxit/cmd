@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📝 TODO List</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <h1 class="title">
+        <span class="logo">✅</span>
+        <span>TODO List</span>
+      </h1>
+      <div class="header-stats">
+        <span class="stat">总计：<strong id="totalCount">0</strong></span>
+        <span class="stat">未完成：<strong id="pendingCount">0</strong></span>
+        <span class="stat">已完成：<strong id="completedCount">0</strong></span>
+      </div>
+    </header>
+
+    <!-- 添加任务 -->
+    <div class="add-todo-section">
+      <input
+        type="text"
+        id="todoInput"
+        class="todo-input"
+        placeholder="添加新任务... (按 Enter 添加)"
+        autocomplete="off"
+      >
+      <button id="addBtn" class="btn btn-primary">
+        <span class="icon">➕</span>
+        <span>添加</span>
+      </button>
+    </div>
+
+    <!-- 筛选和排序 -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">全部</button>
+        <button class="filter-btn" data-filter="pending">未完成</button>
+        <button class="filter-btn" data-filter="completed">已完成</button>
+      </div>
+      <div class="sort-group">
+        <select id="sortSelect" class="sort-select">
+          <option value="created_desc">按创建时间降序</option>
+          <option value="created_asc">按创建时间升序</option>
+          <option value="priority_desc">按优先级降序</option>
+          <option value="priority_asc">按优先级升序</option>
+          <option value="due_date_asc">按截止日期升序</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 搜索 -->
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        id="searchInput"
+        class="search-input"
+        placeholder="搜索任务..."
+      >
+    </div>
+
+    <!-- 任务列表 -->
+    <div class="todo-list" id="todoList">
+      <!-- 动态生成 -->
+    </div>
+
+    <!-- 加载状态 -->
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <span>加载中...</span>
+    </div>
+
+    <!-- 空状态 -->
+    <div id="empty" class="empty hidden">
+      <span class="empty-icon">📋</span>
+      <p>暂无任务</p>
+      <p class="empty-hint">点击上方按钮添加新任务</p>
+    </div>
+
+    <!-- 批量操作栏 -->
+    <div id="batchBar" class="batch-bar hidden">
+      <span class="batch-info">已选择 <span id="selectedCount">0</span> 个任务</span>
+      <div class="batch-actions">
+        <button id="batchComplete" class="btn btn-sm">
+          <span class="icon">✅</span>
+          <span>完成</span>
+        </button>
+        <button id="batchDelete" class="btn btn-sm btn-danger">
+          <span class="icon">🗑️</span>
+          <span>删除</span>
+        </button>
+        <button id="cancelSelection" class="btn btn-sm">
+          <span class="icon">✕</span>
+          <span>取消</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑对话框 -->
+  <div id="editDialog" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">编辑任务</h2>
+        <button id="closeEdit" class="btn btn-icon">
+          <span class="icon">✕</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editId">
+        <div class="form-group">
+          <label class="form-label">任务内容</label>
+          <input type="text" id="editContent" class="form-input" placeholder="任务内容">
+        </div>
+        <div class="form-group">
+          <label class="form-label">优先级</label>
+          <select id="editPriority" class="form-select">
+            <option value="1">🔴 高</option>
+            <option value="2">🟡 中</option>
+            <option value="3">🟢 低</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">截止日期</label>
+          <input type="date" id="editDueDate" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">备注</label>
+          <textarea id="editNote" class="form-textarea" placeholder="备注信息"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelEdit" class="btn">取消</button>
+        <button id="saveEdit" class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

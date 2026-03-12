@@ -34,3 +34,6 @@ public/*.pdf
 public/*.md
 public/*.xlsx
 public/*.docx
+
+
+.pgdata/

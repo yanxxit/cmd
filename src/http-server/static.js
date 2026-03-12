@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import proxy from 'http-proxy-middleware';
 import { fileURLToPath } from 'url';
 import fileViewerRouter from './file-viewer.js';
+import todoApiRouter from './todo-api.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +24,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.set('fileViewerRoot', options.dir);
 
   app.use(morgan('tiny'))
+
+  // 添加 JSON 解析中间件
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // 挂载 TODO API 路由（必须在 /api 之前，静态资源之前）
+  app.use('/api/todos', todoApiRouter);
   
   // 挂载文件查看器路由（优先于静态资源）
   app.use('/api', fileViewerRouter);
@@ -30,7 +38,14 @@ export default function (options = { port: 3000, dir: __dirname }) {
   // 文件查看器前端页面（优先于用户目录静态资源）
   const fileViewerDir = path.join(ROOT_DIR, 'public/file-viewer');
   app.use('/file-viewer', express.static(fileViewerDir));
-  
+
+  // TODO 应用前端页面
+  const todoDir = path.join(ROOT_DIR, 'public/todo');
+  app.use('/todo', express.static(todoDir));
+  app.get('/todo', (req, res) => {
+    res.sendFile(path.join(todoDir, 'index.html'));
+  });
+
   // 用户目录静态资源
   app.use(express.static(options.dir));
   
