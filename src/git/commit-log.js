@@ -2,34 +2,75 @@ import { execSync } from 'child_process';
 import dayjs from 'dayjs';
 
 /**
- * 获取指定日期的 Git 提交列表
- * @param {string} date - 日期字符串，如 '2024-01-01' 或 'yesterday'
- * @returns {Array} - 提交列表
+ * 验证并标准化日期输入，防止命令注入
+ * @param {string} date - 日期字符串
+ * @returns {Object} - { since, until } 日期范围
  */
-export function getCommitsByDate(date = 'yesterday') {
+function parseDateRange(date) {
   let since, until;
 
   if (date === 'yesterday') {
-    // 默认获取昨日的提交
     const yesterday = dayjs().subtract(1, 'day');
-    since = yesterday.startOf('day').format('YYYY-MM-DD');
-    until = yesterday.endOf('day').format('YYYY-MM-DD');
+    since = yesterday.startOf('day').format('YYYY-MM-DD HH:mm:ss');
+    until = yesterday.endOf('day').format('YYYY-MM-DD HH:mm:ss');
+  } else if (date === 'today') {
+    const today = dayjs();
+    since = today.startOf('day').format('YYYY-MM-DD HH:mm:ss');
+    until = today.endOf('day').format('YYYY-MM-DD HH:mm:ss');
   } else {
-    // 解析指定的日期
-    const d = dayjs(date);
-    if (d.isValid()) {
-      since = d.startOf('day').format('YYYY-MM-DD');
-      until = d.endOf('day').format('YYYY-MM-DD');
-    } else {
-      throw new Error(`无效的日期格式：${date}`);
+    // 严格验证日期格式，只允许 YYYY-MM-DD 格式
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      throw new Error(`无效的日期格式：${date}，请使用 YYYY-MM-DD 格式`);
     }
+
+    const d = dayjs(date);
+    if (!d.isValid()) {
+      throw new Error(`无效的日期：${date}`);
+    }
+
+    since = d.startOf('day').format('YYYY-MM-DD HH:mm:ss');
+    until = d.endOf('day').format('YYYY-MM-DD HH:mm:ss');
   }
 
+  return { since, until };
+}
+
+/**
+ * 验证 Git hash，防止命令注入
+ * @param {string} hash - Git hash
+ * @returns {string} - 清理后的 hash
+ */
+function sanitizeHash(hash) {
+  // 只允许字母、数字和连字符
+  if (!/^[a-f0-9]+$/i.test(hash)) {
+    throw new Error(`无效的 Git hash: ${hash}`);
+  }
+  return hash;
+}
+
+/**
+ * 获取指定日期的 Git 提交列表
+ * @param {Object} options - 选项
+ * @param {string} options.date - 日期字符串，如 '2024-01-01' 或 'yesterday'
+ * @param {string} options.author - 作者过滤（可选）
+ * @returns {Array} - 提交列表
+ */
+export function getCommitsByDate(options = {}) {
+  const { date = 'yesterday', author = '' } = options;
+  const { since, until } = parseDateRange(date);
+
   try {
-    // 获取提交列表，使用自定义格式输出
+    // 构建命令，支持作者过滤
+    let command = `git log --since="${since}" --until="${until}" --pretty=format:"%H|%an|%ae|%ad|%s" --date=format:'%Y-%m-%d %H:%M:%S'`;
+    
+    if (author) {
+      command += ` --author="${author}"`;
+    }
+    
     const commitLog = execSync(
-      `git log --since="${since}" --until="${until}" --pretty=format:"%H|%an|%ae|%ad|%s" --date=format:'%Y-%m-%d %H:%M:%S'`,
-      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+      command,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 10 * 1024 * 1024 }
     );
 
     if (!commitLog.trim()) {
@@ -64,9 +105,10 @@ export function getCommitsByDate(date = 'yesterday') {
  */
 export function getCommitStats(hash) {
   try {
+    const safeHash = sanitizeHash(hash);
     const stats = execSync(
-      `git show --stat --format="" ${hash}`,
-      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+      `git show --stat --format="" ${safeHash}`,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 10 * 1024 * 1024 }
     );
 
     const lines = stats.trim().split('\n');
@@ -116,8 +158,9 @@ export function getCommitStats(hash) {
  */
 export function getCommitDiff(hash, maxLines = 500) {
   try {
+    const safeHash = sanitizeHash(hash);
     const diff = execSync(
-      `git show --format="" ${hash}`,
+      `git show --format="" ${safeHash}`,
       { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'] }
     );
 
@@ -179,10 +222,12 @@ export function getCommitDiff(hash, maxLines = 500) {
  * @param {boolean} includeDiff - 是否包含详细 diff
  * @returns {Array} - 完整的提交信息数组
  */
-export function getFullCommitLog(date = 'yesterday', includeDiff = false) {
-  const commits = getCommitsByDate(date);
+export function getFullCommitLog(options = {}) {
+  const { date = 'yesterday', author = '', includeDiff = false } = options;
+  const commits = getCommitsByDate({ date, author });
 
-  for (const commit of commits) {
+  // 并行获取每个提交的详细信息，提升性能
+  const commitPromises = commits.map(async (commit) => {
     const stats = getCommitStats(commit.hash);
     commit.files = stats.files;
     commit.summary = stats.summary;
@@ -190,7 +235,88 @@ export function getFullCommitLog(date = 'yesterday', includeDiff = false) {
     if (includeDiff) {
       commit.diffs = getCommitDiff(commit.hash);
     }
+
+    return commit;
+  });
+
+  // 等待所有并行任务完成
+  return Promise.all(commitPromises);
+}
+
+/**
+ * 获取日期范围内的 Git 提交列表
+ * @param {Object} options - 选项
+ * @param {string} options.since - 开始日期 YYYY-MM-DD
+ * @param {string} options.until - 结束日期 YYYY-MM-DD
+ * @param {string} options.author - 作者过滤（可选）
+ * @param {boolean} options.includeDiff - 是否包含详细 diff
+ * @returns {Promise<Array>} - 完整的提交信息数组
+ */
+export function getCommitsByDateRange(options = {}) {
+  const { since, until, author = '', includeDiff = false } = options;
+
+  // 验证日期范围
+  const sinceRegex = /^\d{4}-\d{2}-\d{2}$/;
+  const untilRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+  if (!sinceRegex.test(since)) {
+    throw new Error(`无效的开始日期：${since}，请使用 YYYY-MM-DD 格式`);
   }
 
-  return commits;
+  if (!untilRegex.test(until)) {
+    throw new Error(`无效的结束日期：${until}，请使用 YYYY-MM-DD 格式`);
+  }
+
+  try {
+    // 构建命令，since 和 until 都加上时间以确保包含完整的日期范围
+    const sinceWithTime = `${since} 00:00:00`;
+    const untilWithTime = `${until} 23:59:59`;
+    
+    let command = `git log --since="${sinceWithTime}" --until="${untilWithTime}" --pretty=format:"%H|%an|%ae|%ad|%s" --date=format:'%Y-%m-%d %H:%M:%S'`;
+
+    if (author) {
+      command += ` --author="${author}"`;
+    }
+
+    const commitLog = execSync(
+      command,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 10 * 1024 * 1024 }
+    );
+
+    if (!commitLog.trim()) {
+      return Promise.resolve([]);
+    }
+
+    const commits = commitLog.split('\n').map(line => {
+      const [hash, authorName, authorEmail, date, message] = line.split('|');
+      return {
+        hash,
+        shortHash: hash.substring(0, 7),
+        authorName,
+        authorEmail,
+        date,
+        message
+      };
+    });
+
+    // 并行获取每个提交的详细信息
+    const commitPromises = commits.map(async (commit) => {
+      const stats = getCommitStats(commit.hash);
+      commit.files = stats.files;
+      commit.summary = stats.summary;
+
+      if (includeDiff) {
+        commit.diffs = getCommitDiff(commit.hash);
+      }
+
+      return commit;
+    });
+
+    return Promise.all(commitPromises);
+  } catch (error) {
+    if (error.stderr && error.stderr.includes('not a git repository')) {
+      throw new Error('当前目录不是 Git 仓库');
+    }
+    throw error;
+  }
 }

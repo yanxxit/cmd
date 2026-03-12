@@ -29,17 +29,35 @@
 
     <!-- 添加任务 -->
     <div class="add-todo-section">
-      <input
-        type="text"
-        id="todoInput"
-        class="todo-input"
-        placeholder="添加新任务... (按 Enter 添加)"
-        autocomplete="off"
-      >
-      <button id="addBtn" class="btn btn-primary">
-        <span class="icon">➕</span>
-        <span>添加</span>
-      </button>
+      <div class="add-todo-main">
+        <input
+          type="text"
+          id="todoInput"
+          class="todo-input"
+          placeholder="添加新任务... (按 Enter 添加)"
+          autocomplete="off"
+        >
+        <button id="addBtn" class="btn btn-primary">
+          <span class="icon">➕</span>
+          <span>添加</span>
+        </button>
+      </div>
+      <div class="add-todo-options">
+        <select id="addCategory" class="todo-select">
+          <option value="">无分类</option>
+          <option value="工作">💼 工作</option>
+          <option value="个人">👤 个人</option>
+          <option value="学习">📚 学习</option>
+          <option value="生活">🏠 生活</option>
+          <option value="其他">📌 其他</option>
+        </select>
+        <input
+          type="text"
+          id="addTags"
+          class="todo-tags-input"
+          placeholder="标签（逗号分隔）"
+        >
+      </div>
     </div>
 
     <!-- 筛选和排序 -->
@@ -136,6 +154,21 @@
         <div class="form-group">
           <label class="form-label">截止日期</label>
           <input type="date" id="editDueDate" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">分类</label>
+          <select id="editCategory" class="form-select">
+            <option value="">无分类</option>
+            <option value="工作">💼 工作</option>
+            <option value="个人">👤 个人</option>
+            <option value="学习">📚 学习</option>
+            <option value="生活">🏠 生活</option>
+            <option value="其他">📌 其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签（逗号分隔）</label>
+          <input type="text" id="editTags" class="form-input" placeholder="例如：紧急，重要，项目 A">
         </div>
         <div class="form-group">
           <label class="form-label">备注</label>
