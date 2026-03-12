@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import fileViewerRouter from './file-viewer.js';
 import todoApiRouter from './todo-api.js';
 import pomodoroApiRouter from './pomodoro-api.js';
+import xlsxParserRouter from './xlsx-parser.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +21,11 @@ export default function (options = { port: 3000, dir: __dirname }) {
    * Get port from environment and store in Express.
    */
   app.set('port', options.port);
+  
+  // 设置默认目录
+  if (!options.dir) {
+    options.dir = process.cwd();
+  }
 
   // 设置文件查看器根目录
   app.set('fileViewerRoot', options.dir);
@@ -29,6 +35,9 @@ export default function (options = { port: 3000, dir: __dirname }) {
   // 添加 JSON 解析中间件
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // 挂载 XLSX 解析 API 路由（必须在通用 /api 之前）
+  app.use('/api/xlsx', xlsxParserRouter);
 
   // 挂载具体 API 路由（必须在通用 /api 之前）
   app.use('/api/todos', todoApiRouter);
@@ -55,6 +64,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/pomodoro', express.static(pomodoroDir));
   app.get('/pomodoro', (req, res) => {
     res.sendFile(path.join(pomodoroDir, 'index.html'));
+  });
+
+  // CSV 转 JSON 前端页面
+  const csvToJsonDir = path.join(ROOT_DIR, 'public/csv-to-json');
+  app.use('/csv-to-json', express.static(csvToJsonDir));
+  app.get('/csv-to-json', (req, res) => {
+    res.sendFile(path.join(csvToJsonDir, 'index.html'));
+  });
+
+  // XLSX 转 JSON 前端页面
+  const xlsxParserDir = path.join(ROOT_DIR, 'public/xlsx-parser');
+  app.use('/xlsx-parser', express.static(xlsxParserDir));
+  app.get('/xlsx-parser', (req, res) => {
+    res.sendFile(path.join(xlsxParserDir, 'index.html'));
   });
 
   // 用户目录静态资源（最后）

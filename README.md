@@ -4,6 +4,7 @@ node.js 开发常用的命令行工具，日常使用。
 ## 实现功能
 - [x] 开启静态服务
 - [x] 本地文件查看器（Web 页面）
+- [x] XLSX/CSV 转 JSON（Web 页面）
 - [x] 实现自定义代理
 - [x] md5
 - [x] 常用时间转换：tool time
@@ -115,6 +116,66 @@ x-static ./my-project -p 8080
 - 敏感文件过滤（.env 等）
 - 大文件限制预览（>1MB）
 - 二进制文件无法预览
+
+### CSV 转 JSON
+
+使用 `x-static` 或 `x-file-viewer` 命令启动服务后，访问 `http://127.0.0.1:3000/csv-to-json/` 即可使用 CSV 转 JSON 工具。
+
+**使用方法：**
+1. 启动服务：`x-static`
+2. 访问页面：`http://127.0.0.1:3000/csv-to-json/`
+3. 上传文件：点击上传区域或拖拽文件
+4. 查看结果：前端直接解析，实时显示 JSON 数据
+5. 导出：复制 JSON 或下载 JSON 文件
+
+**支持格式：**
+- CSV 文件：`.csv`（UTF-8 编码）
+
+**功能特性：**
+- 🔒 前端直接解析，文件不上传服务器
+- ⚙️ 可配置分隔符、表头、空行处理
+- 📋 一键复制 JSON
+- 💾 下载 JSON 文件
+- 📈 显示文件统计信息
+- 🎨 JSON 语法高亮
+- 📱 响应式设计
+
+### XLSX 转 JSON
+
+使用 `x-static` 或 `x-file-viewer` 命令启动服务后，访问 `http://127.0.0.1:3000/xlsx-parser/` 即可使用 XLSX 转 JSON 工具。
+
+**使用方法：**
+1. 启动服务：`x-static`
+2. 访问页面：`http://127.0.0.1:3000/xlsx-parser/`
+3. 上传文件：点击上传区域或拖拽文件
+4. 查看结果：后端解析后显示 JSON 数据
+5. 导出：复制 JSON 或下载 JSON 文件
+
+**支持格式：**
+- Excel 文件：`.xlsx`, `.xls`
+
+**功能特性：**
+- 📊 支持多工作表 Excel 文件
+- 🔀 工作表切换查看
+- 📋 一键复制 JSON
+- 💾 下载 JSON 文件
+- 📈 显示文件统计信息
+- 🎨 JSON 语法高亮
+- 📱 响应式设计
+
+**API 接口：**
+```bash
+# 上传并解析文件
+POST /api/xlsx/upload
+Content-Type: multipart/form-data
+Request Body: file (文件字段)
+
+# 解析已存在的文件
+GET /api/xlsx/parse?path=/path/to/file.xlsx
+
+# 获取文件信息
+GET /api/xlsx/info?path=/path/to/file.xlsx
+```
 
 ### 本地开发
 

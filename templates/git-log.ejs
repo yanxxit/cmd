@@ -55,6 +55,12 @@
       padding: 20px;
       border-radius: 8px;
       text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
 
     .card .number {
@@ -69,6 +75,109 @@
       margin-top: 5px;
     }
 
+    /* 工具栏样式 */
+    .toolbar {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .toolbar-row {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toolbar-row + .toolbar-row {
+      margin-top: 15px;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 10px 15px 10px 40px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .search-box::before {
+      content: '🔍';
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+    }
+
+    .filter-select {
+      padding: 10px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #555;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-secondary.active {
+      background: #667eea;
+      color: white;
+    }
+
     .commits {
       margin-top: 20px;
     }
@@ -79,6 +188,27 @@
       padding: 25px;
       margin-bottom: 20px;
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .commit-card:hover {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .commit-card.hidden {
+      display: none;
     }
 
     .commit-header {
@@ -94,6 +224,67 @@
       font-size: 18px;
       color: #333;
       font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .commit-message:hover {
+      color: #667eea;
+    }
+
+    .commit-type-badge {
+      flex-shrink: 0;
+      font-weight: 500;
+    }
+
+    .commit-message::before {
+      content: '▶';
+      display: inline-block;
+      font-size: 12px;
+      transition: transform 0.3s;
+    }
+
+    .commit-card.expanded .commit-message::before {
+      transform: rotate(90deg);
+    }
+
+    .commit-details {
+      display: none;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .commit-card.expanded .commit-details {
+      display: block;
+    }
+
+    /* 始终显示的区域：统计信息和文件列表 */
+    .commit-summary-section {
+      margin-top: 15px;
+    }
+
+    .commit-body {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .commit-body-title {
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 8px;
+      font-size: 13px;
     }
 
     .commit-meta {
@@ -110,6 +301,12 @@
       gap: 5px;
     }
 
+    .hash-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
     .hash {
       background: #f0f0f0;
       padding: 4px 8px;
@@ -117,6 +314,49 @@
       font-family: 'Courier New', monospace;
       font-size: 12px;
       color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .hash:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .hash-link {
+      text-decoration: none;
+    }
+
+    .hash-link .hash:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .author-link {
+      color: #666;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: color 0.2s;
+    }
+
+    .author-link:hover {
+      color: #667eea;
+      text-decoration: underline;
+    }
+
+    .copy-hint {
+      font-size: 10px;
+      color: #999;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .hash-wrapper:hover .copy-hint {
+      opacity: 1;
     }
 
     .commit-stats {
@@ -131,6 +371,9 @@
       border-radius: 20px;
       font-size: 13px;
       font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
 
     .stat-badge.files {
@@ -166,12 +409,21 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 12px;
+      padding: 10px 14px;
       background: white;
       border-radius: 6px;
       margin-bottom: 8px;
       font-family: 'Courier New', monospace;
       font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
+    }
+
+    .file-item:hover {
+      background: #f0f0f0;
+      transform: translateX(4px);
+      border-left-color: #667eea;
     }
 
     .file-item:last-child {
@@ -181,12 +433,20 @@
     .file-path {
       color: #333;
       word-break: break-all;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .file-icon {
+      font-size: 14px;
     }
 
     .file-changes {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-shrink: 0;
     }
 
     .change-bar {
@@ -201,6 +461,193 @@
 
     .change-bar.delete {
       background: #d32f2f;
+    }
+
+    /* 模态框样式 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-overlay.show {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 1000px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 25px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-title .file-icon {
+      font-size: 20px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #666;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .modal-close:hover {
+      background: #f0f0f0;
+    }
+
+    .modal-tabs {
+      display: flex;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0 25px;
+      overflow-x: auto;
+    }
+
+    .modal-tab {
+      padding: 12px 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 14px;
+      color: #666;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .modal-tab:hover {
+      color: #667eea;
+    }
+
+    .modal-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      font-weight: 600;
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow: auto;
+      padding: 20px 25px;
+    }
+
+    .modal-content {
+      display: none;
+    }
+
+    .modal-content.active {
+      display: block;
+    }
+
+    .file-content {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .diff-content-modal {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .diff-content-modal .line {
+      display: block;
+    }
+
+    .diff-content-modal .add {
+      background: rgba(46, 160, 67, 0.2);
+      color: #7ec699;
+    }
+
+    .diff-content-modal .delete {
+      background: rgba(218, 54, 51, 0.2);
+      color: #f97583;
+    }
+
+    .diff-content-modal .normal {
+      color: #d4d4d4;
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .error-message {
+      background: #ffebee;
+      color: #d32f2f;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
     }
 
     .diff-section {
@@ -279,6 +726,155 @@
       color: #d4d4d4;
     }
 
+    /* 增强 diff 视图 */
+    .enhanced-diff-viewer {
+      display: none;
+      margin-top: 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .enhanced-diff-viewer.show {
+      display: block;
+    }
+
+    .diff-viewer-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e0e0e0;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .diff-view-mode {
+      display: flex;
+      gap: 8px;
+    }
+
+    .diff-view-btn {
+      padding: 6px 12px;
+      border: 1px solid #e0e0e0;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .diff-view-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .diff-view-btn.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .diff-stats {
+      display: flex;
+      gap: 15px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .diff-stat {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .diff-stat.add {
+      color: #388e3c;
+    }
+
+    .diff-stat.delete {
+      color: #d32f2f;
+    }
+
+    .diff-content-unified {
+      padding: 15px;
+      background: #1e1e1e;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .diff-content-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: #1e1e1e;
+      overflow-x: auto;
+    }
+
+    .diff-pane {
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      max-height: 500px;
+      overflow-y: auto;
+      min-width: 300px;
+    }
+
+    .diff-pane.left {
+      border-right: 1px solid #333;
+      background: #1a1a1a;
+    }
+
+    .diff-pane.right {
+      background: #1e1e1e;
+    }
+
+    .diff-line {
+      display: flex;
+    }
+
+    .line-number {
+      width: 50px;
+      flex-shrink: 0;
+      color: #666;
+      text-align: right;
+      padding-right: 10px;
+      user-select: none;
+    }
+
+    .line-content {
+      flex: 1;
+      white-space: pre;
+    }
+
+    .diff-line.add {
+      background: rgba(46, 160, 67, 0.15);
+    }
+
+    .diff-line.delete {
+      background: rgba(218, 54, 51, 0.15);
+    }
+
+    .diff-line.normal {
+      background: transparent;
+    }
+
+    .diff-line.empty {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* 语法高亮 */
+    .syntax-keyword { color: #569cd6; }
+    .syntax-string { color: #ce9178; }
+    .syntax-number { color: #b5cea8; }
+    .syntax-comment { color: #6a9955; }
+    .syntax-function { color: #dcdcaa; }
+    .syntax-variable { color: #9cdcfe; }
+
     .no-commits {
       background: white;
       border-radius: 12px;
@@ -286,6 +882,16 @@
       text-align: center;
       color: #666;
       font-size: 18px;
+    }
+
+    .no-results {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      color: #666;
+      font-size: 16px;
+      margin-top: 20px;
     }
 
     .footer {
@@ -297,9 +903,402 @@
       opacity: 0.9;
     }
 
+    /* Toast 提示 */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #333;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 2000;
+      transition: transform 0.3s ease-out;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 结果统计 */
+    .results-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .results-count {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .results-count strong {
+      color: #667eea;
+    }
+
+    /* 月度视图样式 */
+    .month-view-section {
+      margin-bottom: 30px;
+    }
+
+    /* 仓库统计概览样式 */
+    .repo-stats-section {
+      margin-bottom: 20px;
+    }
+
+    .repo-stats-bar {
+      background: white;
+      border-radius: 12px;
+      padding: 20px 25px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .repo-stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      min-width: 100px;
+    }
+
+    .repo-stat-icon {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    .repo-stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .repo-stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 3px;
+    }
+
+    .repo-stat-item .repo-stat-value {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* 快速导航样式 */
+    .quick-nav {
+      position: sticky;
+      top: 20px;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      z-index: 100;
+    }
+
+    .quick-nav-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .quick-nav-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .quick-nav-item {
+      padding: 8px 16px;
+      background: #f8f9fa;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #555;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      border: none;
+    }
+
+    .quick-nav-item:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .quick-nav-item.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .quick-nav-count {
+      background: rgba(0, 0, 0, 0.1);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .back-to-top {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 50%;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      transition: all 0.3s;
+      z-index: 999;
+      border: none;
+    }
+
+    .back-to-top.show {
+      display: flex;
+    }
+
+    .back-to-top:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    /* 进度条样式 */
+    .reading-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0%;
+      height: 3px;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      z-index: 1000;
+      transition: width 0.1s;
+    }
+
+    /* 月度视图样式 */
+    .month-view-section {
+      margin-bottom: 30px;
+    }
+
+    .month-stats-header {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .month-stats-header h2 {
+      font-size: 20px;
+      color: #333;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .month-overview-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+    }
+
+    .month-overview-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .month-overview-card .number {
+      font-size: 28px;
+      font-weight: bold;
+      display: block;
+    }
+
+    .month-overview-card .label {
+      font-size: 13px;
+      opacity: 0.9;
+      margin-top: 5px;
+    }
+
+    .month-timeline {
+      position: relative;
+      padding-left: 30px;
+    }
+
+    .month-timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, #667eea, #764ba2);
+    }
+
+    .timeline-day {
+      position: relative;
+      margin-bottom: 20px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .timeline-day::before {
+      content: '';
+      position: absolute;
+      left: -24px;
+      top: 20px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #667eea;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .timeline-day-header {
+      background: white;
+      border-radius: 10px;
+      padding: 15px 20px;
+      margin-bottom: 10px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .timeline-day-header:hover {
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+      transform: translateX(5px);
+    }
+
+    .timeline-day-date {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .timeline-day-date .weekday {
+      font-size: 12px;
+      color: #666;
+      font-weight: normal;
+    }
+
+    .timeline-day-stats {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .timeline-stat {
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .timeline-stat.commits {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .timeline-stat.insertions {
+      background: #e8f5e9;
+      color: #388e3c;
+    }
+
+    .timeline-stat.deletions {
+      background: #ffebee;
+      color: #d32f2f;
+    }
+
+    .timeline-day-commits {
+      display: none;
+      padding-left: 20px;
+    }
+
+    .timeline-day.expanded .timeline-day-commits {
+      display: block;
+    }
+
+    .timeline-day.expanded::before {
+      background: #388e3c;
+    }
+
+    .timeline-toggle-icon {
+      font-size: 12px;
+      color: #666;
+      transition: transform 0.3s;
+    }
+
+    .timeline-day.expanded .timeline-toggle-icon {
+      transform: rotate(90deg);
+    }
+
+    /* 响应式优化 */
     @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+
+      .header {
+        padding: 20px;
+      }
+
       .header h1 {
         font-size: 22px;
+      }
+
+      .toolbar {
+        padding: 15px;
+      }
+
+      .toolbar-row {
+        flex-direction: column;
+      }
+
+      .search-box {
+        width: 100%;
+      }
+
+      .filter-select, .btn {
+        width: 100%;
+        justify-content: center;
       }
 
       .commit-header {
@@ -310,6 +1309,243 @@
         flex-direction: column;
         gap: 8px;
       }
+
+      .modal {
+        width: 95%;
+        max-height: 90vh;
+      }
+
+      .modal-header {
+        padding: 15px;
+      }
+
+      .modal-body {
+        padding: 15px;
+      }
+    }
+
+    /* 打印样式 */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+
+      .toolbar, .btn, .footer, .charts-section {
+        display: none;
+      }
+
+      .commit-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+      }
+    }
+
+    /* 统计图表样式 */
+    .charts-section {
+      margin-bottom: 20px;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .chart-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .chart-card.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .chart-header {
+      margin-bottom: 15px;
+    }
+
+    .chart-header h3 {
+      font-size: 16px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .chart-body {
+      position: relative;
+      height: 250px;
+    }
+
+    @media (max-width: 768px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 作者贡献统计面板样式 */
+    .author-stats-section {
+      margin-bottom: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .section-header h2 {
+      font-size: 18px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .section-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    .author-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+    }
+
+    .author-stat-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .author-stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .author-card-header {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .author-card-header:hover {
+      background: #f8f9fa;
+    }
+
+    .author-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .author-info {
+      flex: 1;
+      margin-left: 12px;
+      min-width: 0;
+    }
+
+    .author-name {
+      font-weight: 600;
+      color: #333;
+      font-size: 15px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .author-stats-mini {
+      display: flex;
+      gap: 10px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .author-card-toggle {
+      padding: 8px;
+      transition: transform 0.3s;
+    }
+
+    .author-stat-card.expanded .author-card-toggle .toggle-icon {
+      transform: rotate(90deg);
+    }
+
+    .author-card-details {
+      display: none;
+      padding: 0 15px 15px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .author-stat-card.expanded .author-card-details {
+      display: block;
+    }
+
+    .author-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .metric {
+      text-align: center;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .metric-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 4px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: #666;
+    }
+
+    .author-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    @media (max-width: 768px) {
+      .author-cards-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .author-metrics {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
   </style>
 </head>
@@ -318,7 +1554,7 @@
     <div class="header">
       <h1>📝 Git 提交日志</h1>
       <div class="date">日期：<%= date %></div>
-      
+
       <div class="summary-cards">
         <div class="card">
           <span class="number"><%= totalCommits %></span>
@@ -337,6 +1573,343 @@
           <span class="label">修改文件</span>
         </div>
       </div>
+
+      <div style="margin-top:20px;text-align:right; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
+        <button onclick="exportJSON()" class="btn btn-primary">
+          📥 导出 JSON
+        </button>
+        <button onclick="exportMarkdown()" class="btn btn-secondary">
+          📝 导出 Markdown
+        </button>
+        <button onclick="window.print()" class="btn btn-secondary">
+          🖨️ 打印 / PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- 仓库统计概览 -->
+    <div class="repo-stats-section">
+      <div class="repo-stats-bar">
+        <% if (repoStats) { %>
+          <div class="repo-stat-item">
+            <span class="repo-stat-icon">📦</span>
+            <span class="repo-stat-value"><%= repoStats.totalCommits %></span>
+            <span class="repo-stat-label">总提交</span>
+          </div>
+          <div class="repo-stat-item">
+            <span class="repo-stat-icon">👥</span>
+            <span class="repo-stat-value"><%= repoStats.contributors %></span>
+            <span class="repo-stat-label">贡献者</span>
+          </div>
+          <div class="repo-stat-item">
+            <span class="repo-stat-icon">🌿</span>
+            <span class="repo-stat-value"><%= repoStats.branches %></span>
+            <span class="repo-stat-label">分支</span>
+          </div>
+          <div class="repo-stat-item">
+            <span class="repo-stat-icon">📍</span>
+            <span class="repo-stat-value"><%= repoStats.currentBranch %></span>
+            <span class="repo-stat-label">当前分支</span>
+          </div>
+          <div class="repo-stat-item">
+            <span class="repo-stat-icon">🚀</span>
+            <span class="repo-stat-value"><%= repoStats.firstCommit %></span>
+            <span class="repo-stat-label">首次提交</span>
+          </div>
+        <% } else { %>
+          <div class="repo-stat-item">
+            <span class="repo-stat-icon">📦</span>
+            <span class="repo-stat-value">-</span>
+            <span class="repo-stat-label">仓库统计不可用</span>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <% if (isMonthView) { %>
+      <!-- 月度视图 -->
+      <div class="month-view-section">
+        <div class="month-stats-header">
+          <h2>📅 月度概览</h2>
+          <div class="month-overview-cards">
+            <%
+              const monthTotalCommits = commits.length;
+              const monthTotalInsertions = totalInsertions;
+              const monthTotalDeletions = totalDeletions;
+              const monthTotalFiles = totalFiles;
+              const dailyStatsParsed = dailyStats ? JSON.parse(dailyStats) : [];
+              const monthActiveDays = dailyStatsParsed.length;
+              const monthAvgCommits = monthActiveDays > 0 ? (monthTotalCommits / monthActiveDays).toFixed(2) : 0;
+            %>
+            <div class="month-overview-card">
+              <span class="number"><%= monthTotalCommits %></span>
+              <span class="label">总提交数</span>
+            </div>
+            <div class="month-overview-card" style="background: linear-gradient(135deg, #388e3c 0%, #1b5e20 100%);">
+              <span class="number">+<%= monthTotalInsertions %></span>
+              <span class="label">新增行数</span>
+            </div>
+            <div class="month-overview-card" style="background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);">
+              <span class="number">-<%= monthTotalDeletions %></span>
+              <span class="label">删除行数</span>
+            </div>
+            <div class="month-overview-card" style="background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);">
+              <span class="number"><%= monthActiveDays %></span>
+              <span class="label">活跃天数</span>
+            </div>
+            <div class="month-overview-card" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+              <span class="number"><%= monthAvgCommits %></span>
+              <span class="label">日均提交</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 时间线视图 -->
+        <div class="month-timeline">
+          <%
+            if (typeof dailyStats !== 'undefined' && dailyStats) {
+              const dailyStatsArray = JSON.parse(dailyStats);
+              dailyStatsArray.forEach(function(dayStat) {
+                const dateObj = new Date(dayStat.date);
+                const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                const weekday = weekdays[dateObj.getDay()];
+                const isToday = new Date().toISOString().split('T')[0] === dayStat.date;
+          %>
+            <div class="timeline-day" id="day-<%= dayStat.date.replace(/-/g, '') %>">
+              <div class="timeline-day-header" onclick="toggleTimelineDay(this)">
+                <div class="timeline-day-date">
+                  <span><%= dayStat.date %></span>
+                  <span class="weekday"><%= weekday %><%= isToday ? ' · 今天' : '' %></span>
+                </div>
+                <div class="timeline-day-stats">
+                  <span class="timeline-stat commits">📝 <%= dayStat.commits %> 提交</span>
+                  <% if (dayStat.insertions > 0) { %>
+                    <span class="timeline-stat insertions">+<%= dayStat.insertions %></span>
+                  <% } %>
+                  <% if (dayStat.deletions > 0) { %>
+                    <span class="timeline-stat deletions">-<%= dayStat.deletions %></span>
+                  <% } %>
+                  <span class="timeline-toggle-icon">▶</span>
+                </div>
+              </div>
+              <div class="timeline-day-commits">
+                <!-- 当天的提交 -->
+                <%
+                  const dayCommits = commits.filter(function(c) {
+                    try {
+                      return new Date(c.date).toISOString().split('T')[0] === dayStat.date;
+                    } catch (e) {
+                      return false;
+                    }
+                  });
+                  dayCommits.forEach(function(commit) {
+                %>
+                  <div class="commit-card" style="margin: 10px 0;">
+                    <div class="commit-header">
+                      <div class="commit-message" onclick="toggleCommit(this)"><%= commit.message %></div>
+                      <div class="commit-meta">
+                        <span>👤 <%= commit.authorName %></span>
+                        <span class="hash"><%= commit.shortHash %></span>
+                      </div>
+                    </div>
+                    <% if (commit.summary) { %>
+                      <div class="commit-stats" style="margin-top: 10px;">
+                        <span class="stat-badge files">📁 <%= commit.summary.files %> 文件</span>
+                        <span class="stat-badge insertions">+<%= commit.summary.insertions %></span>
+                        <span class="stat-badge deletions">-<%= commit.summary.deletions %></span>
+                      </div>
+                    <% } %>
+                  </div>
+                <%
+                  });
+                %>
+              </div>
+            </div>
+          <%
+              });
+            }
+          %>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- 统计图表区域 -->
+    <div class="charts-section" style="margin-bottom: 20px;">
+      <div class="charts-grid">
+        <!-- 作者贡献卡片 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>👥 作者贡献</h3>
+          </div>
+          <div class="chart-body">
+            <canvas id="authorChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 文件类型分布 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>📁 文件类型分布</h3>
+          </div>
+          <div class="chart-body">
+            <canvas id="fileTypeChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 小时分布 -->
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <h3>🕐 提交时间分布</h3>
+          </div>
+          <div class="chart-body">
+            <canvas id="hourChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 作者贡献统计面板 -->
+    <div class="author-stats-section" id="authorStatsSection" style="margin-bottom: 20px;">
+      <div class="section-header">
+        <h2>🏆 作者贡献统计</h2>
+        <div class="section-actions">
+          <button class="btn btn-secondary btn-sm" onclick="expandAllAuthorCards()">
+            📖 展开全部
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="collapseAllAuthorCards()">
+            📕 收起全部
+          </button>
+        </div>
+      </div>
+      <div class="author-cards-grid">
+        <% 
+          if (typeof authorStats !== 'undefined' && authorStats) {
+            const statsArray = JSON.parse(authorStats);
+            statsArray.forEach(function(stat, index) {
+              const totalChanges = stat.insertions + stat.deletions;
+              const avatarColor = ['#667eea', '#388e3c', '#1976d2', '#d32f2f', '#ff9800', '#764ba2', '#e91e63', '#009688'][index % 8];
+        %>
+          <div class="author-stat-card" data-author="<%= stat.name %>">
+            <div class="author-card-header" onclick="toggleAuthorCard(this)">
+              <div class="author-avatar" style="background: <%= avatarColor %>;">
+                <%= stat.name.charAt(0).toUpperCase() %>
+              </div>
+              <div class="author-info">
+                <div class="author-name"><%= stat.name %></div>
+                <div class="author-stats-mini">
+                  <span class="stat-item">📝 <%= stat.commits %> 提交</span>
+                  <span class="stat-item">+<%= stat.insertions %> -<%= stat.deletions %></span>
+                </div>
+              </div>
+              <div class="author-card-toggle">
+                <span class="toggle-icon">▶</span>
+              </div>
+            </div>
+            <div class="author-card-details">
+              <div class="author-metrics">
+                <div class="metric">
+                  <div class="metric-value"><%= stat.commits %></div>
+                  <div class="metric-label">提交次数</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value" style="color: #388e3c;">+<%= stat.insertions %></div>
+                  <div class="metric-label">新增行数</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value" style="color: #d32f2f;">-<%= stat.deletions %></div>
+                  <div class="metric-label">删除行数</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value"><%= totalChanges %></div>
+                  <div class="metric-label">总变更</div>
+                </div>
+              </div>
+              <div class="author-actions">
+                <button class="btn btn-primary btn-sm" onclick="filterByAuthor(event, '<%= stat.name %>')">
+                  🔍 只看此人
+                </button>
+                <% if (remoteRepo) { 
+                  const authorLink = getRepoLink('author', stat.name, stat.name);
+                  if (authorLink) {
+                %>
+                  <a href="<%= authorLink %>" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                    🔗 主页
+                  </a>
+                <% } } %>
+              </div>
+            </div>
+          </div>
+        <% 
+            });
+          }
+        %>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <div class="toolbar-row">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="搜索提交信息、作者、文件路径..." oninput="filterCommits()">
+        </div>
+        <select class="filter-select" id="authorFilter" onchange="filterCommits()">
+          <option value="">全部作者</option>
+          <%
+            const authors = {};
+            commits.forEach(function(commit) {
+              authors[commit.authorName] = (authors[commit.authorName] || 0) + 1;
+            });
+            for (const author in authors) {
+          %>
+            <option value="<%= author %>"><%= author %> (<%= authors[author] %>)</option>
+          <% } %>
+        </select>
+        <select class="filter-select" id="commitTypeFilter" onchange="filterCommits()">
+          <option value="">所有类型</option>
+          <option value="feat">✨ 功能 (feat)</option>
+          <option value="fix">🐛 修复 (fix)</option>
+          <option value="docs">📝 文档 (docs)</option>
+          <option value="style">💅 样式 (style)</option>
+          <option value="refactor">♻️ 重构 (refactor)</option>
+          <option value="test">✅ 测试 (test)</option>
+          <option value="chore">🔧 杂务 (chore)</option>
+          <option value="perf">⚡ 性能 (perf)</option>
+          <option value="ci">👷 CI (ci)</option>
+          <option value="build">📦 构建 (build)</option>
+        </select>
+        <select class="filter-select" id="sortFilter" onchange="sortCommits()">
+          <option value="date-desc">时间倒序</option>
+          <option value="date-asc">时间正序</option>
+          <option value="files-desc">文件数降序</option>
+          <option value="files-asc">文件数升序</option>
+          <option value="changes-desc">变更降序</option>
+          <option value="changes-asc">变更升序</option>
+        </select>
+      </div>
+      <div class="toolbar-row">
+        <button class="btn btn-secondary" onclick="expandAllCommits()">
+          📖 展开全部
+        </button>
+        <button class="btn btn-secondary" onclick="collapseAllCommits()">
+          📕 收起全部
+        </button>
+        <button class="btn btn-secondary" id="showDiffBtn" onclick="toggleAllDiffs()">
+          👁️ 显示所有 Diff
+        </button>
+        <button class="btn btn-secondary" onclick="window.print()">
+          🖨️ 打印
+        </button>
+      </div>
+    </div>
+
+    <!-- 结果统计 -->
+    <div class="results-info" id="resultsInfo">
+      <div class="results-count">
+        显示 <strong id="visibleCount"><%= commits.length %></strong> / <strong><%= commits.length %></strong> 条提交
+      </div>
+      <div class="results-count" id="filterHint" style="display: none;">
+        已应用筛选条件
+      </div>
     </div>
 
     <div class="commits">
@@ -345,17 +1918,206 @@
           😴 这一天没有提交记录
         </div>
       <% } else { %>
-        <% commits.forEach(function(commit) { %>
-          <div class="commit-card">
+        <% commits.forEach(function(commit, commitIndex) { %>
+          <div class="commit-card" data-commit-index="<%= commitIndex %>">
             <div class="commit-header">
-              <div class="commit-message"><%= commit.message %></div>
+              <div class="commit-message" onclick="toggleCommit(this)">
+                <% 
+                  // 解析提交类型标签
+                  const commitMessage = commit.message;
+                  const typeMatch = commitMessage.match(/^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)([:(]?[^):]*)[)?:]?\s*/i);
+                  const commitType = typeMatch ? typeMatch[1].toLowerCase() : null;
+                  
+                  const typeLabels = {
+                    'feat': { text: '✨ 功能', color: '#388e3c' },
+                    'fix': { text: '🐛 修复', color: '#d32f2f' },
+                    'docs': { text: '📝 文档', color: '#1976d2' },
+                    'style': { text: '💅 样式', color: '#e91e63' },
+                    'refactor': { text: '♻️ 重构', color: '#9c27b0' },
+                    'test': { text: '✅ 测试', color: '#ff9800' },
+                    'chore': { text: '🔧 杂务', color: '#607d8b' },
+                    'perf': { text: '⚡ 性能', color: '#ff5722' },
+                    'ci': { text: '👷 CI', color: '#00bcd4' },
+                    'build': { text: '📦 构建', color: '#795548' },
+                    'revert': { text: '⏪ 回滚', color: '#f44336' }
+                  };
+                  
+                  const typeLabel = commitType && typeLabels[commitType] ? typeLabels[commitType] : null;
+                %>
+                <% if (typeLabel) { %>
+                  <span class="commit-type-badge" style="background: <%= typeLabel.color %>; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-right: 8px;"><%= typeLabel.text %></span>
+                <% } %>
+                <%= commit.message %>
+              </div>
               <div class="commit-meta">
-                <span>👤 <%= commit.authorName %></span>
+                <% 
+                  const authorLink = remoteRepo ? getRepoLink('author', commit.authorName, commit.authorName) : null;
+                %>
+                <% if (authorLink) { %>
+                  <a href="<%= authorLink %>" target="_blank" rel="noopener noreferrer" class="author-link" title="查看作者主页">
+                    👤 <%= commit.authorName %>
+                  </a>
+                <% } else { %>
+                  <span>👤 <%= commit.authorName %></span>
+                <% } %>
                 <span>📅 <%= commit.date %></span>
-                <span class="hash"><%= commit.shortHash %></span>
+                <% 
+                  const commitLink = remoteRepo ? getRepoLink('commit', commit.shortHash) : null;
+                %>
+                <div class="hash-wrapper" onclick="<%= commitLink ? '' : 'copyHash(event, \'' + commit.shortHash + '\')' %>">
+                  <% if (commitLink) { %>
+                    <a href="<%= commitLink %>" target="_blank" rel="noopener noreferrer" class="hash-link" title="查看提交详情">
+                      <span class="hash"><%= commit.shortHash %></span>
+                    </a>
+                  <% } else { %>
+                    <span class="hash"><%= commit.shortHash %></span>
+                    <span class="copy-hint">📋 点击复制</span>
+                  <% } %>
+                </div>
               </div>
             </div>
 
+            <div class="commit-details">
+            <% if (commit.fullBody && commit.fullBody !== commit.message) { %>
+              <div class="commit-body">
+                <div class="commit-body-title">📄 提交详情：</div>
+                <div class="commit-body-content"><%= commit.fullBody %></div>
+              </div>
+            <% } %>
+
+            <% if (includeDiff && commit.diffs && commit.diffs.length > 0) { %>
+              <div class="diff-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                  <button class="diff-toggle" onclick="toggleDiff(event, this)">👁️ 查看代码变更</button>
+                  <button class="btn btn-secondary btn-sm" onclick="toggleEnhancedDiff(event, this)">🔍 增强视图</button>
+                </div>
+                <div class="diff-content">
+                  <% commit.diffs.forEach(function(diff, diffIndex) { %>
+                    <div class="diff-file">
+                      <div class="diff-file-header">
+                        <span class="file-path-icon"><%= getFileIcon(diff.path) %></span>
+                        <%= diff.path %>
+                      </div>
+                      <div class="diff-code">
+                        <% diff.content.split('\n').forEach(function(line) { %>
+                          <% if (line.startsWith('+') && !line.startsWith('+++')) { %>
+                            <span class="line add"><%= escapeHtml(line) %></span>
+                          <% } else if (line.startsWith('-') && !line.startsWith('---')) { %>
+                            <span class="line delete"><%= escapeHtml(line) %></span>
+                          <% } else { %>
+                            <span class="line normal"><%= escapeHtml(line) %></span>
+                          <% } %>
+                        <% }); %>
+                      </div>
+                    </div>
+                  <% }); %>
+                </div>
+
+                <!-- 增强 diff 视图 -->
+                <div class="enhanced-diff-viewer" id="enhanced-diff-<%= commitIndex %>">
+                  <div class="diff-viewer-toolbar">
+                    <div class="diff-view-mode">
+                      <button class="diff-view-btn active" onclick="switchDiffView(event, 'unified', <%= commitIndex %>)">📄 统一视图</button>
+                      <button class="diff-view-btn" onclick="switchDiffView(event, 'split', <%= commitIndex %>)">📊 并排视图</button>
+                    </div>
+                    <div class="diff-stats">
+                      <%
+                        let commitAdditions = 0;
+                        let commitDeletions = 0;
+                        commit.diffs.forEach(function(diff) {
+                          diff.content.split('\n').forEach(function(line) {
+                            if (line.startsWith('+') && !line.startsWith('+++')) commitAdditions++;
+                            if (line.startsWith('-') && !line.startsWith('---')) commitDeletions++;
+                          });
+                        });
+                      %>
+                      <span class="diff-stat add">➕ <%= commitAdditions %> 新增</span>
+                      <span class="diff-stat delete">➖ <%= commitDeletions %> 删除</span>
+                    </div>
+                  </div>
+                  <div class="diff-content-unified" id="unified-view-<%= commitIndex %>">
+                    <% commit.diffs.forEach(function(diff) { %>
+                      <div style="margin-bottom: 20px;">
+                        <div style="color: #888; margin-bottom: 8px; font-size: 13px;">📁 <%= diff.path %></div>
+                        <%
+                          let lineNum = 1;
+                          diff.content.split('\n').forEach(function(line) {
+                            var lineClass = 'normal';
+                            var displayNum = '';
+                            if (line.startsWith('+') && !line.startsWith('+++')) {
+                              lineClass = 'add';
+                              displayNum = '+';
+                            } else if (line.startsWith('-') && !line.startsWith('---')) {
+                              lineClass = 'delete';
+                              displayNum = '-';
+                            } else if (line.startsWith('@@')) {
+                              lineNum = parseInt(line.match(/\+(\d+)/)?.[1] || lineNum);
+                              displayNum = '...';
+                            } else {
+                              lineNum++;
+                            }
+                        %>
+                        <div class="diff-line <%= lineClass %>">
+                          <span class="line-number"><%= displayNum || lineNum %></span>
+                          <span class="line-content"><%= escapeHtml(line) %></span>
+                        </div>
+                        <% }); %>
+                      </div>
+                    <% }); %>
+                  </div>
+                  <div class="diff-content-split" id="split-view-<%= commitIndex %>" style="display: none;">
+                    <div class="diff-pane left">
+                      <div style="color: #d32f2f; margin-bottom: 10px; font-weight: 600;">删除的行</div>
+                      <% commit.diffs.forEach(function(diff) { %>
+                        <div style="margin-bottom: 15px;">
+                          <div style="color: #888; font-size: 11px; margin-bottom: 5px;"><%= diff.path %></div>
+                          <%
+                            let leftLineNum = 1;
+                            diff.content.split('\n').forEach(function(line) {
+                              if (line.startsWith('-') && !line.startsWith('---')) {
+                          %>
+                          <div class="diff-line delete">
+                            <span class="line-number"><%= leftLineNum++ %></span>
+                            <span class="line-content"><%= escapeHtml(line) %></span>
+                          </div>
+                          <% } else if (!line.startsWith('+') && !line.startsWith('@@')) {
+                                leftLineNum++;
+                              }
+                            });
+                          %>
+                        </div>
+                      <% }); %>
+                    </div>
+                    <div class="diff-pane right">
+                      <div style="color: #388e3c; margin-bottom: 10px; font-weight: 600;">新增的行</div>
+                      <% commit.diffs.forEach(function(diff) { %>
+                        <div style="margin-bottom: 15px;">
+                          <div style="color: #888; font-size: 11px; margin-bottom: 5px;"><%= diff.path %></div>
+                          <%
+                            let rightLineNum = 1;
+                            diff.content.split('\n').forEach(function(line) {
+                              if (line.startsWith('+') && !line.startsWith('+++')) {
+                          %>
+                          <div class="diff-line add">
+                            <span class="line-number"><%= rightLineNum++ %></span>
+                            <span class="line-content"><%= escapeHtml(line) %></span>
+                          </div>
+                          <% } else if (!line.startsWith('-') && !line.startsWith('@@')) {
+                                rightLineNum++;
+                              }
+                            });
+                          %>
+                        </div>
+                      <% }); %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% } %>
+            </div>
+
+            <!-- 始终显示：统计信息和文件列表 -->
+            <div class="commit-summary-section">
             <% if (commit.summary) { %>
               <div class="commit-stats">
                 <span class="stat-badge files">📁 <%= commit.summary.files %> 个文件</span>
@@ -368,8 +2130,11 @@
               <div class="files-list">
                 <div class="files-title">变更文件：</div>
                 <% commit.files.forEach(function(file) { %>
-                  <div class="file-item">
-                    <span class="file-path"><%= file.path %></span>
+                  <div class="file-item" onclick="openFileModal('<%= commit.hash %>', '<%= file.path.replace(/'/g, "\\'") %>', '<%= commit.shortHash %>')">
+                    <span class="file-path">
+                      <span class="file-icon"><%= getFileIcon(file.path) %></span>
+                      <%= file.path %>
+                    </span>
                     <div class="file-changes">
                       <% if (file.insertions > 0) { %>
                         <span style="color: #388e3c;">+<%= file.insertions %></span>
@@ -382,32 +2147,14 @@
                 <% }); %>
               </div>
             <% } %>
-
-            <% if (includeDiff && commit.diffs && commit.diffs.length > 0) { %>
-              <div class="diff-section">
-                <button class="diff-toggle" onclick="toggleDiff(this)">👁️ 查看代码变更</button>
-                <div class="diff-content">
-                  <% commit.diffs.forEach(function(diff) { %>
-                    <div class="diff-file">
-                      <div class="diff-file-header"><%= diff.path %></div>
-                      <div class="diff-code">
-                        <% diff.content.split('\n').forEach(function(line) { %>
-                          <% if (line.startsWith('+') && !line.startsWith('+++')) { %>
-                            <span class="line add"><%= line %></span>
-                          <% } else if (line.startsWith('-') && !line.startsWith('---')) { %>
-                            <span class="line delete"><%= line %></span>
-                          <% } else { %>
-                            <span class="line normal"><%= line %></span>
-                          <% } %>
-                        <% }); %>
-                      </div>
-                    </div>
-                  <% }); %>
-                </div>
-              </div>
-            <% } %>
+            </div>
           </div>
         <% }); %>
+        
+        <!-- 无搜索结果提示 -->
+        <div class="no-results" id="noResults" style="display: none;">
+          😕 没有找到匹配的提交记录
+        </div>
       <% } %>
     </div>
 
@@ -416,17 +2163,887 @@
     </div>
   </div>
 
+  <!-- Toast 提示 -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- 文件查看模态框 -->
+  <div class="modal-overlay" id="fileModalOverlay" onclick="closeFileModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="file-icon">📄</span>
+          <span id="modalFilePath"></span>
+        </div>
+        <button class="modal-close" onclick="closeFileModalBtn()">×</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" onclick="switchModalTab('diff')">📊 Diff 变更</button>
+        <button class="modal-tab" onclick="switchModalTab('content')">📝 文件内容</button>
+      </div>
+      <div class="modal-body">
+        <div id="modalDiffContent" class="modal-content active"></div>
+        <div id="modalFileContent" class="modal-content"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
-    function toggleDiff(button) {
+    // 文件元数据（用于导出 JSON）
+    const fileMetadata = <%= fileMetadata || '{}' %>;
+    
+    // 远程仓库信息
+    const remoteRepo = <%= remoteRepo ? JSON.stringify(remoteRepo) : 'null' %>;
+
+    // 存储所有提交数据用于排序和过滤
+    const allCommitsData = [];
+
+    /**
+     * 生成仓库链接
+     */
+    function getRepoLink(type, hash, author) {
+      if (!remoteRepo) return null;
+      
+      const { platform, fullUrl } = remoteRepo;
+      
+      switch (type) {
+        case 'commit':
+          if (platform === 'github' || platform === 'gitlab' || platform === 'gitee') {
+            return `${fullUrl}/commit/${hash}`;
+          }
+          break;
+        case 'author':
+          if (platform === 'github') {
+            return `${fullUrl.replace('/' + remoteRepo.repoPath, '')}/${author}`;
+          } else if (platform === 'gitlab') {
+            return `${fullUrl.replace('/' + remoteRepo.repoPath, '')}/${author}`;
+          } else if (platform === 'gitee') {
+            return `https://gitee.com/${author}`;
+          }
+          break;
+        case 'repo':
+          return fullUrl;
+      }
+      return null;
+    }
+
+    /**
+     * 获取文件类型图标
+     */
+    function getFileIcon(filePath) {
+      const ext = filePath.split('.').pop().toLowerCase();
+      const icons = {
+        'js': '🟨', 'jsx': '🟨', 'ts': '📘', 'tsx': '📘',
+        'py': '🐍', 'rb': '💎', 'go': '🔷', 'rs': '🦀',
+        'java': '☕', 'php': '🐘', 'swift': '🍎', 'kt': '🎯',
+        'html': '🌐', 'css': '🎨', 'scss': '🎨', 'less': '🎨',
+        'json': '📋', 'xml': '📋', 'yaml': '⚙️', 'yml': '⚙️',
+        'md': '📝', 'txt': '📄', 'log': '📜',
+        'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️', 'gif': '🖼️', 'svg': '🖼️',
+        'sh': '⚡', 'bash': '⚡', 'zsh': '⚡',
+        'sql': '🗄️', 'db': '🗄️',
+        'env': '🔐', 'key': '🔐', 'pem': '🔐',
+        'gitignore': '🙈', 'dockerfile': '🐳', 'makefile': '🔨'
+      };
+      const fileName = filePath.split('/').pop().toLowerCase();
+      
+      // 特殊文件名
+      if (fileName === 'gitignore') return '🙈';
+      if (fileName === 'dockerfile') return '🐳';
+      if (fileName === 'makefile') return '🔨';
+      if (fileName === 'readme.md') return '📖';
+      if (fileName === 'license') return '📜';
+      if (fileName === 'changelog.md') return '📝';
+      
+      // 按扩展名
+      return icons[ext] || '📄';
+    }
+
+    /**
+     * 显示 Toast 提示
+     */
+    function showToast(message, duration = 2000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, duration);
+    }
+
+    /**
+     * 复制 Hash 到剪贴板
+     */
+    function copyHash(event, hash) {
+      event.stopPropagation();
+      
+      navigator.clipboard.writeText(hash).then(() => {
+        showToast('✅ 已复制：' + hash);
+      }).catch(err => {
+        // 降级方案
+        const textarea = document.createElement('textarea');
+        textarea.value = hash;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('✅ 已复制：' + hash);
+      });
+    }
+
+    /**
+     * 切换提交详情展开/收起状态
+     */
+    function toggleCommit(title) {
+      const card = title.closest('.commit-card');
+      const isExpanded = card.classList.contains('expanded');
+
+      if (isExpanded) {
+        card.classList.remove('expanded');
+      } else {
+        card.classList.add('expanded');
+      }
+    }
+
+    /**
+     * 切换时间线日期展开/收起状态
+     */
+    function toggleTimelineDay(header) {
+      const day = header.closest('.timeline-day');
+      const isExpanded = day.classList.contains('expanded');
+
+      // 关闭其他展开的日期
+      document.querySelectorAll('.timeline-day.expanded').forEach(d => {
+        if (d !== day) {
+          d.classList.remove('expanded');
+        }
+      });
+
+      if (isExpanded) {
+        day.classList.remove('expanded');
+      } else {
+        day.classList.add('expanded');
+      }
+    }
+
+    /**
+     * 展开全部提交
+     */
+    function expandAllCommits() {
+      document.querySelectorAll('.commit-card:not(.hidden)').forEach(card => {
+        card.classList.add('expanded');
+      });
+      showToast('📖 已展开全部');
+    }
+
+    /**
+     * 收起全部提交
+     */
+    function collapseAllCommits() {
+      document.querySelectorAll('.commit-card').forEach(card => {
+        card.classList.remove('expanded');
+      });
+      showToast('📕 已收起全部');
+    }
+
+    /**
+     * 展开/收起作者卡片
+     */
+    function toggleAuthorCard(header) {
+      const card = header.closest('.author-stat-card');
+      card.classList.toggle('expanded');
+    }
+
+    /**
+     * 展开全部作者卡片
+     */
+    function expandAllAuthorCards() {
+      document.querySelectorAll('.author-stat-card').forEach(card => {
+        card.classList.add('expanded');
+      });
+      showToast('📖 已展开全部作者卡片');
+    }
+
+    /**
+     * 收起全部作者卡片
+     */
+    function collapseAllAuthorCards() {
+      document.querySelectorAll('.author-stat-card').forEach(card => {
+        card.classList.remove('expanded');
+      });
+      showToast('📕 已收起全部作者卡片');
+    }
+
+    /**
+     * 按作者过滤
+     */
+    function filterByAuthor(event, author) {
+      event.stopPropagation();
+      
+      // 设置作者过滤器
+      const authorFilter = document.getElementById('authorFilter');
+      authorFilter.value = author;
+      
+      // 执行过滤
+      filterCommits();
+      
+      // 滚动到提交列表
+      document.querySelector('.commits').scrollIntoView({ behavior: 'smooth' });
+      
+      showToast('🔍 已过滤作者：' + author);
+    }
+
+    /**
+     * 切换代码变更显示/隐藏
+     */
+    function toggleDiff(event, button) {
+      event.stopPropagation();
+
       const content = button.nextElementSibling;
       const isShown = content.classList.contains('show');
-      
+
       if (isShown) {
         content.classList.remove('show');
         button.textContent = '👁️ 查看代码变更';
       } else {
         content.classList.add('show');
         button.textContent = '🙈 隐藏代码变更';
+      }
+    }
+
+    /**
+     * 显示/隐藏所有 Diff
+     */
+    function toggleAllDiffs() {
+      const btn = document.getElementById('showDiffBtn');
+      const diffContents = document.querySelectorAll('.diff-content');
+      const firstDiff = diffContents[0];
+      
+      if (firstDiff && firstDiff.classList.contains('show')) {
+        // 隐藏所有
+        diffContents.forEach(content => {
+          content.classList.remove('show');
+        });
+        btn.textContent = '👁️ 显示所有 Diff';
+        showToast('🙈 已隐藏所有 Diff');
+      } else {
+        // 显示所有
+        diffContents.forEach(content => {
+          content.classList.add('show');
+        });
+        btn.textContent = '🙈 隐藏所有 Diff';
+        showToast('👁️ 已显示所有 Diff');
+      }
+    }
+
+    /**
+     * 切换增强 diff 视图
+     */
+    function toggleEnhancedDiff(event, button) {
+      event.stopPropagation();
+      
+      const diffSection = button.closest('.diff-section');
+      const enhancedViewer = diffSection.querySelector('.enhanced-diff-viewer');
+      
+      if (enhancedViewer.classList.contains('show')) {
+        enhancedViewer.classList.remove('show');
+        button.textContent = '🔍 增强视图';
+      } else {
+        enhancedViewer.classList.add('show');
+        button.textContent = '🔙 简化视图';
+        
+        // 滚动到视图
+        enhancedViewer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    /**
+     * 切换 diff 视图模式
+     */
+    function switchDiffView(event, mode, commitIndex) {
+      event.stopPropagation();
+      
+      const viewer = document.getElementById('enhanced-diff-' + commitIndex);
+      const unifiedView = document.getElementById('unified-view-' + commitIndex);
+      const splitView = document.getElementById('split-view-' + commitIndex);
+      const buttons = viewer.querySelectorAll('.diff-view-btn');
+      
+      buttons.forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      if (mode === 'unified') {
+        unifiedView.style.display = 'block';
+        splitView.style.display = 'none';
+      } else {
+        unifiedView.style.display = 'none';
+        splitView.style.display = 'grid';
+      }
+    }
+
+    /**
+     * 过滤提交
+     */
+    function filterCommits() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const authorFilter = document.getElementById('authorFilter').value;
+      const commitTypeFilter = document.getElementById('commitTypeFilter').value;
+      const cards = document.querySelectorAll('.commit-card');
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const message = card.querySelector('.commit-message').textContent.toLowerCase();
+        const author = card.querySelector('.commit-meta span:first-of-type').textContent;
+        const filePaths = Array.from(card.querySelectorAll('.file-path')).map(el => el.textContent.toLowerCase());
+        
+        // 搜索匹配
+        const matchSearch = !searchTerm || 
+          message.includes(searchTerm) || 
+          author.toLowerCase().includes(searchTerm) ||
+          filePaths.some(path => path.includes(searchTerm));
+        
+        // 作者匹配
+        const matchAuthor = !authorFilter || author.includes(authorFilter);
+        
+        // 提交类型匹配
+        let matchCommitType = true;
+        if (commitTypeFilter) {
+          const typePattern = new RegExp(`^${commitTypeFilter}[\\s:(]`, 'i');
+          matchCommitType = typePattern.test(message);
+        }
+        
+        if (matchSearch && matchAuthor && matchCommitType) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      // 更新统计
+      document.getElementById('visibleCount').textContent = visibleCount;
+      document.getElementById('filterHint').style.display = (searchTerm || authorFilter || commitTypeFilter) ? 'block' : 'none';
+      
+      // 显示/隐藏无结果提示
+      document.getElementById('noResults').style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    /**
+     * 排序提交
+     */
+    function sortCommits() {
+      const sortValue = document.getElementById('sortFilter').value;
+      const commitsContainer = document.querySelector('.commits');
+      const cards = Array.from(document.querySelectorAll('.commit-card'));
+      
+      cards.sort((a, b) => {
+        const aDate = a.querySelector('.commit-meta span:nth-child(2)').textContent;
+        const bDate = b.querySelector('.commit-meta span:nth-child(2)').textContent;
+        
+        const aFiles = parseInt(a.querySelector('.stat-badge.files')?.textContent || '0');
+        const bFiles = parseInt(b.querySelector('.stat-badge.files')?.textContent || '0');
+        
+        const aInsertions = parseInt(a.querySelector('.stat-badge.insertions')?.textContent.replace('+', '') || '0');
+        const bInsertions = parseInt(b.querySelector('.stat-badge.insertions')?.textContent.replace('+', '') || '0');
+        const aDeletions = parseInt(a.querySelector('.stat-badge.deletions')?.textContent.replace('-', '') || '0');
+        const bDeletions = parseInt(b.querySelector('.stat-badge.deletions')?.textContent.replace('-', '') || '0');
+        
+        const aChanges = aInsertions + aDeletions;
+        const bChanges = bInsertions + bDeletions;
+        
+        switch (sortValue) {
+          case 'date-desc':
+            return new Date(bDate) - new Date(aDate);
+          case 'date-asc':
+            return new Date(aDate) - new Date(bDate);
+          case 'files-desc':
+            return bFiles - aFiles;
+          case 'files-asc':
+            return aFiles - bFiles;
+          case 'changes-desc':
+            return bChanges - aChanges;
+          case 'changes-asc':
+            return aChanges - bChanges;
+          default:
+            return 0;
+        }
+      });
+      
+      cards.forEach(card => commitsContainer.appendChild(card));
+      showToast('🔄 已排序');
+    }
+
+    /**
+     * 打开文件模态框
+     */
+    function openFileModal(commitHash, filePath, shortHash) {
+      const overlay = document.getElementById('fileModalOverlay');
+      const modalPath = document.getElementById('modalFilePath');
+      const diffContent = document.getElementById('modalDiffContent');
+      const fileContent = document.getElementById('modalFileContent');
+
+      modalPath.textContent = filePath;
+      diffContent.innerHTML = '<div class="loading">⏳ 正在加载 Diff...</div>';
+      fileContent.innerHTML = '<div class="loading">⏳ 正在加载文件内容...</div>';
+
+      overlay.classList.add('show');
+      document.body.style.overflow = 'hidden';
+
+      switchModalTab('diff');
+
+      // 从页面获取 diff 数据
+      const diffData = getDiffFromPage(commitHash, filePath);
+      if (diffData) {
+        renderDiffContent(diffData);
+      } else {
+        diffContent.innerHTML = '<div class="error-message">😕 暂无 Diff 数据，请使用 --diff 参数重新生成</div>';
+      }
+
+      // 动态加载文件内容
+      loadFileContent(commitHash, filePath, shortHash);
+    }
+
+    /**
+     * 从页面获取 diff 数据
+     */
+    function getDiffFromPage(commitHash, filePath) {
+      const diffSections = document.querySelectorAll('.diff-section');
+      for (const section of diffSections) {
+        const card = section.closest('.commit-card');
+        const hashElement = card.querySelector('.hash');
+        if (hashElement && hashElement.textContent === commitHash) {
+          const diffFiles = section.querySelectorAll('.diff-file');
+          for (const diffFile of diffFiles) {
+            const header = diffFile.querySelector('.diff-file-header');
+            if (header && header.textContent === filePath) {
+              const code = diffFile.querySelector('.diff-code');
+              if (code) return code.innerHTML;
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    /**
+     * 渲染 diff 内容
+     */
+    function renderDiffContent(htmlContent) {
+      const diffContent = document.getElementById('modalDiffContent');
+      diffContent.innerHTML = '<div class="diff-content-modal">' + htmlContent + '</div>';
+    }
+
+    /**
+     * 加载文件内容
+     */
+    function loadFileContent(commitHash, filePath, shortHash) {
+      const fileContent = document.getElementById('modalFileContent');
+
+      // 使用 git show 命令获取文件内容
+      const command = `git show ${shortHash}:${filePath.replace(/'/g, "'\\''")}`;
+
+      fileContent.innerHTML = '<div class="file-content">' +
+        '<div style="padding:20px;text-align:center;color:#666;">' +
+        '📄 查看文件内容<br><br>' +
+        '<code style="display:inline-block;background:#f5f5f5;padding:10px;border-radius:4px;margin:10px 0;">' +
+        command +
+        '</code><br><br>' +
+        '<small>在终端运行以上命令查看文件内容</small>' +
+        '</div></div>';
+    }
+
+    /**
+     * 切换模态框标签
+     */
+    function switchModalTab(tab) {
+      const tabs = document.querySelectorAll('.modal-tab');
+      const contents = document.querySelectorAll('.modal-content');
+
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+
+      // 找到点击的标签或第一个匹配的标签
+      const targetTab = Array.from(tabs).find(t => t.textContent.includes(tab === 'diff' ? 'Diff' : '内容'));
+      if (targetTab) {
+        targetTab.classList.add('active');
+      }
+      
+      if (tab === 'diff') {
+        document.getElementById('modalDiffContent').classList.add('active');
+      } else {
+        document.getElementById('modalFileContent').classList.add('active');
+      }
+    }
+
+    /**
+     * 关闭模态框
+     */
+    function closeFileModal(event) {
+      if (event.target === event.currentTarget) {
+        closeFileModalBtn();
+      }
+    }
+
+    /**
+     * 关闭模态框按钮
+     */
+    function closeFileModalBtn() {
+      const overlay = document.getElementById('fileModalOverlay');
+      overlay.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+
+    /**
+     * 导出 JSON
+     */
+    function exportJSON() {
+      const data = {
+        generatedAt: new Date().toISOString(),
+        date: '<%= date %>',
+        summary: {
+          totalCommits: <%= totalCommits %>,
+          totalInsertions: <%= totalInsertions %>,
+          totalDeletions: <%= totalDeletions %>,
+          totalFiles: <%= totalFiles %>
+        },
+        files: fileMetadata
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'git-log-' + '<%= date %>'.replace(/-/g, '') + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('📥 已开始下载 JSON');
+    }
+
+    /**
+     * 导出 Markdown
+     */
+    function exportMarkdown() {
+      const commits = <%= JSON.stringify(commits) %>;
+      const date = '<%= date %>';
+      const totalCommits = <%= totalCommits %>;
+      const totalInsertions = <%= totalInsertions %>;
+      const totalDeletions = <%= totalDeletions %>;
+      const totalFiles = <%= totalFiles %>;
+
+      let md = `# Git 提交日志 - ${date}\n\n`;
+      md += `**生成时间**: ${new Date().toLocaleString('zh-CN')}\n\n`;
+      md += `## 摘要\n\n`;
+      md += `- 提交数：${totalCommits}\n`;
+      md += `- 修改文件：${totalFiles}\n`;
+      md += `- 新增行数：+${totalInsertions}\n`;
+      md += `- 删除行数：-${totalDeletions}\n\n`;
+      md += `---\n\n`;
+
+      commits.forEach(function(commit) {
+        md += `## ${commit.message}\n\n`;
+        md += `**作者**: ${commit.authorName}  \n`;
+        md += `**时间**: ${commit.date}  \n`;
+        md += `**Hash**: \`${commit.shortHash}\`\n\n`;
+
+        if (commit.summary) {
+          md += `**变更**: ${commit.summary.files} 个文件，+${commit.summary.insertions} -${commit.summary.deletions}\n\n`;
+        }
+
+        if (commit.files && commit.files.length > 0) {
+          md += `**文件列表**:\n\n`;
+          commit.files.forEach(function(file) {
+            md += `- \`${file.path}\` (+${file.insertions} -${file.deletions})\n`;
+          });
+          md += `\n`;
+        }
+
+        md += `---\n\n`;
+      });
+
+      const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'git-log-' + '<%= date %>'.replace(/-/g, '') + '.md';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('📥 已开始下载 Markdown');
+    }
+
+    /**
+     * HTML 转义
+     */
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 键盘事件：ESC 关闭模态框
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const overlay = document.getElementById('fileModalOverlay');
+        if (overlay.classList.contains('show')) {
+          closeFileModalBtn();
+        }
+      }
+    });
+
+    // 页面加载完成后的初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化文件图标
+      document.querySelectorAll('.file-icon').forEach(icon => {
+        if (!icon.textContent) {
+          const filePath = icon.closest('.file-path').textContent.trim();
+          icon.textContent = getFileIcon(filePath);
+        }
+      });
+
+      // 初始化图表
+      initCharts();
+    });
+
+    /**
+     * 初始化所有图表
+     */
+    function initCharts() {
+      const authorStats = <%= authorStats || '[]' %>;
+      const fileTypeStats = <%= fileTypeStats || '[]' %>;
+      const hourDistribution = <%= hourDistribution || '[]' %>;
+
+      // 颜色配置 - 渐变色生成
+      const colors = {
+        primary: 'rgba(102, 126, 234, 0.8)',
+        success: 'rgba(56, 142, 60, 0.8)',
+        danger: 'rgba(211, 47, 47, 0.8)',
+        info: 'rgba(25, 118, 210, 0.8)',
+        warning: 'rgba(255, 152, 0, 0.8)',
+        purple: 'rgba(118, 75, 162, 0.8)',
+        pink: 'rgba(233, 30, 99, 0.8)',
+        teal: 'rgba(0, 150, 136, 0.8)'
+      };
+
+      const colorArray = Object.values(colors);
+
+      /**
+       * 创建渐变色
+       */
+      function createGradient(ctx, colors, direction = 'vertical') {
+        const gradient = direction === 'vertical' 
+          ? ctx.createLinearGradient(0, 0, 0, 400)
+          : ctx.createLinearGradient(0, 0, 400, 0);
+        const step = 1 / (colors.length - 1);
+        colors.forEach((color, i) => {
+          gradient.addColorStop(i * step, color);
+        });
+        return gradient;
+      }
+
+      // 1. 作者贡献图表 - 使用水平条形图更好展示
+      if (authorStats.length > 0) {
+        const authorCtx = document.getElementById('authorChart').getContext('2d');
+        new Chart(authorCtx, {
+          type: 'bar',
+          data: {
+            labels: authorStats.map(a => a.name.length > 20 ? a.name.substring(0, 20) + '...' : a.name),
+            datasets: [{
+              label: '提交数',
+              data: authorStats.map(a => a.commits),
+              backgroundColor: colors.primary,
+              borderRadius: 6
+            }, {
+              label: '新增行数',
+              data: authorStats.map(a => a.insertions),
+              backgroundColor: colors.success,
+              borderRadius: 6
+            }, {
+              label: '删除行数',
+              data: authorStats.map(a => a.deletions),
+              backgroundColor: colors.danger,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            indexAxis: 'y', // 水平条形图
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: 'top',
+                labels: {
+                  usePointStyle: true,
+                  pointStyle: 'rect'
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.parsed.x.toLocaleString();
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.05)'
+                }
+              },
+              y: {
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
+      } else {
+        const authorCard = document.getElementById('authorChart').closest('.chart-card');
+        if (authorCard) authorCard.style.display = 'none';
+      }
+
+      // 2. 文件类型分布图表 - 优化标签显示
+      if (fileTypeStats.length > 0) {
+        const fileTypeCtx = document.getElementById('fileTypeChart').getContext('2d');
+        new Chart(fileTypeCtx, {
+          type: 'doughnut',
+          data: {
+            labels: fileTypeStats.map(f => {
+              const ext = f.ext || '无扩展名';
+              return ext.length > 15 ? ext.substring(0, 15) + '...' : ext;
+            }),
+            datasets: [{
+              data: fileTypeStats.map(f => f.count),
+              backgroundColor: colorArray.slice(0, fileTypeStats.length),
+              borderWidth: 2,
+              borderColor: 'rgba(255, 255, 255, 0.8)'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: 'right',
+                labels: {
+                  boxWidth: 12,
+                  font: {
+                    size: 11
+                  },
+                  generateLabels: function(chart) {
+                    const data = chart.data;
+                    return data.labels.map((label, i) => {
+                      const value = data.datasets[0].data[i];
+                      const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                      const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '';
+                      return {
+                        text: label + ' (' + percentage + ')',
+                        fillStyle: data.datasets[0].backgroundColor[i],
+                        hidden: false,
+                        index: i
+                      };
+                    });
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '';
+                    return label + ': ' + value + ' (' + percentage + ')';
+                  }
+                }
+              }
+            }
+          }
+        });
+      } else {
+        const fileTypeCard = document.getElementById('fileTypeChart').closest('.chart-card');
+        if (fileTypeCard) fileTypeCard.style.display = 'none';
+      }
+
+      // 3. 小时分布图表 - 优化为面积图
+      const hasHourData = hourDistribution.some(h => h > 0);
+      if (hasHourData) {
+        const hourCtx = document.getElementById('hourChart').getContext('2d');
+        
+        // 创建渐变色
+        const gradient = hourCtx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(102, 126, 234, 0.6)');
+        gradient.addColorStop(1, 'rgba(102, 126, 234, 0.0)');
+        
+        new Chart(hourCtx, {
+          type: 'line',
+          data: {
+            labels: hourDistribution.map((_, i) => {
+              const hour = i.toString().padStart(2, '0');
+              if (i < 6) return hour + ':00 🌙';
+              if (i < 12) return hour + ':00 🌅';
+              if (i < 18) return hour + ':00 ☀️';
+              return hour + ':00 🌆';
+            }),
+            datasets: [{
+              label: '提交数',
+              data: hourDistribution,
+              backgroundColor: gradient,
+              borderColor: colors.primary,
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 5,
+              pointHoverRadius: 8,
+              pointBackgroundColor: '#fff',
+              pointBorderColor: colors.primary,
+              pointBorderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return '提交数：' + context.parsed.y;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1
+                },
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.05)'
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
       }
     }
   </script>

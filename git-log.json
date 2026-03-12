@@ -1,0 +1,112 @@
+{
+  "generatedAt": "2026-03-12T23:10:44.356Z",
+  "dateRange": "2026-03-12",
+  "summary": {
+    "totalCommits": 1,
+    "totalInsertions": 2605,
+    "totalDeletions": 1,
+    "totalFiles": 14
+  },
+  "commits": [
+    {
+      "hash": "c82e538d33986edd79ec0ac64b26363f64d3584d",
+      "shortHash": "c82e538",
+      "authorName": "yanxxit",
+      "authorEmail": "yanxxit@163.com",
+      "date": "2026-03-12 20:59:18",
+      "message": "feat(todo): 添加基于 PGLite 的 TODO 应用功能",
+      "fullBody": "实现完整的 TODO 应用功能，包括：\n- 使用 PGLite 作为嵌入式数据库\n- 实现数据模型层和 API 路由\n- 添加前端页面和交互逻辑\n- 提供文档和测试脚本\n\n7e13abb5b1f7d280daf098c63f6975d9bbc58dd5|yanxxit|yanxxit@163.com|2026-03-12 19:34:08|feat(file-viewer): 添加DOCX/XLSX文件预览支持及多选功能|feat(file-viewer): 添加DOCX/XLSX文件预览支持及多选功能\n\n- 新增DOCX/XLSX文件预览功能，使用docx-preview和SheetJS库\n- 实现文件多选操作，支持Ctrl/Cmd+点击和Shift+点击连选\n- 添加批量下载和删除功能\n- 优化文件类型检测逻辑，改进未知文件处理\n- 更新.gitignore忽略public目录下的办公文档\n- 添加相关依赖(docx-preview, xlsx, formidable)\n- 新增文档说明文件预览修复和优化方案",
+      "files": [
+        {
+          "path": ".gitignore",
+          "changes": 3,
+          "insertions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/todo-app-guide.md",
+          "changes": 295,
+          "insertions": 19,
+          "deletions": 0
+        },
+        {
+          "path": "docs/todo-model-architecture.md",
+          "changes": 285,
+          "insertions": 18,
+          "deletions": 0
+        },
+        {
+          "path": "package.json",
+          "changes": 1,
+          "insertions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "pnpm-lock.yaml",
+          "changes": 8,
+          "insertions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "public/todo/app.js",
+          "changes": 530,
+          "insertions": 34,
+          "deletions": 0
+        },
+        {
+          "path": "public/todo/index.html",
+          "changes": 152,
+          "insertions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "public/todo/style.css",
+          "changes": 618,
+          "insertions": 40,
+          "deletions": 0
+        },
+        {
+          "path": "src/http-server/static.js",
+          "changes": 17,
+          "insertions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "src/http-server/todo-api.js",
+          "changes": 200,
+          "insertions": 13,
+          "deletions": 0
+        },
+        {
+          "path": "src/model/database.js",
+          "changes": 88,
+          "insertions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "src/model/index.js",
+          "changes": 7,
+          "insertions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "src/model/todo.js",
+          "changes": 206,
+          "insertions": 14,
+          "deletions": 0
+        },
+        {
+          "path": "test/todo-api-test.js",
+          "changes": 196,
+          "insertions": 13,
+          "deletions": 0
+        }
+      ],
+      "summary": {
+        "files": 14,
+        "insertions": 2605,
+        "deletions": 1
+      }
+    }
+  ]
+}

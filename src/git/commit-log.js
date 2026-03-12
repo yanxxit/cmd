@@ -61,33 +61,50 @@ export function getCommitsByDate(options = {}) {
   const { since, until } = parseDateRange(date);
 
   try {
-    // 构建命令，支持作者过滤
-    let command = `git log --since="${since}" --until="${until}" --pretty=format:"%H|%an|%ae|%ad|%s" --date=format:'%Y-%m-%d %H:%M:%S'`;
-    
+    // 构建命令，支持作者过滤 - 使用 %B 获取完整的提交消息（标题 + 正文）
+    let command = `git log --since="${since}" --until="${until}" --pretty=format:"%H|%an|%ae|%ad|%s|%B" --date=format:'%Y-%m-%d %H:%M:%S'`;
+
     if (author) {
       command += ` --author="${author}"`;
     }
-    
+
     const commitLog = execSync(
       command,
-      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 10 * 1024 * 1024 }
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 50 * 1024 * 1024 }
     );
 
     if (!commitLog.trim()) {
       return [];
     }
 
-    const commits = commitLog.split('\n').map(line => {
-      const [hash, authorName, authorEmail, date, message] = line.split('|');
-      return {
+    const commits = [];
+    // 使用 commit 分隔符来分割多个提交
+    const commitBlocks = commitLog.split('\ncommit ');
+    
+    for (let i = 0; i < commitBlocks.length; i++) {
+      let block = commitBlocks[i];
+      // 移除第一个块可能的前缀
+      if (i === 0) {
+        block = block.replace(/^commit /, '');
+      }
+      
+      const lines = block.split('\n');
+      const firstLine = lines[0];
+      const [hash, authorName, authorEmail, date, message] = firstLine.split('|');
+      
+      // 完整的提交消息（包含正文）
+      const fullBody = lines.slice(1).join('\n').trim();
+      
+      commits.push({
         hash,
         shortHash: hash.substring(0, 7),
         authorName,
         authorEmail,
         date,
-        message
-      };
-    });
+        message,
+        fullBody: fullBody || message  // 如果有正文则使用正文，否则使用标题
+      });
+    }
 
     return commits;
   } catch (error) {
@@ -271,8 +288,9 @@ export function getCommitsByDateRange(options = {}) {
     // 构建命令，since 和 until 都加上时间以确保包含完整的日期范围
     const sinceWithTime = `${since} 00:00:00`;
     const untilWithTime = `${until} 23:59:59`;
-    
-    let command = `git log --since="${sinceWithTime}" --until="${untilWithTime}" --pretty=format:"%H|%an|%ae|%ad|%s" --date=format:'%Y-%m-%d %H:%M:%S'`;
+
+    // 使用 %B 获取完整的提交消息（标题 + 正文）
+    let command = `git log --since="${sinceWithTime}" --until="${untilWithTime}" --pretty=format:"%H|%an|%ae|%ad|%s|%B" --date=format:'%Y-%m-%d %H:%M:%S'`;
 
     if (author) {
       command += ` --author="${author}"`;
@@ -280,24 +298,38 @@ export function getCommitsByDateRange(options = {}) {
 
     const commitLog = execSync(
       command,
-      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 10 * 1024 * 1024 }
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 50 * 1024 * 1024 }
     );
 
     if (!commitLog.trim()) {
       return Promise.resolve([]);
     }
 
-    const commits = commitLog.split('\n').map(line => {
-      const [hash, authorName, authorEmail, date, message] = line.split('|');
-      return {
+    const commits = [];
+    const commitBlocks = commitLog.split('\ncommit ');
+    
+    for (let i = 0; i < commitBlocks.length; i++) {
+      let block = commitBlocks[i];
+      if (i === 0) {
+        block = block.replace(/^commit /, '');
+      }
+      
+      const lines = block.split('\n');
+      const firstLine = lines[0];
+      const [hash, authorName, authorEmail, date, message] = firstLine.split('|');
+      
+      const fullBody = lines.slice(1).join('\n').trim();
+      
+      commits.push({
         hash,
         shortHash: hash.substring(0, 7),
         authorName,
         authorEmail,
         date,
-        message
-      };
-    });
+        message,
+        fullBody: fullBody || message
+      });
+    }
 
     // 并行获取每个提交的详细信息
     const commitPromises = commits.map(async (commit) => {

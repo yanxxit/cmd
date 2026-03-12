@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV 转 JSON 工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .upload-card {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .upload-area {
+      border: 3px dashed #667eea;
+      border-radius: 8px;
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .upload-area:hover {
+      background: #f8f9ff;
+      border-color: #764ba2;
+    }
+
+    .upload-area.dragover {
+      background: #eef2ff;
+      border-color: #764ba2;
+      transform: scale(1.02);
+    }
+
+    .upload-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+
+    .upload-text {
+      font-size: 1.2rem;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .upload-hint {
+      color: #666;
+      font-size: 0.95rem;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      margin-top: 20px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .file-info {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9ff;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .file-info.show {
+      display: block;
+    }
+
+    .file-name {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .file-meta {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+
+    .result-card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      display: none;
+    }
+
+    .result-card.show {
+      display: block;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .result-title {
+      font-size: 1.5rem;
+      color: #333;
+    }
+
+    .json-output {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .json-output pre {
+      margin: 0;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #d4d4d4;
+    }
+
+    .json-key {
+      color: #9cdcfe;
+    }
+
+    .json-string {
+      color: #ce9178;
+    }
+
+    .json-number {
+      color: #b5cea8;
+    }
+
+    .json-boolean {
+      color: #569cd6;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid #667eea;
+      color: #667eea;
+    }
+
+    .btn-outline:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .error-message {
+      background: #fee;
+      color: #c33;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-item {
+      background: #f8f9ff;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .stat-label {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+
+    .back-link {
+      display: inline-block;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .options-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .options-title {
+      font-size: 1.1rem;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .option-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .option-item label {
+      color: #555;
+      font-size: 0.95rem;
+    }
+
+    .option-item input[type="text"] {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+
+    .option-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/file-viewer" class="back-link">← 返回文件查看器</a>
+    
+    <div class="header">
+      <h1>📄 CSV 转 JSON</h1>
+      <p>前端直接解析 CSV 文件，无需上传服务器</p>
+    </div>
+
+    <div class="options-card">
+      <div class="options-title">解析选项</div>
+      <div class="option-row">
+        <div class="option-item">
+          <label for="delimiter">分隔符:</label>
+          <input type="text" id="delimiter" value="," maxlength="1">
+        </div>
+        <div class="option-item">
+          <label for="hasHeader">
+            <input type="checkbox" id="hasHeader" checked>
+            第一行是表头
+          </label>
+        </div>
+        <div class="option-item">
+          <label for="skipEmpty">
+            <input type="checkbox" id="skipEmpty" checked>
+            跳过空行
+          </label>
+        </div>
+        <div class="option-item">
+          <label for="trimValues">
+            <input type="checkbox" id="trimValues" checked>
+            去除首尾空格
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="upload-card">
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">点击选择文件或拖拽文件到此处</div>
+        <div class="upload-hint">支持 .csv 格式，文件在本地解析，不会上传到服务器</div>
+        <input type="file" id="fileInput" accept=".csv">
+      </div>
+
+      <div class="file-info" id="fileInfo">
+        <div class="file-name" id="fileName"></div>
+        <div class="file-meta" id="fileMeta"></div>
+      </div>
+
+      <div class="error-message" id="errorMessage"></div>
+    </div>
+
+    <div class="result-card" id="resultCard">
+      <div class="result-header">
+        <div class="result-title">📄 转换结果</div>
+        <div class="actions">
+          <button class="btn btn-outline" id="copyBtn">复制 JSON</button>
+          <button class="btn btn-outline" id="downloadBtn">下载 JSON</button>
+        </div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="json-output">
+        <pre id="jsonContent"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileMeta = document.getElementById('fileMeta');
+    const errorMessage = document.getElementById('errorMessage');
+    const resultCard = document.getElementById('resultCard');
+    const jsonContent = document.getElementById('jsonContent');
+    const stats = document.getElementById('stats');
+    const copyBtn = document.getElementById('copyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    // 选项
+    const delimiterInput = document.getElementById('delimiter');
+    const hasHeaderInput = document.getElementById('hasHeader');
+    const skipEmptyInput = document.getElementById('skipEmpty');
+    const trimValuesInput = document.getElementById('trimValues');
+
+    let currentData = null;
+    let currentFileName = '';
+
+    // 监听选项变化，重新解析
+    [delimiterInput, hasHeaderInput, skipEmptyInput, trimValuesInput].forEach(input => {
+      input.addEventListener('change', () => {
+        if (currentData) {
+          parseAndShow(currentData);
+        }
+      });
+    });
+
+    // 点击上传区域
+    uploadArea.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    // 文件选择
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        handleFile(file);
+      }
+    });
+
+    // 拖拽上传
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        handleFile(file);
+      }
+    });
+
+    // 处理文件
+    function handleFile(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext !== 'csv') {
+        showError('不支持的文件格式，请上传 .csv 文件');
+        return;
+      }
+
+      // 显示文件信息
+      fileName.textContent = file.name;
+      fileMeta.textContent = `${(file.size / 1024).toFixed(2)} KB`;
+      fileInfo.classList.add('show');
+      hideError();
+      hideResult();
+
+      currentFileName = file.name;
+
+      // 读取文件
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentData = e.target.result;
+        parseAndShow(currentData);
+      };
+      reader.onerror = () => {
+        showError('读取文件失败');
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    // 解析并显示
+    function parseAndShow(content) {
+      try {
+        const delimiter = delimiterInput.value || ',';
+        const hasHeader = hasHeaderInput.checked;
+        const skipEmpty = skipEmptyInput.checked;
+        const trimValues = trimValuesInput.checked;
+
+        const result = parseCSV(content, {
+          delimiter,
+          hasHeader,
+          skipEmpty,
+          trimValues
+        });
+
+        currentData = result;
+
+        stats.innerHTML = `
+          <div class="stat-item">
+            <div class="stat-value">${result.rows}</div>
+            <div class="stat-label">数据行数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">${result.columns}</div>
+            <div class="stat-label">列数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">${result.headers.length}</div>
+            <div class="stat-label">表头数量</div>
+          </div>
+        `;
+
+        const jsonStr = JSON.stringify(result.data, null, 2);
+        jsonContent.innerHTML = syntaxHighlight(jsonStr);
+
+        resultCard.classList.add('show');
+      } catch (err) {
+        showError('解析失败：' + err.message);
+      }
+    }
+
+    // 解析 CSV
+    function parseCSV(content, options = {}) {
+      const {
+        delimiter = ',',
+        hasHeader = true,
+        skipEmpty = true,
+        trimValues = true
+      } = options;
+
+      const lines = content.split(/\r?\n/);
+      
+      // 过滤空行
+      const filteredLines = skipEmpty 
+        ? lines.filter(line => line.trim() !== '') 
+        : lines;
+
+      if (filteredLines.length === 0) {
+        return { rows: 0, columns: 0, headers: [], data: [] };
+      }
+
+      // 解析 CSV 行
+      function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === delimiter && !inQuotes) {
+            result.push(trimValues ? current.trim() : current);
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        
+        result.push(trimValues ? current.trim() : current);
+        return result;
+      }
+
+      let headers = [];
+      let data = [];
+      let startIndex = 0;
+
+      if (hasHeader) {
+        headers = parseCSVLine(filteredLines[0]);
+        startIndex = 1;
+      }
+
+      for (let i = startIndex; i < filteredLines.length; i++) {
+        const values = parseCSVLine(filteredLines[i]);
+        
+        if (hasHeader) {
+          const row = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] !== undefined ? values[index] : '';
+          });
+          data.push(row);
+        } else {
+          data.push(values);
+        }
+      }
+
+      if (!hasHeader) {
+        headers = data[0]?.map((_, i) => `column${i + 1}`) || [];
+      }
+
+      return {
+        rows: hasHeader ? data.length : data.length - 1,
+        columns: headers.length,
+        headers,
+        data
+      };
+    }
+
+    // JSON 语法高亮
+    function syntaxHighlight(json) {
+      json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+        let cls = 'json-number';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'json-key';
+          } else {
+            cls = 'json-string';
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'json-boolean';
+        } else if (/null/.test(match)) {
+          cls = 'json-null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      });
+    }
+
+    // 复制 JSON
+    copyBtn.addEventListener('click', () => {
+      if (!currentData) return;
+      
+      const jsonStr = JSON.stringify(currentData.data, null, 2);
+      
+      navigator.clipboard.writeText(jsonStr).then(() => {
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = '✓ 已复制';
+        setTimeout(() => {
+          copyBtn.textContent = originalText;
+        }, 2000);
+      });
+    });
+
+    // 下载 JSON
+    downloadBtn.addEventListener('click', () => {
+      if (!currentData) return;
+      
+      const jsonStr = JSON.stringify(currentData.data, null, 2);
+      
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = currentFileName.replace(/\.csv$/i, '') + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // 辅助函数
+    function showError(msg) {
+      errorMessage.textContent = msg;
+      errorMessage.classList.add('show');
+    }
+
+    function hideError() {
+      errorMessage.classList.remove('show');
+    }
+
+    function hideResult() {
+      resultCard.classList.remove('show');
+      currentData = null;
+    }
+  </script>
+</body>
+</html>
