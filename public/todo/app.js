@@ -8,7 +8,9 @@ const state = {
   filter: 'all', // all, pending, completed
   sort: 'created_desc',
   search: '',
-  selectedIds: new Set()
+  selectedIds: new Set(),
+  theme: 'light',
+  expandedTasks: new Set() // 展开的任务 ID（显示子任务）
 };
 
 // DOM 元素
@@ -39,6 +41,8 @@ const elements = {
   closeEdit: document.getElementById('closeEdit'),
   cancelEdit: document.getElementById('cancelEdit'),
   saveEdit: document.getElementById('saveEdit'),
+  // 主题切换
+  themeToggle: document.getElementById('themeToggle'),
   // Toast
   toastContainer: document.getElementById('toastContainer')
 };
@@ -73,20 +77,33 @@ async function loadTodos() {
   try {
     const params = new URLSearchParams({
       filter: state.filter,
-      sort: state.sort
+      sort: state.sort,
+      parent_id: 'null' // 只获取主任务
     });
-    
+
     if (state.search) {
       params.append('search', state.search);
     }
-    
+
     const result = await apiRequest(`${API_BASE}?${params}`);
     state.todos = result.data;
-    
+
+    // 获取每个任务的子任务数量
+    await Promise.all(state.todos.map(async (todo) => {
+      try {
+        const subResult = await apiRequest(`${API_BASE}/${todo.id}/subtodos`);
+        todo.subtaskCount = subResult.data.length;
+        todo.hasSubtasks = subResult.data.length > 0;
+      } catch (e) {
+        todo.subtaskCount = 0;
+        todo.hasSubtasks = false;
+      }
+    }));
+
     renderTodos();
     updateStats();
     hideLoading();
-    
+
   } catch (err) {
     console.error('加载 TODO 失败:', err);
     showToast('加载失败：' + err.message, 'error');
@@ -97,20 +114,28 @@ async function loadTodos() {
  * 添加 TODO
  */
 async function addTodo(content, priority = 2, due_date = null, note = '') {
-  if (!content.trim()) {
+  if (!content || !content.trim()) {
     showToast('任务内容不能为空', 'warning');
     return;
   }
-  
+
   try {
+    const requestBody = {
+      content: content.trim(),
+      priority: parseInt(priority) || 2,
+      due_date: due_date || null,
+      note: note || '',
+      parent_id: null
+    };
+
     await apiRequest(API_BASE, {
       method: 'POST',
-      body: JSON.stringify({ content, priority, due_date, note })
+      body: JSON.stringify(requestBody)
     });
-    
+
     showToast('任务添加成功', 'success');
     await loadTodos();
-    
+
   } catch (err) {
     console.error('添加 TODO 失败:', err);
     showToast('添加失败：' + err.message, 'error');
@@ -220,19 +245,19 @@ function renderTodos() {
 /**
  * 创建 TODO 项
  */
-function createTodoItem(todo, today) {
+function createTodoItem(todo, today, isSubtask = false) {
   const div = document.createElement('div');
-  div.className = `todo-item${todo.completed ? ' completed' : ''}${state.selectedIds.has(todo.id) ? ' selected' : ''}`;
+  div.className = `todo-item${todo.completed ? ' completed' : ''}${state.selectedIds.has(todo.id) ? ' selected' : ''}${isSubtask ? ' subtask' : ''}`;
   div.dataset.id = todo.id;
-  
+
   const priorityLabels = {
     1: { text: '高', class: 'high', icon: '🔴' },
     2: { text: '中', class: 'medium', icon: '🟡' },
     3: { text: '低', class: 'low', icon: '🟢' }
   };
-  
+
   const priority = priorityLabels[todo.priority] || priorityLabels[2];
-  
+
   // 检查是否逾期
   let dueClass = '';
   let dueText = '无截止日期';
@@ -245,34 +270,57 @@ function createTodoItem(todo, today) {
       dueText = `📅 ${todo.due_date}`;
     }
   }
-  
+
+  // 子任务展开按钮
+  const expandButton = todo.hasSubtasks !== false ? `
+    <button class="btn btn-sm btn-icon expand-btn" title="${state.expandedTasks.has(todo.id) ? '收起子任务' : '展开子任务'}" data-action="expand">
+      ${state.expandedTasks.has(todo.id) ? '🔼' : '🔽'}
+    </button>
+  ` : '';
+
+  // 搜索高亮
+  const highlightedContent = highlightSearch(todo.content);
+
   div.innerHTML = `
     <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} ${state.selectedIds.has(todo.id) ? 'checked' : ''}>
     <div class="todo-content">
-      <div>${escapeHtml(todo.content)}</div>
+      <div>${highlightedContent}</div>
       <div class="todo-meta">
         <span class="todo-priority ${priority.class}">${priority.icon} ${priority.text}</span>
         <span class="todo-due ${dueClass}">${dueText}</span>
         ${todo.note ? `<span>📝 有备注</span>` : ''}
         <span>⏰ ${formatDate(todo.created_at)}</span>
+        ${todo.subtaskCount > 0 ? `<span>📋 ${todo.subtaskCount} 子任务</span>` : ''}
       </div>
     </div>
     <div class="todo-actions">
+      ${expandButton}
+      <button class="btn btn-sm btn-icon" title="添加子任务" onclick="addSubtask(${todo.id})">➕</button>
       <button class="btn btn-sm btn-icon" title="编辑" onclick="editTodo(${todo.id})">✏️</button>
       <button class="btn btn-sm btn-icon" title="删除" onclick="deleteTodoById(${todo.id})">🗑️</button>
     </div>
+    ${state.expandedTasks.has(todo.id) ? `<div class="subtasks-container" data-parent-id="${todo.id}"></div>` : ''}
   `;
-  
+
   // 绑定事件
   const checkbox = div.querySelector('.todo-checkbox');
   checkbox.addEventListener('change', () => toggleSelect(todo.id));
-  
+
   // 完成状态改变
   div.querySelector('.todo-checkbox').addEventListener('change', async (e) => {
     e.stopPropagation();
     await updateTodo(todo.id, { completed: e.target.checked });
   });
-  
+
+  // 展开/收起子任务
+  const expandBtn = div.querySelector('.expand-btn');
+  if (expandBtn) {
+    expandBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await toggleExpandSubtasks(todo.id);
+    });
+  }
+
   return div;
 }
 
@@ -389,6 +437,18 @@ function escapeHtml(text) {
 }
 
 /**
+ * 搜索关键词高亮
+ */
+function highlightSearch(text) {
+  if (!state.search) return escapeHtml(text);
+  
+  const escaped = escapeHtml(text);
+  const regex = new RegExp(`(${escapeHtml(state.search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  
+  return escaped.replace(regex, '<mark class="search-highlight">$1</mark>');
+}
+
+/**
  * 编辑 TODO（全局函数）
  */
 window.editTodo = async function(id) {
@@ -416,12 +476,16 @@ window.deleteTodoById = async function(id) {
  * 绑定事件
  */
 function bindEvents() {
+  // 主题切换
+  initTheme();
+  elements.themeToggle.addEventListener('click', toggleTheme);
+
   // 添加任务
   elements.addBtn.addEventListener('click', () => {
     addTodo(elements.todoInput.value);
     elements.todoInput.value = '';
   });
-  
+
   elements.todoInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       addTodo(elements.todoInput.value);
@@ -445,10 +509,21 @@ function bindEvents() {
     loadTodos();
   });
   
-  // 搜索
+  // 搜索（带防抖）
+  let searchTimer = null;
   elements.searchInput.addEventListener('input', (e) => {
-    state.search = e.target.value.trim();
-    loadTodos();
+    const value = e.target.value.trim();
+    
+    // 清除之前的定时器
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+    }
+    
+    // 防抖 300ms
+    searchTimer = setTimeout(() => {
+      state.search = value;
+      loadTodos();
+    }, 300);
   });
   
   // 批量操作
@@ -510,12 +585,145 @@ function bindEvents() {
 }
 
 /**
+ * 初始化主题
+ */
+function initTheme() {
+  const savedTheme = localStorage.getItem('todoTheme') || 'light';
+  state.theme = savedTheme;
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeIcon(savedTheme);
+}
+
+/**
+ * 切换主题
+ */
+function toggleTheme() {
+  state.theme = state.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', state.theme);
+  updateThemeIcon(state.theme);
+  localStorage.setItem('todoTheme', state.theme);
+}
+
+/**
+ * 更新主题图标
+ */
+function updateThemeIcon(theme) {
+  const icon = elements.themeToggle.querySelector('.icon');
+  if (icon) {
+    icon.textContent = theme === 'light' ? '🌙' : '☀️';
+  }
+}
+
+/**
+ * 展开/收起子任务
+ */
+async function toggleExpandSubtasks(todoId) {
+  if (state.expandedTasks.has(todoId)) {
+    state.expandedTasks.delete(todoId);
+  } else {
+    state.expandedTasks.add(todoId);
+  }
+  renderTodos();
+  
+  // 如果展开，加载子任务
+  if (state.expandedTasks.has(todoId)) {
+    await loadSubtodos(todoId);
+  }
+}
+
+/**
+ * 加载子任务
+ */
+async function loadSubtodos(parentId) {
+  try {
+    const container = document.querySelector(`.subtasks-container[data-parent-id="${parentId}"]`);
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-subtasks">加载中...</div>';
+    
+    const result = await apiRequest(`${API_BASE}/${parentId}/subtodos`);
+    const subtodos = result.data;
+    
+    container.innerHTML = '';
+    
+    if (subtodos.length === 0) {
+      container.innerHTML = '<div class="no-subtasks">暂无子任务</div>';
+      return;
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    for (const subtodo of subtodos) {
+      const subItem = createTodoItem(subtodo, today, true);
+      container.appendChild(subItem);
+    }
+  } catch (err) {
+    console.error('加载子任务失败:', err);
+  }
+}
+
+/**
+ * 添加子任务
+ */
+async function addSubtask(parentId) {
+  const content = prompt('请输入子任务内容：');
+  if (!content || !content.trim()) return;
+  
+  try {
+    await apiRequest(API_BASE, {
+      method: 'POST',
+      body: JSON.stringify({
+        content: content.trim(),
+        priority: 2,
+        parent_id: parentId
+      })
+    });
+    
+    showToast('子任务添加成功', 'success');
+    
+    // 如果在展开状态，重新加载子任务
+    if (state.expandedTasks.has(parentId)) {
+      await loadSubtodos(parentId);
+    }
+    
+    // 重新加载主任务列表
+    await loadTodos();
+  } catch (err) {
+    showToast('添加失败：' + err.message, 'error');
+  }
+}
+
+/**
+ * 删除子任务
+ */
+async function deleteSubtaskById(id) {
+  if (!confirm('确定要删除这个子任务吗？')) return;
+  
+  try {
+    await apiRequest(`${API_BASE}/${id}`, {
+      method: 'DELETE'
+    });
+    
+    showToast('子任务已删除', 'success');
+    
+    // 重新加载主任务列表
+    await loadTodos();
+  } catch (err) {
+    showToast('删除失败：' + err.message, 'error');
+  }
+}
+
+// 使函数全局可用
+window.addSubtask = addSubtask;
+window.deleteSubtaskById = deleteSubtaskById;
+
+/**
  * 初始化应用
  */
 async function init() {
   bindEvents();
   showLoading();
-  
+
   try {
     await loadTodos();
     await loadStats();

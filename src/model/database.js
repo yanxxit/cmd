@@ -46,10 +46,42 @@ export async function initDatabase() {
         priority INTEGER DEFAULT 2,
         due_date TEXT,
         note TEXT,
+        tags TEXT DEFAULT '',
+        category TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // 检查并添加 parent_id 字段
+    try {
+      await db.exec(`
+        ALTER TABLE todos
+        ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES todos(id) ON DELETE CASCADE
+      `);
+    } catch (err) {
+      console.log('parent_id 字段可能已存在:', err.message);
+    }
+
+    // 检查并添加 tags 字段
+    try {
+      await db.exec(`
+        ALTER TABLE todos
+        ADD COLUMN IF NOT EXISTS tags TEXT DEFAULT ''
+      `);
+    } catch (err) {
+      console.log('tags 字段可能已存在:', err.message);
+    }
+
+    // 检查并添加 category 字段
+    try {
+      await db.exec(`
+        ALTER TABLE todos
+        ADD COLUMN IF NOT EXISTS category TEXT DEFAULT ''
+      `);
+    } catch (err) {
+      console.log('category 字段可能已存在:', err.message);
+    }
     
     // 创建索引（单独执行）
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_todos_completed ON todos(completed)`);

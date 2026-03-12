@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍅 番茄时钟 - 专注工作学习</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 顶部导航栏 -->
+    <header class="header">
+      <div class="header-left">
+        <a href="/" class="back-btn" title="返回工具首页">🏠 首页</a>
+        <h1 class="title">🍅 番茄时钟</h1>
+      </div>
+      <div class="header-right">
+        <button class="theme-toggle" id="themeToggle" title="切换夜间模式">🌙</button>
+      </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- 左侧：计时器 -->
+      <section class="timer-section">
+        <div class="timer-card">
+          <!-- 模式切换 -->
+          <div class="mode-tabs">
+            <button class="mode-tab active" data-mode="work">🎯 专注</button>
+            <button class="mode-tab" data-mode="shortBreak">☕ 短休息</button>
+            <button class="mode-tab" data-mode="longBreak">🏖️ 长休息</button>
+          </div>
+
+          <!-- 计时器显示 -->
+          <div class="timer-display">
+            <div class="timer-circle">
+              <svg class="timer-progress" viewBox="0 0 300 300">
+                <circle class="progress-bg" cx="150" cy="150" r="130" />
+                <circle class="progress-bar" cx="150" cy="150" r="130" id="progressBar" />
+              </svg>
+              <div class="timer-content">
+                <div class="time-display" id="timeDisplay">25:00</div>
+                <div class="timer-status" id="timerStatus">准备开始</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 控制按钮 -->
+          <div class="timer-controls">
+            <button class="control-btn primary" id="startBtn">
+              <span class="btn-icon">▶️</span>
+              <span class="btn-text">开始</span>
+            </button>
+            <button class="control-btn" id="pauseBtn" disabled>
+              <span class="btn-icon">⏸️</span>
+              <span class="btn-text">暂停</span>
+            </button>
+            <button class="control-btn" id="resetBtn">
+              <span class="btn-icon">🔄</span>
+              <span class="btn-text">重置</span>
+            </button>
+          </div>
+
+          <!-- 当前进度 -->
+          <div class="session-info">
+            <div class="session-count">
+              <span class="label">今日完成</span>
+              <span class="value" id="todaySessions">0</span>
+              <span class="unit">个番茄</span>
+            </div>
+            <div class="session-progress">
+              <span class="label">当前周期</span>
+              <span class="value" id="currentCycle">1/4</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右侧：统计和设置 -->
+      <section class="stats-section">
+        <!-- 统计卡片 -->
+        <div class="stats-card">
+          <h2 class="card-title">📊 统计数据</h2>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-icon">🎯</div>
+              <div class="stat-content">
+                <div class="stat-label">今日专注</div>
+                <div class="stat-value" id="todayFocusTime">0 分钟</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">📅</div>
+              <div class="stat-content">
+                <div class="stat-label">本周专注</div>
+                <div class="stat-value" id="weekFocusTime">0 分钟</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">🏆</div>
+              <div class="stat-content">
+                <div class="stat-label">总计</div>
+                <div class="stat-value" id="totalFocusTime">0 分钟</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">📈</div>
+              <div class="stat-content">
+                <div class="stat-label">总番茄数</div>
+                <div class="stat-value" id="totalSessions">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 历史记录图表 -->
+          <div class="history-chart">
+            <h3 class="chart-title">最近 7 天</h3>
+            <div class="chart-bars" id="chartBars">
+              <!-- 动态生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 设置卡片 -->
+        <div class="settings-card">
+          <h2 class="card-title">⚙️ 设置</h2>
+          <div class="settings-form">
+            <div class="form-group">
+              <label for="workDuration">专注时长（分钟）</label>
+              <input type="number" id="workDuration" min="1" max="60" value="25">
+            </div>
+            <div class="form-group">
+              <label for="shortBreak">短休息（分钟）</label>
+              <input type="number" id="shortBreak" min="1" max="30" value="5">
+            </div>
+            <div class="form-group">
+              <label for="longBreak">长休息（分钟）</label>
+              <input type="number" id="longBreak" min="1" max="60" value="15">
+            </div>
+            <div class="form-group">
+              <label for="sessionsBeforeLongBreak">长休息前番茄数</label>
+              <input type="number" id="sessionsBeforeLongBreak" min="2" max="10" value="4">
+            </div>
+            <button class="save-btn" id="saveSettings">保存设置</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 完成提示模态框 -->
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <div class="modal-icon" id="modalIcon">🎉</div>
+        <h2 class="modal-title" id="modalTitle">番茄完成！</h2>
+        <p class="modal-message" id="modalMessage">太棒了，休息一下吧~</p>
+        <div class="modal-actions">
+          <button class="modal-btn primary" id="modalConfirm">好的</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 音频提示 -->
+  <audio id="alarmSound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU" type="audio/wav">
+  </audio>
+
+  <script src="app.js"></script>
+</body>
+</html>

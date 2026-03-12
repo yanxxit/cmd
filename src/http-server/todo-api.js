@@ -4,7 +4,7 @@
  */
 
 import express from 'express';
-import { initDatabase, getTodos, getTodoById, createTodo, updateTodo, deleteTodo, batchOperate, getTodoStats } from '../model/index.js';
+import { initDatabase, getTodos, getTodoById, createTodo, updateTodo, deleteTodo, batchOperate, getTodoStats, getSubTodos, getTodoStatsWithSubtasks } from '../model/index.js';
 
 const router = express.Router();
 
@@ -56,22 +56,22 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { content, priority, due_date, note } = req.body;
-    
+    const { content, priority, due_date, note, parent_id } = req.body;
+
     if (!content || !content.trim()) {
       return res.status(400).json({
         success: false,
         error: '任务内容不能为空'
       });
     }
-    
-    const todo = await createTodo({ content, priority, due_date, note });
-    
+
+    const todo = await createTodo({ content, priority, due_date, note, parent_id: parent_id || null });
+
     res.json({
       success: true,
       data: todo
     });
-    
+
   } catch (err) {
     console.error('创建 TODO 失败:', err);
     res.status(500).json({
@@ -188,6 +188,52 @@ router.get('/stats', async (req, res) => {
       data: stats
     });
     
+  } catch (err) {
+    console.error('获取统计信息失败:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/todos/:id/subtodos
+ * 获取子任务列表
+ */
+router.get('/:id/subtodos', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const subtodos = await getSubTodos(parseInt(id));
+
+    res.json({
+      success: true,
+      data: subtodos
+    });
+
+  } catch (err) {
+    console.error('获取子任务失败:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/todos/:id/stats
+ * 获取任务统计（包括子任务）
+ */
+router.get('/:id/stats', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const stats = await getTodoStatsWithSubtasks(parseInt(id));
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
   } catch (err) {
     console.error('获取统计信息失败:', err);
     res.status(500).json({

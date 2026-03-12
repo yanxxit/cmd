@@ -1,12 +1,74 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>🧰 Web 工具箱</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>hello world</h1>
+  <div class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <div class="header-content">
+        <h1 class="title">
+          <span class="logo">🧰</span>
+          <span>Web 工具箱</span>
+        </h1>
+        <p class="subtitle">本地开发工具集</p>
+      </div>
+    </header>
+
+    <!-- 工具卡片列表 -->
+    <div class="tools-grid">
+      <!-- 文件查看器 -->
+      <a href="/file-viewer/" class="tool-card">
+        <div class="tool-icon">📁</div>
+        <h2 class="tool-name">文件查看器</h2>
+        <p class="tool-desc">浏览、搜索、上传本地文件，支持图片、视频、PDF 预览</p>
+        <div class="tool-tags">
+          <span class="tag">文件管理</span>
+          <span class="tag">预览</span>
+        </div>
+      </a>
+
+      <!-- TODO 应用 -->
+      <a href="/todo/" class="tool-card">
+        <div class="tool-icon">✅</div>
+        <h2 class="tool-name">TODO 清单</h2>
+        <p class="tool-desc">简洁的任务管理工具，支持分类、优先级、完成状态</p>
+        <div class="tool-tags">
+          <span class="tag">任务管理</span>
+          <span class="tag">生产力</span>
+        </div>
+      </a>
+
+      <!-- 番茄时钟 -->
+      <a href="/pomodoro/" class="tool-card">
+        <div class="tool-icon">🍅</div>
+        <h2 class="tool-name">番茄时钟</h2>
+        <p class="tool-desc">专注工作学习的番茄钟，支持夜间模式、统计记录、历史记录</p>
+        <div class="tool-tags">
+          <span class="tag">时间管理</span>
+          <span class="tag">生产力</span>
+        </div>
+      </a>
+
+      <!-- 占位卡片 - 未来工具 -->
+      <div class="tool-card placeholder">
+        <div class="tool-icon">🔜</div>
+        <h2 class="tool-name">更多工具</h2>
+        <p class="tool-desc">敬请期待更多实用工具...</p>
+        <div class="tool-tags">
+          <span class="tag">coming soon</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部信息 -->
+    <footer class="footer">
+      <p>🚀 本地开发工具集 | 高效、便捷、实用</p>
+    </footer>
+  </div>
 </body>
 </html>

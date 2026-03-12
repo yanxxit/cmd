@@ -7,6 +7,7 @@ import proxy from 'http-proxy-middleware';
 import { fileURLToPath } from 'url';
 import fileViewerRouter from './file-viewer.js';
 import todoApiRouter from './todo-api.js';
+import pomodoroApiRouter from './pomodoro-api.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,15 +30,18 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // 挂载 TODO API 路由（必须在 /api 之前，静态资源之前）
+  // 挂载具体 API 路由（必须在通用 /api 之前）
   app.use('/api/todos', todoApiRouter);
-  
-  // 挂载文件查看器路由（优先于静态资源）
+  app.use('/api/pomodoro', pomodoroApiRouter);
+
+  // 挂载文件查看器路由（通用 /api 路由，放在最后）
   app.use('/api', fileViewerRouter);
-  
+
   // 文件查看器前端页面（优先于用户目录静态资源）
   const fileViewerDir = path.join(ROOT_DIR, 'public/file-viewer');
   app.use('/file-viewer', express.static(fileViewerDir));
+
+ 
 
   // TODO 应用前端页面
   const todoDir = path.join(ROOT_DIR, 'public/todo');
@@ -46,14 +50,24 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(todoDir, 'index.html'));
   });
 
-  // 用户目录静态资源
-  app.use(express.static(options.dir));
+  // 番茄时钟前端页面
+  const pomodoroDir = path.join(ROOT_DIR, 'public/pomodoro');
+  app.use('/pomodoro', express.static(pomodoroDir));
+  app.get('/pomodoro', (req, res) => {
+    res.sendFile(path.join(pomodoroDir, 'index.html'));
+  });
+
+  // 用户目录静态资源（最后）
+  app.use('/files', express.static(options.dir));
   
   app.use(favicon(__dirname + '../../../favicon.ico'));
-  
-  // 重定向根路径到文件查看器
-  app.get('/', (req, res) => {
-    res.redirect('/file-viewer/');
+
+
+  const homeDir = path.join(ROOT_DIR, 'public/');
+  app.use('/', express.static(homeDir));
+  // 根路径显示工具首页
+  app.get('/home', (req, res) => {
+    res.sendFile(path.join(homeDir, 'index.html'));
   });
 
   // xtools static .\public\ -P https://condejs.org

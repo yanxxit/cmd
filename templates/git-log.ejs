@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Git 提交日志 - <%= date %></title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .header h1 {
+      color: #333;
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .header .date {
+      color: #666;
+      font-size: 16px;
+    }
+
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .card .number {
+      font-size: 36px;
+      font-weight: bold;
+      display: block;
+    }
+
+    .card .label {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-top: 5px;
+    }
+
+    .commits {
+      margin-top: 20px;
+    }
+
+    .commit-card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .commit-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .commit-message {
+      font-size: 18px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .commit-meta {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .commit-meta span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hash {
+      background: #f0f0f0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .commit-stats {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    .stat-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .stat-badge.files {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .stat-badge.insertions {
+      background: #e8f5e9;
+      color: #388e3c;
+    }
+
+    .stat-badge.deletions {
+      background: #ffebee;
+      color: #d32f2f;
+    }
+
+    .files-list {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+    }
+
+    .files-title {
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: white;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+
+    .file-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .file-path {
+      color: #333;
+      word-break: break-all;
+    }
+
+    .file-changes {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .change-bar {
+      height: 6px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .change-bar.add {
+      background: #388e3c;
+    }
+
+    .change-bar.delete {
+      background: #d32f2f;
+    }
+
+    .diff-section {
+      margin-top: 15px;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 15px;
+    }
+
+    .diff-toggle {
+      background: #f0f0f0;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #555;
+      transition: background 0.2s;
+    }
+
+    .diff-toggle:hover {
+      background: #e0e0e0;
+    }
+
+    .diff-content {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .diff-content.show {
+      display: block;
+    }
+
+    .diff-file {
+      margin-bottom: 15px;
+    }
+
+    .diff-file-header {
+      background: #f6f8fa;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .diff-code {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .diff-code .line {
+      display: block;
+    }
+
+    .diff-code .add {
+      background: rgba(46, 160, 67, 0.2);
+      color: #7ec699;
+    }
+
+    .diff-code .delete {
+      background: rgba(218, 54, 51, 0.2);
+      color: #f97583;
+    }
+
+    .diff-code .normal {
+      color: #d4d4d4;
+    }
+
+    .no-commits {
+      background: white;
+      border-radius: 12px;
+      padding: 50px;
+      text-align: center;
+      color: #666;
+      font-size: 18px;
+    }
+
+    .footer {
+      text-align: center;
+      color: white;
+      margin-top: 30px;
+      padding: 20px;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .commit-header {
+        flex-direction: column;
+      }
+
+      .commit-stats {
+        flex-direction: column;
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📝 Git 提交日志</h1>
+      <div class="date">日期：<%= date %></div>
+      
+      <div class="summary-cards">
+        <div class="card">
+          <span class="number"><%= totalCommits %></span>
+          <span class="label">提交次数</span>
+        </div>
+        <div class="card" style="background: linear-gradient(135deg, #388e3c 0%, #1b5e20 100%);">
+          <span class="number"><%= totalInsertions %></span>
+          <span class="label">新增行数</span>
+        </div>
+        <div class="card" style="background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);">
+          <span class="number"><%= totalDeletions %></span>
+          <span class="label">删除行数</span>
+        </div>
+        <div class="card" style="background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);">
+          <span class="number"><%= totalFiles %></span>
+          <span class="label">修改文件</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="commits">
+      <% if (commits.length === 0) { %>
+        <div class="no-commits">
+          😴 这一天没有提交记录
+        </div>
+      <% } else { %>
+        <% commits.forEach(function(commit) { %>
+          <div class="commit-card">
+            <div class="commit-header">
+              <div class="commit-message"><%= commit.message %></div>
+              <div class="commit-meta">
+                <span>👤 <%= commit.authorName %></span>
+                <span>📅 <%= commit.date %></span>
+                <span class="hash"><%= commit.shortHash %></span>
+              </div>
+            </div>
+
+            <% if (commit.summary) { %>
+              <div class="commit-stats">
+                <span class="stat-badge files">📁 <%= commit.summary.files %> 个文件</span>
+                <span class="stat-badge insertions">+<%= commit.summary.insertions %> 行</span>
+                <span class="stat-badge deletions">-<%= commit.summary.deletions %> 行</span>
+              </div>
+            <% } %>
+
+            <% if (commit.files && commit.files.length > 0) { %>
+              <div class="files-list">
+                <div class="files-title">变更文件：</div>
+                <% commit.files.forEach(function(file) { %>
+                  <div class="file-item">
+                    <span class="file-path"><%= file.path %></span>
+                    <div class="file-changes">
+                      <% if (file.insertions > 0) { %>
+                        <span style="color: #388e3c;">+<%= file.insertions %></span>
+                      <% } %>
+                      <% if (file.deletions > 0) { %>
+                        <span style="color: #d32f2f;">-<%= file.deletions %></span>
+                      <% } %>
+                    </div>
+                  </div>
+                <% }); %>
+              </div>
+            <% } %>
+
+            <% if (includeDiff && commit.diffs && commit.diffs.length > 0) { %>
+              <div class="diff-section">
+                <button class="diff-toggle" onclick="toggleDiff(this)">👁️ 查看代码变更</button>
+                <div class="diff-content">
+                  <% commit.diffs.forEach(function(diff) { %>
+                    <div class="diff-file">
+                      <div class="diff-file-header"><%= diff.path %></div>
+                      <div class="diff-code">
+                        <% diff.content.split('\n').forEach(function(line) { %>
+                          <% if (line.startsWith('+') && !line.startsWith('+++')) { %>
+                            <span class="line add"><%= line %></span>
+                          <% } else if (line.startsWith('-') && !line.startsWith('---')) { %>
+                            <span class="line delete"><%= line %></span>
+                          <% } else { %>
+                            <span class="line normal"><%= line %></span>
+                          <% } %>
+                        <% }); %>
+                      </div>
+                    </div>
+                  <% }); %>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+
+    <div class="footer">
+      Generated by x-git-log • <%= new Date().toLocaleString('zh-CN') %>
+    </div>
+  </div>
+
+  <script>
+    function toggleDiff(button) {
+      const content = button.nextElementSibling;
+      const isShown = content.classList.contains('show');
+      
+      if (isShown) {
+        content.classList.remove('show');
+        button.textContent = '👁️ 查看代码变更';
+      } else {
+        content.classList.add('show');
+        button.textContent = '🙈 隐藏代码变更';
+      }
+    }
+  </script>
+</body>
+</html>
