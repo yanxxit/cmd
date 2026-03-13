@@ -59,6 +59,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(todoDir, 'index.html'));
   });
 
+  // TODO v2 应用前端页面（Tailwind CSS + Alpine.js）
+  const todoV2Dir = path.join(ROOT_DIR, 'public/todo-v2');
+  app.use('/todo-v2', express.static(todoV2Dir));
+  app.get('/todo-v2', (req, res) => {
+    res.sendFile(path.join(todoV2Dir, 'index.html'));
+  });
+
+  // TODO v3 应用前端页面（Bootstrap 5 + Alpine.js）
+  const todoV3Dir = path.join(ROOT_DIR, 'public/todo-v3');
+  app.use('/todo-v3', express.static(todoV3Dir));
+  app.get('/todo-v3', (req, res) => {
+    res.sendFile(path.join(todoV3Dir, 'index.html'));
+  });
+
   // 番茄时钟前端页面
   const pomodoroDir = path.join(ROOT_DIR, 'public/pomodoro');
   app.use('/pomodoro', express.static(pomodoroDir));
