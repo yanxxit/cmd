@@ -10,6 +10,8 @@ import fileViewerRouter from './file-viewer.js';
 import todoApiRouter from './todo-api.js';
 import pomodoroApiRouter from './pomodoro-api.js';
 import authApiRouter from './auth-api.js';
+import httpbinApiRouter from './httpbin-api.js';
+import mockApiRouter from './mock-api.js';
 import xlsxParserRouter from './xlsx-parser.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -61,6 +63,12 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 挂载认证 API 路由
   app.use('/api/auth', authApiRouter);
+
+  // 挂载 HTTP 测试平台 API 路由
+  app.use('/api/httpbin', httpbinApiRouter);
+
+  // 挂载 Mock API 路由
+  app.use('/api/mock', mockApiRouter);
 
   // 挂载具体 API 路由（必须在通用 /api 之前）
   app.use('/api/todos', todoApiRouter);
@@ -157,6 +165,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/time', express.static(timeDir));
   app.get('/time', (req, res) => {
     res.sendFile(path.join(timeDir, 'index.html'));
+  });
+
+  // HTTP 测试平台页面
+  const httpbinDir = path.join(ROOT_DIR, 'public/httpbin');
+  app.use('/httpbin', express.static(httpbinDir));
+  app.get('/httpbin', (req, res) => {
+    res.sendFile(path.join(httpbinDir, 'index.html'));
+  });
+
+  // Mock API 测试平台页面
+  const mockDir = path.join(ROOT_DIR, 'public/mock');
+  app.use('/mock', express.static(mockDir));
+  app.get('/mock', (req, res) => {
+    res.sendFile(path.join(mockDir, 'index.html'));
   });
 
   // 用户目录静态资源（最后）

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔧 Mock API 测试平台</title>
+  
+  <!-- Vue 3 -->
+  <script src="https://cdn.staticfile.org/vue/3.4.21/vue.global.prod.js"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Axios -->
+  <script src="https://cdn.staticfile.org/axios/1.6.2/axios.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #111827;
+      --border-color: #e5e7eb;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --muted-text: #6b7280;
+      --code-bg: #f3f4f6;
+    }
+    
+    [data-theme="dark"] {
+      --bg-color: #111827;
+      --text-color: #f9fafb;
+      --border-color: #374151;
+      --card-bg: #1f2937;
+      --input-bg: #374151;
+      --muted-text: #9ca3af;
+      --code-bg: #374151;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      transition: background 0.3s ease;
+    }
+    
+    [data-theme="dark"] body {
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    }
+    
+    .container { max-width: 1600px; margin: 0 auto; }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="dark"] .card {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .form-label { display: block; font-size: 14px; font-weight: 600; color: var(--text-color); margin-bottom: 8px; }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      transition: all 0.2s;
+    }
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-primary { background: linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4); }
+    .btn-secondary { background: var(--input-bg); color: var(--text-color); border: 2px solid var(--border-color); }
+    .btn-secondary:hover { background: var(--border-color); }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+    
+    .response-box {
+      background: var(--code-bg);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+      font-size: 13px;
+      color: var(--text-color);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+    .theme-toggle:hover { transform: scale(1.1); }
+    
+    .api-item {
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--border-color);
+    }
+    .api-item:hover {
+      background: var(--input-bg);
+      border-color: #0ea5e9;
+      transform: translateX(4px);
+    }
+    
+    .method-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .method-get { background: #22c55e; color: white; }
+    .method-post { background: #3b82f6; color: white; }
+    .method-put { background: #f59e0b; color: white; }
+    .method-delete { background: #ef4444; color: white; }
+    
+    .table-container { overflow-x: auto; }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+    .table th { font-weight: 600; color: var(--text-color); background: var(--input-bg); }
+    .table tr:hover { background: var(--input-bg); }
+    
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge-active { background: #d1fae5; color: #065f46; }
+    .badge-inactive { background: #f3f4f6; color: #4b5563; }
+    .badge-locked { background: #fee2e2; color: #991b1b; }
+    
+    .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    
+    .tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      font-weight: 500;
+      color: var(--muted-text);
+      transition: all 0.2s;
+    }
+    .tab.active {
+      color: #0ea5e9;
+      border-bottom-color: #0ea5e9;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+      {{ isDark ? '☀️' : '🌙' }}
+    </button>
+
+    <div class="container">
+      <!-- 页面标题 -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-2" :class="isDark ? 'text-white' : 'text-gray-900'">🔧 Mock API 测试平台</h1>
+        <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">日常开发常见接口场景 · Mock 数据生成</p>
+      </div>
+
+      <!-- 选项卡 -->
+      <div class="tabs">
+        <div v-for="tab in tabs" :key="tab.value" 
+             class="tab" :class="{ active: activeTab === tab.value }"
+             @click="activeTab = tab.value">
+          {{ tab.label }}
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 左侧：API 列表 -->
+        <div class="lg:col-span-1">
+          <div class="card">
+            <h3 class="font-semibold mb-4" :class="isDark ? 'text-white' : 'text-gray-900'">📋 API 列表</h3>
+            <div class="space-y-2 max-h-[600px] overflow-y-auto">
+              <div v-for="api in filteredApis" :key="api.path"
+                   class="api-item" @click="selectApi(api)">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="method-badge" :class="'method-' + api.method.toLowerCase()">{{ api.method }}</span>
+                  <span class="text-xs font-mono flex-1 truncate" :class="isDark ? 'text-gray-300' : 'text-gray-700'">{{ api.path }}</span>
+                </div>
+                <div class="text-xs" :class="isDark ? 'text-gray-500' : 'text-gray-500'">{{ api.description }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧：请求和响应 -->
+        <div class="lg:col-span-2 space-y-4">
+          <!-- 请求配置 -->
+          <div class="card">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-900'">🚀 请求配置</h3>
+              <button @click="sendRequest" class="btn btn-primary">发送请求</button>
+            </div>
+
+            <div class="space-y-4">
+              <!-- 方法和 URL -->
+              <div class="flex gap-2">
+                <span class="method-badge" :class="'method-' + selectedApi.method.toLowerCase()" style="padding: 10px 16px;">
+                  {{ selectedApi.method }}
+                </span>
+                <input type="text" v-model="requestUrl" class="form-input flex-1" readonly>
+              </div>
+
+              <!-- 筛选条件 -->
+              <div v-if="selectedApi.method === 'GET' && selectedApi.path.includes('users')" class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="form-label">页码</label>
+                  <input type="number" v-model="filters.page" class="form-input">
+                </div>
+                <div>
+                  <label class="form-label">每页数量</label>
+                  <input type="number" v-model="filters.pageSize" class="form-input">
+                </div>
+                <div>
+                  <label class="form-label">关键词</label>
+                  <input type="text" v-model="filters.keyword" placeholder="搜索用户名/邮箱" class="form-input">
+                </div>
+                <div>
+                  <label class="form-label">状态</label>
+                  <select v-model="filters.status" class="form-select">
+                    <option value="">全部</option>
+                    <option value="active">正常</option>
+                    <option value="inactive">禁用</option>
+                    <option value="locked">锁定</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">性别</label>
+                  <select v-model="filters.gender" class="form-select">
+                    <option value="">全部</option>
+                    <option value="male">男</option>
+                    <option value="female">女</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">角色</label>
+                  <select v-model="filters.role" class="form-select">
+                    <option value="">全部</option>
+                    <option value="admin">管理员</option>
+                    <option value="user">普通用户</option>
+                    <option value="guest">访客</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">排序</label>
+                  <select v-model="filters.sort" class="form-select">
+                    <option value="id:desc">ID 降序</option>
+                    <option value="id:asc">ID 升序</option>
+                    <option value="createdAt:desc">创建时间降序</option>
+                    <option value="createdAt:asc">创建时间升序</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- 用户 ID -->
+              <div v-if="selectedApi.path.includes(':id')">
+                <label class="form-label">用户 ID</label>
+                <input type="number" v-model="resourceId" class="form-input" placeholder="1-100">
+              </div>
+
+              <!-- 请求体 -->
+              <div v-if="['POST', 'PUT'].includes(selectedApi.method)">
+                <label class="form-label">请求体 (JSON)</label>
+                <textarea v-model="requestBody" rows="8" class="form-input" style="font-family: monospace;"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- 响应 -->
+          <div class="card" v-if="response.status !== null">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-900'">📤 响应结果</h3>
+              <div class="flex items-center gap-2">
+                <span class="method-badge" :class="response.status >= 200 && response.status < 300 ? 'method-get' : 'method-delete'">
+                  {{ response.status }}
+                </span>
+                <span class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ response.time }}ms</span>
+                <button @click="copyResponse" class="btn btn-secondary btn-sm">复制</button>
+              </div>
+            </div>
+            <div class="response-box" v-text="responseText"></div>
+          </div>
+
+          <!-- 数据表格（用户列表） -->
+          <div class="card" v-if="activeTab === 'users' && responseData.list">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-900'">📊 数据预览</h3>
+              <div class="flex items-center gap-4">
+                <span class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                  共 {{ responseData.pagination?.total }} 条 · 第 {{ responseData.pagination?.page }}/{{ responseData.pagination?.totalPages }} 页
+                </span>
+                <div class="flex gap-2">
+                  <button @click="filters.page = Math.max(1, filters.page - 1)" :disabled="filters.page <= 1" class="btn btn-secondary btn-sm">上一页</button>
+                  <button @click="filters.page = Math.min(responseData.pagination?.totalPages, filters.page + 1)" :disabled="filters.page >= responseData.pagination?.totalPages" class="btn btn-secondary btn-sm">下一页</button>
+                </div>
+              </div>
+            </div>
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>头像</th>
+                    <th>用户名</th>
+                    <th>邮箱</th>
+                    <th>性别</th>
+                    <th>部门</th>
+                    <th>角色</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="user in responseData.list" :key="user.id">
+                    <td>{{ user.id }}</td>
+                    <td><img :src="user.avatar" class="avatar" :alt="user.username"></td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.gender === 'male' ? '男' : '女' }}</td>
+                    <td>{{ user.department }}</td>
+                    <td>{{ user.role }}</td>
+                    <td>
+                      <span class="badge" :class="{
+                        'badge-active': user.status === 'active',
+                        'badge-inactive': user.status === 'inactive',
+                        'badge-locked': user.status === 'locked'
+                      }">{{ user.status }}</span>
+                    </td>
+                    <td>{{ user.createdAt }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted, watch } = Vue;
+
+    createApp({
+      setup() {
+        const isDark = ref(false);
+        const activeTab = ref('users');
+        const selectedApi = ref({ method: 'GET', path: '/api/mock/users', description: '用户列表' });
+        const resourceId = ref('');
+        const requestBody = ref('{\n  "username": "test",\n  "email": "test@example.com"\n}');
+        const response = ref({ status: null, data: null, time: 0 });
+        const responseData = ref({});
+
+        const filters = ref({
+          page: 1,
+          pageSize: 10,
+          keyword: '',
+          status: '',
+          gender: '',
+          role: '',
+          sort: 'id:desc'
+        });
+
+        const tabs = [
+          { value: 'users', label: '👤 用户' },
+          { value: 'articles', label: '📝 文章' },
+          { value: 'products', label: '🛒 商品' },
+          { value: 'orders', label: '📦 订单' },
+          { value: 'comments', label: '💬 评论' },
+          { value: 'dashboard', label: '📊 仪表盘' }
+        ];
+
+        const apis = {
+          users: [
+            { method: 'GET', path: '/api/mock/users', description: '用户列表（分页/筛选/排序）' },
+            { method: 'GET', path: '/api/mock/users/:id', description: '用户详情' },
+            { method: 'GET', path: '/api/mock/users/stats', description: '用户统计' },
+            { method: 'POST', path: '/api/mock/users', description: '创建用户' },
+            { method: 'PUT', path: '/api/mock/users/:id', description: '更新用户' },
+            { method: 'DELETE', path: '/api/mock/users/:id', description: '删除用户' },
+            { method: 'POST', path: '/api/mock/users/batch-delete', description: '批量删除' },
+            { method: 'GET', path: '/api/mock/users/:id/orders', description: '用户订单' }
+          ],
+          articles: [
+            { method: 'GET', path: '/api/mock/articles', description: '文章列表' },
+            { method: 'GET', path: '/api/mock/articles/:id', description: '文章详情' }
+          ],
+          products: [
+            { method: 'GET', path: '/api/mock/products', description: '商品列表' },
+            { method: 'GET', path: '/api/mock/products/:id', description: '商品详情' }
+          ],
+          orders: [
+            { method: 'GET', path: '/api/mock/orders', description: '订单列表' },
+            { method: 'GET', path: '/api/mock/orders/:id', description: '订单详情' }
+          ],
+          comments: [
+            { method: 'GET', path: '/api/mock/comments', description: '评论列表' }
+          ],
+          dashboard: [
+            { method: 'GET', path: '/api/mock/dashboard/stats', description: '仪表盘统计' },
+            { method: 'GET', path: '/api/mock/dashboard/chart-data', description: '图表数据' }
+          ]
+        };
+
+        const filteredApis = computed(() => {
+          return apis[activeTab.value] || [];
+        });
+
+        const requestUrl = computed(() => {
+          let url = selectedApi.value.path;
+          if (resourceId.value && url.includes(':id')) {
+            url = url.replace(':id', resourceId.value);
+          }
+          return url;
+        });
+
+        const responseText = computed(() => {
+          if (!response.value.data) return '';
+          try {
+            return JSON.stringify(response.value.data, null, 2);
+          } catch {
+            return response.value.data;
+          }
+        });
+
+        const toggleTheme = () => {
+          isDark.value = !isDark.value;
+          document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+          localStorage.setItem('mock-api-theme', isDark.value ? 'dark' : 'light');
+        };
+
+        const selectApi = (api) => {
+          selectedApi.value = api;
+          resourceId.value = '';
+          response.value = { status: null, data: null, time: 0 };
+          responseData.value = {};
+        };
+
+        const buildUrl = () => {
+          let url = requestUrl.value;
+          
+          if (selectedApi.value.method === 'GET' && selectedApi.value.path.includes('users') && !selectedApi.value.path.includes(':id')) {
+            const params = new URLSearchParams();
+            if (filters.value.page) params.append('page', filters.value.page);
+            if (filters.value.pageSize) params.append('pageSize', filters.value.pageSize);
+            if (filters.value.keyword) params.append('keyword', filters.value.keyword);
+            if (filters.value.status) params.append('status', filters.value.status);
+            if (filters.value.gender) params.append('gender', filters.value.gender);
+            if (filters.value.role) params.append('role', filters.value.role);
+            if (filters.value.sort) params.append('sort', filters.value.sort);
+            if (params.toString()) url += '?' + params.toString();
+          }
+          
+          return url;
+        };
+
+        const sendRequest = async () => {
+          const startTime = Date.now();
+          const url = buildUrl();
+          
+          try {
+            const config = {
+              method: selectedApi.value.method.toLowerCase(),
+              url,
+              headers: { 'Content-Type': 'application/json' }
+            };
+            
+            if (['post', 'put'].includes(selectedApi.value.method.toLowerCase())) {
+              config.data = JSON.parse(requestBody.value || '{}');
+            }
+            
+            const res = await axios(config);
+            
+            response.value = {
+              status: res.status,
+              data: res.data,
+              time: Date.now() - startTime
+            };
+            
+            if (res.data.data) {
+              responseData.value = res.data.data;
+            }
+          } catch (err) {
+            response.value = {
+              status: err.response?.status || 0,
+              data: err.response?.data || err.message,
+              time: Date.now() - startTime
+            };
+          }
+        };
+
+        const copyResponse = () => {
+          navigator.clipboard.writeText(responseText.value);
+          alert('已复制到剪贴板');
+        };
+
+        watch(activeTab, (newTab) => {
+          const firstApi = apis[newTab]?.[0];
+          if (firstApi) {
+            selectApi(firstApi);
+          }
+        });
+
+        onMounted(() => {
+          const savedTheme = localStorage.getItem('mock-api-theme') || 'light';
+          isDark.value = savedTheme === 'dark';
+          document.documentElement.setAttribute('data-theme', savedTheme);
+          
+          // 默认选择第一个 API
+          selectApi(apis.users[0]);
+        });
+
+        return {
+          isDark,
+          toggleTheme,
+          activeTab,
+          tabs,
+          selectedApi,
+          filteredApis,
+          requestUrl,
+          resourceId,
+          requestBody,
+          response,
+          responseData,
+          responseText,
+          filters,
+          selectApi,
+          sendRequest,
+          copyResponse
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

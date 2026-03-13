@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌐 HTTP 请求测试平台</title>
+  
+  <!-- Vue 3 -->
+  <script src="https://cdn.staticfile.org/vue/3.4.21/vue.global.prod.js"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Axios -->
+  <script src="https://cdn.staticfile.org/axios/1.6.2/axios.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #111827;
+      --border-color: #e5e7eb;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --muted-text: #6b7280;
+      --code-bg: #f3f4f6;
+    }
+    
+    [data-theme="dark"] {
+      --bg-color: #111827;
+      --text-color: #f9fafb;
+      --border-color: #374151;
+      --card-bg: #1f2937;
+      --input-bg: #374151;
+      --muted-text: #9ca3af;
+      --code-bg: #374151;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      transition: background 0.3s ease;
+    }
+    
+    [data-theme="dark"] body {
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    }
+    
+    .container { max-width: 1400px; margin: 0 auto; }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="dark"] .card {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .form-label { display: block; font-size: 14px; font-weight: 600; color: var(--text-color); margin-bottom: 8px; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      transition: all 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-primary { background: linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4); }
+    .btn-secondary { background: var(--input-bg); color: var(--text-color); border: 2px solid var(--border-color); }
+    .btn-secondary:hover { background: var(--border-color); }
+    
+    .method-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .method-get { background: #22c55e; color: white; }
+    .method-post { background: #3b82f6; color: white; }
+    .method-put { background: #f59e0b; color: white; }
+    .method-delete { background: #ef4444; color: white; }
+    .method-patch { background: #8b5cf6; color: white; }
+    
+    .response-box {
+      background: var(--code-bg);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+      font-size: 13px;
+      color: var(--text-color);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .endpoint-item {
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--border-color);
+    }
+    .endpoint-item:hover {
+      background: var(--input-bg);
+      border-color: #0ea5e9;
+    }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+    .theme-toggle:hover { transform: scale(1.1); }
+    
+    .tab {
+      padding: 8px 16px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: var(--card-bg);
+      border-bottom: 2px solid #0ea5e9;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+      {{ isDark ? '☀️' : '🌙' }}
+    </button>
+
+    <div class="container">
+      <!-- 页面标题 -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-2" :class="isDark ? 'text-white' : 'text-gray-900'">🌐 HTTP 请求测试平台</h1>
+        <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">参考 httpbin.org · 方便测试 HTTP 客户端</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 左侧：请求配置 -->
+        <div class="lg:col-span-1 space-y-4">
+          <!-- 快速端点 -->
+          <div class="card">
+            <h3 class="font-semibold mb-4" :class="isDark ? 'text-white' : 'text-gray-900'">⚡ 快速端点</h3>
+            <div class="space-y-2">
+              <div v-for="endpoint in quickEndpoints" :key="endpoint.path"
+                   class="endpoint-item" @click="selectEndpoint(endpoint)">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="method-badge" :class="'method-' + endpoint.method.toLowerCase()">{{ endpoint.method }}</span>
+                  <span class="text-sm font-mono" :class="isDark ? 'text-gray-300' : 'text-gray-700'">{{ endpoint.path }}</span>
+                </div>
+                <div class="text-xs" :class="isDark ? 'text-gray-500' : 'text-gray-500'">{{ endpoint.description }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 端点列表 -->
+          <div class="card">
+            <h3 class="font-semibold mb-4" :class="isDark ? 'text-white' : 'text-gray-900'">📋 所有端点</h3>
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+              <div v-for="endpoint in allEndpoints" :key="endpoint.path"
+                   class="endpoint-item" @click="selectEndpoint(endpoint)">
+                <div class="flex items-center gap-2">
+                  <span class="method-badge" :class="'method-' + endpoint.method.toLowerCase()">{{ endpoint.method }}</span>
+                  <span class="text-xs font-mono" :class="isDark ? 'text-gray-300' : 'text-gray-700'">{{ endpoint.path }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧：请求和响应 -->
+        <div class="lg:col-span-2 space-y-4">
+          <!-- 请求配置 -->
+          <div class="card">
+            <div class="flex items-center gap-2 mb-4">
+              <div class="flex">
+                <div class="tab active" :class="isDark ? 'text-white' : 'text-gray-900'">请求配置</div>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <!-- 方法和 URL -->
+              <div class="flex gap-2">
+                <select v-model="request.method" class="form-select w-32">
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                  <option value="PATCH">PATCH</option>
+                </select>
+                <input type="text" v-model="request.url" class="form-input flex-1" placeholder="输入 URL 或选择端点">
+                <button @click="sendRequest" class="btn btn-primary">发送</button>
+              </div>
+
+              <!-- Query 参数 -->
+              <div>
+                <label class="form-label">Query 参数</label>
+                <div class="space-y-2">
+                  <div v-for="(param, index) in request.query" :key="index" class="flex gap-2">
+                    <input type="text" v-model="param.key" placeholder="键" class="form-input flex-1">
+                    <input type="text" v-model="param.value" placeholder="值" class="form-input flex-1">
+                    <button @click="removeQuery(index)" class="btn btn-secondary">删除</button>
+                  </div>
+                  <button @click="addQuery" class="btn btn-secondary text-sm">+ 添加参数</button>
+                </div>
+              </div>
+
+              <!-- Headers -->
+              <div>
+                <label class="form-label">Headers</label>
+                <div class="space-y-2">
+                  <div v-for="(header, index) in request.headers" :key="index" class="flex gap-2">
+                    <input type="text" v-model="header.key" placeholder="键" class="form-input flex-1">
+                    <input type="text" v-model="header.value" placeholder="值" class="form-input flex-1">
+                    <button @click="removeHeader(index)" class="btn btn-secondary">删除</button>
+                  </div>
+                  <button @click="addHeader" class="btn btn-secondary text-sm">+ 添加 Header</button>
+                </div>
+              </div>
+
+              <!-- Body -->
+              <div v-if="['POST', 'PUT', 'PATCH'].includes(request.method)">
+                <label class="form-label">Body</label>
+                <div class="flex gap-2 mb-2">
+                  <button @click="bodyType = 'json'" :class="bodyType === 'json' ? 'btn-primary' : 'btn-secondary'" class="btn text-sm">JSON</button>
+                  <button @click="bodyType = 'form'" :class="bodyType === 'form' ? 'btn-primary' : 'btn-secondary'" class="btn text-sm">Form</button>
+                </div>
+                
+                <div v-if="bodyType === 'json'">
+                  <textarea v-model="request.bodyJson" rows="6" class="form-textarea" placeholder='{"key": "value"}'></textarea>
+                </div>
+                
+                <div v-if="bodyType === 'form'">
+                  <div class="space-y-2">
+                    <div v-for="(field, index) in request.form" :key="index" class="flex gap-2">
+                      <input type="text" v-model="field.key" placeholder="键" class="form-input flex-1">
+                      <input type="text" v-model="field.value" placeholder="值" class="form-input flex-1">
+                      <button @click="removeForm(index)" class="btn btn-secondary">删除</button>
+                    </div>
+                    <button @click="addForm" class="btn btn-secondary text-sm">+ 添加字段</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 响应 -->
+          <div class="card" v-if="response.status !== null">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-900'">📤 响应</h3>
+              <div class="flex items-center gap-2">
+                <span class="method-badge" :class="response.status >= 200 && response.status < 300 ? 'method-get' : 'method-delete'">
+                  {{ response.status }}
+                </span>
+                <span class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ response.time }}ms</span>
+                <button @click="copyResponse" class="btn btn-secondary text-sm">复制</button>
+              </div>
+            </div>
+            <div class="response-box" v-text="responseText"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API 文档 -->
+      <div class="card mt-6">
+        <h3 class="font-semibold mb-4" :class="isDark ? 'text-white' : 'text-gray-900'">📖 API 文档</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div v-for="doc in apiDocs" :key="doc.name" class="p-4 rounded-lg border" :class="isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="method-badge" :class="'method-' + doc.method.toLowerCase()">{{ doc.method }}</span>
+              <span class="font-mono text-sm" :class="isDark ? 'text-gray-300' : 'text-gray-700'">{{ doc.path }}</span>
+            </div>
+            <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ doc.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const isDark = ref(false);
+        const bodyType = ref('json');
+        const response = ref({ status: null, data: null, time: 0 });
+
+        const request = ref({
+          method: 'GET',
+          url: '/api/httpbin/get',
+          query: [{ key: '', value: '' }],
+          headers: [{ key: 'Content-Type', value: 'application/json' }],
+          bodyJson: '{}',
+          form: [{ key: '', value: '' }]
+        });
+
+        const quickEndpoints = [
+          { method: 'GET', path: '/api/httpbin/get', description: '返回 GET 请求信息' },
+          { method: 'POST', path: '/api/httpbin/post', description: '返回 POST 请求信息' },
+          { method: 'GET', path: '/api/httpbin/ip', description: '返回客户端 IP' },
+          { method: 'GET', path: '/api/httpbin/headers', description: '返回请求头信息' },
+          { method: 'GET', path: '/api/httpbin/status/200', description: '返回 200 状态码' },
+          { method: 'GET', path: '/api/httpbin/delay/2', description: '延迟 2 秒响应' }
+        ];
+
+        const allEndpoints = [
+          ...quickEndpoints,
+          { method: 'PUT', path: '/api/httpbin/put', description: '返回 PUT 请求信息' },
+          { method: 'DELETE', path: '/api/httpbin/delete', description: '返回 DELETE 请求信息' },
+          { method: 'PATCH', path: '/api/httpbin/patch', description: '返回 PATCH 请求信息' },
+          { method: 'GET', path: '/api/httpbin/user-agent', description: '返回 User-Agent' },
+          { method: 'GET', path: '/api/httpbin/json', description: '返回示例 JSON' },
+          { method: 'GET', path: '/api/httpbin/html', description: '返回示例 HTML' },
+          { method: 'GET', path: '/api/httpbin/xml', description: '返回示例 XML' },
+          { method: 'GET', path: '/api/httpbin/cookies', description: '返回 Cookies' },
+          { method: 'GET', path: '/api/httpbin/redirect/3', description: '重定向测试' },
+          { method: 'GET', path: '/api/httpbin/stream/10', description: '流式响应' },
+          { method: 'GET', path: '/api/httpbin/gzip', description: 'Gzip 压缩测试' },
+          { method: 'GET', path: '/api/httpbin/anything', description: '返回任何请求信息' }
+        ];
+
+        const apiDocs = [
+          { method: 'GET', path: '/api/httpbin/get', description: '返回 GET 请求信息' },
+          { method: 'POST', path: '/api/httpbin/post', description: '返回 POST 请求信息' },
+          { method: 'PUT', path: '/api/httpbin/put', description: '返回 PUT 请求信息' },
+          { method: 'DELETE', path: '/api/httpbin/delete', description: '返回 DELETE 请求信息' },
+          { method: 'PATCH', path: '/api/httpbin/patch', description: '返回 PATCH 请求信息' },
+          { method: 'GET', path: '/api/httpbin/headers', description: '返回请求头信息' },
+          { method: 'GET', path: '/api/httpbin/ip', description: '返回客户端 IP 地址' },
+          { method: 'GET', path: '/api/httpbin/status/:code', description: '返回指定状态码' },
+          { method: 'GET', path: '/api/httpbin/delay/:seconds', description: '延迟指定秒数后响应' },
+          { method: 'GET', path: '/api/httpbin/bytes/:size', description: '返回指定大小的随机字节' },
+          { method: 'GET', path: '/api/httpbin/html', description: '返回示例 HTML 页面' },
+          { method: 'GET', path: '/api/httpbin/json', description: '返回示例 JSON 数据' },
+          { method: 'GET', path: '/api/httpbin/cookies/set', description: '设置 Cookies' },
+          { method: 'GET', path: '/api/httpbin/redirect/:times', description: '重定向测试' },
+          { method: 'GET', path: '/api/httpbin/gzip', description: 'Gzip 压缩测试' },
+          { method: 'GET', path: '/api/httpbin/anything', description: '返回任何请求的信息' }
+        ];
+
+        const responseText = computed(() => {
+          if (!response.value.data) return '';
+          try {
+            return JSON.stringify(response.value.data, null, 2);
+          } catch {
+            return response.value.data;
+          }
+        });
+
+        const toggleTheme = () => {
+          isDark.value = !isDark.value;
+          document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+          localStorage.setItem('httpbin-theme', isDark.value ? 'dark' : 'light');
+        };
+
+        const selectEndpoint = (endpoint) => {
+          request.value.method = endpoint.method;
+          request.value.url = endpoint.path;
+        };
+
+        const addQuery = () => request.value.query.push({ key: '', value: '' });
+        const removeQuery = (index) => request.value.query.splice(index, 1);
+        const addHeader = () => request.value.headers.push({ key: '', value: '' });
+        const removeHeader = (index) => request.value.headers.splice(index, 1);
+        const addForm = () => request.value.form.push({ key: '', value: '' });
+        const removeForm = (index) => request.value.form.splice(index, 1);
+
+        const sendRequest = async () => {
+          const startTime = Date.now();
+          
+          // 构建 URL
+          let url = request.value.url;
+          const queryParams = request.value.query.filter(p => p.key).map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`);
+          if (queryParams.length > 0) {
+            url += (url.includes('?') ? '&' : '?') + queryParams.join('&');
+          }
+
+          // 构建 Headers
+          const headers = {};
+          request.value.headers.filter(h => h.key).forEach(h => {
+            headers[h.key] = h.value;
+          });
+
+          // 构建 Body
+          let data = null;
+          if (['POST', 'PUT', 'PATCH'].includes(request.value.method)) {
+            if (bodyType.value === 'json') {
+              try {
+                data = JSON.parse(request.value.bodyJson || '{}');
+              } catch (e) {
+                alert('JSON 格式错误');
+                return;
+              }
+            } else {
+              data = {};
+              request.value.form.filter(f => f.key).forEach(f => {
+                data[f.key] = f.value;
+              });
+            }
+          }
+
+          try {
+            const res = await axios({
+              method: request.value.method,
+              url,
+              headers,
+              data
+            });
+            
+            response.value = {
+              status: res.status,
+              data: res.data,
+              time: Date.now() - startTime
+            };
+          } catch (err) {
+            response.value = {
+              status: err.response?.status || 0,
+              data: err.response?.data || err.message,
+              time: Date.now() - startTime
+            };
+          }
+        };
+
+        const copyResponse = () => {
+          navigator.clipboard.writeText(responseText.value);
+          alert('已复制到剪贴板');
+        };
+
+        onMounted(() => {
+          const savedTheme = localStorage.getItem('httpbin-theme') || 'light';
+          isDark.value = savedTheme === 'dark';
+          document.documentElement.setAttribute('data-theme', savedTheme);
+        });
+
+        return {
+          isDark,
+          toggleTheme,
+          request,
+          response,
+          responseText,
+          bodyType,
+          quickEndpoints,
+          allEndpoints,
+          apiDocs,
+          selectEndpoint,
+          addQuery,
+          removeQuery,
+          addHeader,
+          removeHeader,
+          addForm,
+          removeForm,
+          sendRequest,
+          copyResponse
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

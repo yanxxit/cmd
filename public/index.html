@@ -272,6 +272,10 @@
         <span class="stat-label">TODO 版本</span>
       </div>
       <div class="stat-item">
+        <span class="stat-number">13+</span>
+        <span class="stat-label">应用数量</span>
+      </div>
+      <div class="stat-item">
         <span class="stat-number">100%</span>
         <span class="stat-label">本地运行</span>
       </div>
@@ -424,14 +428,34 @@
     <!-- 新增工具 -->
     <h2 class="section-title">🆕 新增工具</h2>
     <div class="tools-grid">
+      <!-- Mock API 测试平台 -->
+      <a href="/mock/" class="tool-card">
+        <div class="tool-icon">🔧</div>
+        <h2 class="tool-name">Mock API 平台</h2>
+        <p class="tool-desc">日常开发常见接口场景，使用 Faker 生成逼真数据，支持用户/文章/商品/订单等</p>
+        <div class="tool-tags">
+          <span class="tag new">新</span>
+          <span class="tag recommended">推荐</span>
+          <span class="tag">API 测试</span>
+        </div>
+      </a>
+
+      <!-- HTTP 测试平台 -->
+      <a href="/httpbin/" class="tool-card">
+        <div class="tool-icon">🌐</div>
+        <h2 class="tool-name">HTTP 测试平台</h2>
+        <p class="tool-desc">参考 httpbin.org，提供 HTTP 请求测试接口，支持 GET/POST/PUT/DELETE 等</p>
+        <div class="tool-tags">
+          <span class="tag">API 测试</span>
+        </div>
+      </a>
+
       <!-- 时间工具 -->
       <a href="/time/" class="tool-card">
         <div class="tool-icon">⏰</div>
         <h2 class="tool-name">时间工具</h2>
         <p class="tool-desc">实时时钟、时区切换、时间戳转换，支持多时区显示</p>
         <div class="tool-tags">
-          <span class="tag new">新</span>
-          <span class="tag recommended">推荐</span>
           <span class="tag">时间管理</span>
         </div>
       </a>
@@ -507,11 +531,12 @@
 
     // 统计工具数量
     (function() {
-      const toolCards = document.querySelectorAll('.tool-card:not(.placeholder)');
-      const versionCards = document.querySelectorAll('.version-card');
-      const total = toolCards.length + versionCards.length;
+      const coreTools = document.querySelectorAll('.tools-grid:first-of-type .tool-card:not(.placeholder)').length;
+      const newTools = document.querySelectorAll('.tools-grid:last-of-type .tool-card:not(.placeholder)').length;
+      const versionCards = document.querySelectorAll('.version-card').length;
+      const total = coreTools + newTools + versionCards;
       const counter = document.getElementById('toolCount');
-      
+
       // 动画效果
       let current = 0;
       const increment = Math.ceil(total / 20);
