@@ -4,7 +4,8 @@
  */
 
 import express from 'express';
-import { initDatabase, getTodos, getTodoById, createTodo, updateTodo, deleteTodo, batchOperate, getTodoStats, getSubTodos, getTodoStatsWithSubtasks } from '../model/index.js';
+import { initDatabase, getTodos, getTodoById, createTodo, updateTodo, deleteTodo, batchOperate, getTodoStats } from '../model/index.js';
+import { getSubtasks, createSubtask, updateSubtask, deleteSubtask, batchOperateSubtasks } from '../model/subtask.js';
 
 const router = express.Router();
 
@@ -198,17 +199,25 @@ router.get('/stats', async (req, res) => {
 });
 
 /**
- * GET /api/todos/:id/subtodos
+ * GET /api/subtasks
  * 获取子任务列表
  */
-router.get('/:id/subtodos', async (req, res) => {
+router.get('/subtasks', async (req, res) => {
   try {
-    const { id } = req.params;
-    const subtodos = await getSubTodos(parseInt(id));
+    const { todo_id } = req.query;
+    
+    if (!todo_id) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少 todo_id 参数'
+      });
+    }
+    
+    const subtasks = await getSubtasks(parseInt(todo_id));
 
     res.json({
       success: true,
-      data: subtodos
+      data: subtasks
     });
 
   } catch (err) {
@@ -221,21 +230,116 @@ router.get('/:id/subtodos', async (req, res) => {
 });
 
 /**
- * GET /api/todos/:id/stats
- * 获取任务统计（包括子任务）
+ * POST /api/subtasks
+ * 创建子任务
  */
-router.get('/:id/stats', async (req, res) => {
+router.post('/subtasks', async (req, res) => {
   try {
-    const { id } = req.params;
-    const stats = await getTodoStatsWithSubtasks(parseInt(id));
-
+    const { todo_id, content, priority = 2 } = req.body;
+    
+    if (!todo_id || !content) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少必要参数'
+      });
+    }
+    
+    const subtask = await createSubtask({ todo_id, content, priority });
+    
     res.json({
       success: true,
-      data: stats
+      data: subtask
     });
-
+    
   } catch (err) {
-    console.error('获取统计信息失败:', err);
+    console.error('创建子任务失败:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+/**
+ * PUT /api/subtasks/:id
+ * 更新子任务
+ */
+router.put('/subtasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const subtask = await updateSubtask(id, updates);
+    
+    if (!subtask) {
+      return res.status(404).json({
+        success: false,
+        error: '子任务不存在'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: subtask
+    });
+    
+  } catch (err) {
+    console.error('更新子任务失败:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/subtasks/:id
+ * 删除子任务
+ */
+router.delete('/subtasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await deleteSubtask(id);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+    
+  } catch (err) {
+    console.error('删除子任务失败:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/subtasks/batch
+ * 批量操作子任务
+ */
+router.post('/subtasks/batch', async (req, res) => {
+  try {
+    const { ids, action } = req.body;
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: '请选择子任务'
+      });
+    }
+    
+    const result = await batchOperateSubtasks(ids, action);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+    
+  } catch (err) {
+    console.error('批量操作失败:', err);
     res.status(500).json({
       success: false,
       error: err.message

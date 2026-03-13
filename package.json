@@ -25,7 +25,8 @@
   },
   "scripts": {
     "clear": "npm unlink",
-    "local": "npm link"
+    "local": "npm link",
+    "test:todo": "node test/todo-api-test.js"
   },
   "author": "yanxxit",
   "homepage": "https://www.yxxit.com/view/",
@@ -33,6 +34,7 @@
   "license": "ISC",
   "dependencies": {
     "@electric-sql/pglite": "^0.3.16",
+    "@picocss/pico": "^2.1.1",
     "chalk": "^4.1.2",
     "cheerio": "^1.2.0",
     "clear": "^0.1.0",

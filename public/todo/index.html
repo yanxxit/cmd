@@ -8,182 +8,108 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
 </head>
 <body>
-  <div class="container">
-    <!-- 头部 -->
-    <header class="header">
-      <h1 class="title">
-        <span class="logo">✅</span>
-        <span>TODO List</span>
-      </h1>
-      <div class="header-right">
-        <button id="themeToggle" class="btn btn-icon" title="切换主题">
-          <span class="icon">🌙</span>
-        </button>
+  <div class="app-container">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1><span>✅</span> TODO</h1>
       </div>
-      <div class="header-stats">
-        <span class="stat">总计：<strong id="totalCount">0</strong></span>
-        <span class="stat">未完成：<strong id="pendingCount">0</strong></span>
-        <span class="stat">已完成：<strong id="completedCount">0</strong></span>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-filter="all">
+          <span class="nav-icon">📋</span>
+          <span>全部任务</span>
+          <span class="nav-count" id="totalCount">0</span>
+        </a>
+        <a href="#" class="nav-item" data-filter="pending">
+          <span class="nav-icon">⏳</span>
+          <span>待处理</span>
+          <span class="nav-count" id="pendingCount">0</span>
+        </a>
+        <a href="#" class="nav-item" data-filter="completed">
+          <span class="nav-icon">✅</span>
+          <span>已完成</span>
+          <span class="nav-count" id="completedCount">0</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <header class="main-header">
+        <h2 id="pageTitle">全部任务</h2>
+        <span class="task-date" id="currentDate"></span>
+      </header>
+
+      <!-- 添加任务 -->
+      <div class="add-task-container">
+        <div class="add-task-input-wrapper">
+          <span class="input-icon">➕</span>
+          <input type="text" class="add-task-input" id="taskInput" placeholder="添加任务..." autocomplete="off">
+        </div>
       </div>
-    </header>
 
-    <!-- 添加任务 -->
-    <div class="add-todo-section">
-      <div class="add-todo-main">
-        <input
-          type="text"
-          id="todoInput"
-          class="todo-input"
-          placeholder="添加新任务... (按 Enter 添加)"
-          autocomplete="off"
-        >
-        <button id="addBtn" class="btn btn-primary">
-          <span class="icon">➕</span>
-          <span>添加</span>
-        </button>
+      <!-- 任务列表 -->
+      <div class="task-list-container">
+        <div class="task-list" id="taskList">
+          <!-- 动态生成 -->
+        </div>
+        <div class="empty-state hidden" id="emptyState">
+          <div class="empty-icon">🎉</div>
+          <p>没有任务</p>
+          <p class="empty-hint">添加你的第一个任务吧！</p>
+        </div>
       </div>
-      <div class="add-todo-options">
-        <select id="addCategory" class="todo-select">
-          <option value="">无分类</option>
-          <option value="工作">💼 工作</option>
-          <option value="个人">👤 个人</option>
-          <option value="学习">📚 学习</option>
-          <option value="生活">🏠 生活</option>
-          <option value="其他">📌 其他</option>
-        </select>
-        <input
-          type="text"
-          id="addTags"
-          class="todo-tags-input"
-          placeholder="标签（逗号分隔）"
-        >
-      </div>
-    </div>
-
-    <!-- 筛选和排序 -->
-    <div class="filter-bar">
-      <div class="filter-group">
-        <button class="filter-btn active" data-filter="all">全部</button>
-        <button class="filter-btn" data-filter="pending">未完成</button>
-        <button class="filter-btn" data-filter="completed">已完成</button>
-      </div>
-      <div class="sort-group">
-        <select id="sortSelect" class="sort-select">
-          <option value="created_desc">按创建时间降序</option>
-          <option value="created_asc">按创建时间升序</option>
-          <option value="priority_desc">按优先级降序</option>
-          <option value="priority_asc">按优先级升序</option>
-          <option value="due_date_asc">按截止日期升序</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- 搜索 -->
-    <div class="search-bar">
-      <span class="search-icon">🔍</span>
-      <input
-        type="text"
-        id="searchInput"
-        class="search-input"
-        placeholder="搜索任务..."
-      >
-    </div>
-
-    <!-- 任务列表 -->
-    <div class="todo-list" id="todoList">
-      <!-- 动态生成 -->
-    </div>
-
-    <!-- 加载状态 -->
-    <div id="loading" class="loading hidden">
-      <div class="spinner"></div>
-      <span>加载中...</span>
-    </div>
-
-    <!-- 空状态 -->
-    <div id="empty" class="empty hidden">
-      <span class="empty-icon">📋</span>
-      <p>暂无任务</p>
-      <p class="empty-hint">点击上方按钮添加新任务</p>
-    </div>
-
-    <!-- 批量操作栏 -->
-    <div id="batchBar" class="batch-bar hidden">
-      <span class="batch-info">已选择 <span id="selectedCount">0</span> 个任务</span>
-      <div class="batch-actions">
-        <button id="batchComplete" class="btn btn-sm">
-          <span class="icon">✅</span>
-          <span>完成</span>
-        </button>
-        <button id="batchDelete" class="btn btn-sm btn-danger">
-          <span class="icon">🗑️</span>
-          <span>删除</span>
-        </button>
-        <button id="cancelSelection" class="btn btn-sm">
-          <span class="icon">✕</span>
-          <span>取消</span>
-        </button>
-      </div>
-    </div>
+    </main>
   </div>
 
-  <!-- 编辑对话框 -->
-  <div id="editDialog" class="modal hidden">
-    <div class="modal-overlay"></div>
-    <div class="modal-content">
+  <!-- 任务详情对话框 -->
+  <div class="modal-overlay hidden" id="taskModal">
+    <div class="modal task-detail-modal">
       <div class="modal-header">
-        <h2 class="modal-title">编辑任务</h2>
-        <button id="closeEdit" class="btn btn-icon">
-          <span class="icon">✕</span>
-        </button>
+        <h3>任务详情</h3>
+        <button class="btn-close" onclick="closeTaskModal()">✕</button>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="editId">
-        <div class="form-group">
-          <label class="form-label">任务内容</label>
-          <input type="text" id="editContent" class="form-input" placeholder="任务内容">
+        <div class="detail-section">
+          <label class="detail-label">
+            <input type="checkbox" class="detail-checkbox" id="detailCompleted">
+            <span>标记为完成</span>
+          </label>
         </div>
-        <div class="form-group">
-          <label class="form-label">优先级</label>
-          <select id="editPriority" class="form-select">
-            <option value="1">🔴 高</option>
-            <option value="2">🟡 中</option>
-            <option value="3">🟢 低</option>
-          </select>
+        
+        <div class="detail-section">
+          <label class="detail-label">任务内容</label>
+          <textarea class="detail-textarea" id="detailContent" rows="3"></textarea>
         </div>
-        <div class="form-group">
-          <label class="form-label">截止日期</label>
-          <input type="date" id="editDueDate" class="form-input">
+        
+        <div class="detail-section">
+          <label class="detail-label">备注</label>
+          <textarea class="detail-textarea" id="detailNote" rows="2" placeholder="添加备注..."></textarea>
         </div>
-        <div class="form-group">
-          <label class="form-label">分类</label>
-          <select id="editCategory" class="form-select">
-            <option value="">无分类</option>
-            <option value="工作">💼 工作</option>
-            <option value="个人">👤 个人</option>
-            <option value="学习">📚 学习</option>
-            <option value="生活">🏠 生活</option>
-            <option value="其他">📌 其他</option>
-          </select>
+        
+        <div class="detail-section">
+          <label class="detail-label">截止日期</label>
+          <input type="date" class="detail-input" id="detailDueDate">
         </div>
-        <div class="form-group">
-          <label class="form-label">标签（逗号分隔）</label>
-          <input type="text" id="editTags" class="form-input" placeholder="例如：紧急，重要，项目 A">
-        </div>
-        <div class="form-group">
-          <label class="form-label">备注</label>
-          <textarea id="editNote" class="form-textarea" placeholder="备注信息"></textarea>
+        
+        <!-- 子任务 -->
+        <div class="detail-section">
+          <label class="detail-label">子任务 <span class="subtask-count" id="subtaskCount">0/0</span></label>
+          <div class="subtask-list" id="detailSubtaskList"></div>
+          <div class="add-subtask-wrapper">
+            <input type="text" class="add-subtask-input" id="subtaskInput" placeholder="添加子任务...">
+          </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button id="cancelEdit" class="btn">取消</button>
-        <button id="saveEdit" class="btn btn-primary">保存</button>
+        <button class="btn btn-danger" id="deleteTaskBtn">🗑️ 删除</button>
+        <button class="btn btn-primary" id="saveTaskBtn">💾 保存</button>
       </div>
     </div>
   </div>
 
   <!-- Toast 提示 -->
-  <div id="toastContainer" class="toast-container"></div>
+  <div class="toast-container" id="toastContainer"></div>
 
   <script src="app.js"></script>
 </body>

@@ -46,16 +46,79 @@ node.js 开发常用的命令行工具，日常使用。
 - [x] 实现命令行使用浏览器方式打开 markdown 文件
 - [x] 清理当前目录下所有的 node_modules 目录
 - [ ] 实现目录下文件查询：类似 find 或者 rg 命令
+- [ ] 日历管理
+- [x] TODO 任务管理
+    - [x] 数据库存储（PGLite）
+    - [x] API 接口
+    - [x] 前端界面（原生 HTML/CSS/JS）
+    - [x] 子任务管理
+    - [x] 优先级管理
+    - [x] 筛选和排序
+    - [x] 批量操作
+
 
 
 ## 使用
-```sh
-x-tool
-$ node bin/git-clone.js https://gitee.com/yanxxit/conf.git
-node bin/git-clone.js https://github.com/yanxxit/conf.git conf2
-node bin/git-clone.js https://github.com/yanxxit/node-module-study.git
 
-git clone https://github.com/yanxxit/node-module-study.git
+### TODO 任务管理应用
+
+启动服务后访问 `http://127.0.0.1:3000/todo/` 即可使用 TODO 任务管理应用。
+
+```sh
+# 启动静态文件服务
+x-static
+```
+
+**功能特性：**
+- ✅ 任务增删改查
+- 📝 子任务管理
+- 🔴🟡🟢 优先级管理（高/中/低）
+- 📅 截止日期管理
+- 🔍 搜索功能
+- 📊 筛选（全部/待处理/已完成）
+- 🔀 排序（按时间/优先级/截止日期）
+- 📦 批量操作
+- 📈 统计信息
+
+**API 接口：**
+```bash
+# 获取任务列表
+GET /api/todos?filter=all&sort=created_desc&search=keyword
+
+# 创建任务
+POST /api/todos
+Body: { "content": "任务内容", "priority": 2, "due_date": "2026-12-31", "note": "备注" }
+
+# 更新任务
+PUT /api/todos/:id
+Body: { "completed": true, "priority": 1 }
+
+# 删除任务
+DELETE /api/todos/:id
+
+# 批量操作
+POST /api/todos/batch
+Body: { "ids": [1, 2, 3], "action": "complete" }
+
+# 获取统计信息
+GET /api/todos/stats
+
+# 子任务 API
+GET /api/todos/subtasks?todo_id=1
+POST /api/todos/subtasks
+PUT /api/todos/subtasks/:id
+DELETE /api/todos/subtasks/:id
+```
+
+**测试 API：**
+```sh
+node test/todo-api-test.js
+```
+
+### 本地开发
+
+```js
+npm link
 ```
 
 ### 新增功能：Git Clone

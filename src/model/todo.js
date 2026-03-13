@@ -4,6 +4,7 @@
  */
 
 import { getDatabase } from './database.js';
+import { getSubtasks } from './subtask.js';
 
 /**
  * 将数据库行转换为对象
@@ -17,9 +18,8 @@ function rowToObject(row) {
     priority: row.priority,
     due_date: row.due_date,
     note: row.note,
-    tags: row.tags ? row.tags.split(',').filter(t => t.trim()) : [],
+    tags: row.tags || '[]',
     category: row.category || '',
-    parent_id: row.parent_id,
     created_at: row.created_at,
     updated_at: row.updated_at
   };
@@ -29,39 +29,27 @@ function rowToObject(row) {
  * 获取 TODO 列表
  */
 export async function getTodos(options = {}) {
-  const { filter, sort, search, parent_id } = options;
-
+  const { filter, sort, search } = options;
+  
   const conditions = [];
-  const params = [];
-
+  
   // 筛选条件
   if (filter === 'pending') {
     conditions.push('completed = false');
   } else if (filter === 'completed') {
     conditions.push('completed = true');
   }
-
-  // 父任务 ID（获取子任务）
-  if (parent_id !== undefined) {
-    if (parent_id === null || parent_id === 'null') {
-      conditions.push('parent_id IS NULL');
-    } else {
-      params.push(parseInt(parent_id));
-      conditions.push('parent_id = ?');
-    }
-  }
-
+  
   // 搜索条件
   if (search) {
-    params.push(search);
-    conditions.push('content ILIKE ?');
+    conditions.push(`content ILIKE '%${search}%'`);
   }
-
+  
   let query = 'SELECT * FROM todos';
   if (conditions.length > 0) {
     query += ' WHERE ' + conditions.join(' AND ');
   }
-
+  
   // 排序
   query += ' ORDER BY ';
   switch (sort) {
@@ -83,11 +71,20 @@ export async function getTodos(options = {}) {
     default:
       query += 'created_at DESC';
   }
-
+  
   const db = getDatabase();
-  const result = await db.query(query, params);
-
-  return result.rows.map(row => rowToObject(row));
+  const result = await db.query(query);
+  
+  const todos = result.rows.map(row => rowToObject(row));
+  
+  // 为每个任务添加子任务统计
+  for (const todo of todos) {
+    const subtasks = await getSubtasks(todo.id);
+    todo.subtask_count = subtasks.length;
+    todo.subtask_completed = subtasks.filter(s => s.completed).length;
+  }
+  
+  return todos;
 }
 
 /**
@@ -105,22 +102,21 @@ export async function getTodoById(id) {
  * 创建 TODO
  */
 export async function createTodo(data) {
-  const { content, priority = 2, due_date = null, note = '', parent_id = null, tags = [], category = '' } = data;
+  const { content, priority = 2, due_date = null, note = '', tags = '[]', category = '' } = data;
+  
   const db = getDatabase();
-
+  
   try {
-    // 使用 exec 插入数据
     const contentEsc = content.trim().replace(/'/g, "''");
     const noteEsc = (note || '').replace(/'/g, "''");
     const dueDateVal = due_date ? `'${due_date}'` : 'NULL';
-    const parentIdVal = parent_id ? `${parent_id}` : 'NULL';
-    const tagsVal = Array.isArray(tags) ? tags.join(',') : tags;
+    const tagsVal = tags || '[]';
     const categoryEsc = (category || '').replace(/'/g, "''");
-
-    const sql = `INSERT INTO todos (content, priority, due_date, note, parent_id, tags, category) VALUES ('${contentEsc}', ${priority}, ${dueDateVal}, '${noteEsc}', ${parentIdVal}, '${tagsVal}', '${categoryEsc}')`;
+    
+    const sql = `INSERT INTO todos (content, priority, due_date, note, tags, category) VALUES ('${contentEsc}', ${priority}, ${dueDateVal}, '${noteEsc}', '${tagsVal}', '${categoryEsc}')`;
+    
     await db.exec(sql);
-
-    // 获取最新创建的记录
+    
     const result = await db.query('SELECT * FROM todos ORDER BY id DESC LIMIT 1');
     return rowToObject(result.rows[0]);
   } catch (err) {
@@ -134,51 +130,49 @@ export async function createTodo(data) {
  */
 export async function updateTodo(id, data) {
   const { content, completed, priority, due_date, note, tags, category } = data;
-
+  
   const fields = [];
-
+  
   if (content !== undefined) {
     const val = content.trim().replace(/'/g, "''");
     fields.push(`content = '${val}'`);
   }
-
+  
   if (completed !== undefined) {
     fields.push(`completed = ${completed ? 'true' : 'false'}`);
   }
-
+  
   if (priority !== undefined) {
     fields.push(`priority = ${priority}`);
   }
-
+  
   if (due_date !== undefined) {
     fields.push(`due_date = ${due_date ? `'${due_date}'` : 'NULL'}`);
   }
-
+  
   if (note !== undefined) {
     const val = (note || '').replace(/'/g, "''");
     fields.push(`note = '${val}'`);
   }
-
+  
   if (tags !== undefined) {
-    const tagsVal = Array.isArray(tags) ? tags.join(',') : tags;
-    fields.push(`tags = '${tagsVal}'`);
+    fields.push(`tags = '${tags}'`);
   }
-
+  
   if (category !== undefined) {
     const val = (category || '').replace(/'/g, "''");
     fields.push(`category = '${val}'`);
   }
-
+  
   if (fields.length === 0) {
     throw new Error('没有要更新的字段');
   }
-
+  
   fields.push("updated_at = CURRENT_TIMESTAMP");
-
+  
   const db = getDatabase();
   await db.exec(`UPDATE todos SET ${fields.join(', ')} WHERE id = ${id}`);
-
-  // 查询返回更新后的数据
+  
   return await getTodoById(id);
 }
 
@@ -217,51 +211,16 @@ export async function batchOperate(ids, action) {
 export async function getTodoStats() {
   const db = getDatabase();
   const result = await db.query(`
-    SELECT
+    SELECT 
       COUNT(*) as total,
       COUNT(CASE WHEN completed = false THEN 1 END) as pending,
       COUNT(CASE WHEN completed = true THEN 1 END) as completed
     FROM todos
-    WHERE parent_id IS NULL
   `);
-
+  
   return {
-    total: result.rows[0].total,
-    pending: result.rows[0].pending,
-    completed: result.rows[0].completed
-  };
-}
-
-/**
- * 获取子任务列表
- */
-export async function getSubTodos(parentId) {
-  const db = getDatabase();
-  const result = await db.query(
-    'SELECT * FROM todos WHERE parent_id = $1 ORDER BY created_at DESC',
-    [parentId]
-  );
-
-  return result.rows.map(row => rowToObject(row));
-}
-
-/**
- * 获取任务统计（包括子任务）
- */
-export async function getTodoStatsWithSubtasks(id) {
-  const db = getDatabase();
-  const result = await db.query(`
-    SELECT
-      COUNT(*) as total,
-      COUNT(CASE WHEN completed = false THEN 1 END) as pending,
-      COUNT(CASE WHEN completed = true THEN 1 END) as completed
-    FROM todos
-    WHERE parent_id = $1
-  `, [id]);
-
-  return {
-    total: result.rows[0].total,
-    pending: result.rows[0].pending,
-    completed: result.rows[0].completed
+    total: parseInt(result.rows[0].total),
+    pending: parseInt(result.rows[0].pending),
+    completed: parseInt(result.rows[0].completed)
   };
 }
