@@ -5,6 +5,9 @@ node.js 开发常用的命令行工具，日常使用。
 - [x] 开启静态服务
 - [x] 本地文件查看器（Web 页面）
 - [x] XLSX/CSV 转 JSON（Web 页面）
+- [x] TODO 任务管理应用（6 个版本）
+- [x] 日历管理页面（FullCalendar + Vue 3）
+- [x] 登录入口页面（Pico CSS）
 - [x] 实现自定义代理
 - [x] md5
 - [x] 常用时间转换：tool time

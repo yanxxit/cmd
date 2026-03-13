@@ -4,10 +4,12 @@ import favicon from 'serve-favicon';
 import http from 'http';
 import morgan from 'morgan';
 import proxy from 'http-proxy-middleware';
+import compression from 'compression';
 import { fileURLToPath } from 'url';
 import fileViewerRouter from './file-viewer.js';
 import todoApiRouter from './todo-api.js';
 import pomodoroApiRouter from './pomodoro-api.js';
+import authApiRouter from './auth-api.js';
 import xlsxParserRouter from './xlsx-parser.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,15 +34,33 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   app.use(morgan('tiny'))
 
+  // 添加压缩中间件
+  app.use(compression());
+
   // 添加 JSON 解析中间件
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
   // 允许访问 node_modules 目录（用于本地依赖）
   app.use('/node_modules', express.static(path.join(ROOT_DIR, 'node_modules')));
+  // 添加 /libs 路由指向 node_modules 目录，配置 CDN 式静态资源（压缩 + 缓存）
+  app.use('/libs', express.static(path.join(ROOT_DIR, 'node_modules'), {
+    maxAge: '365d', // 缓存一年
+    etag: true, // 启用 ETag
+    lastModified: true, // 启用 Last-Modified
+    setHeaders: (res, path) => {
+      // 设置强缓存
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      // 设置压缩头
+      res.setHeader('Vary', 'Accept-Encoding');
+    }
+  }));
 
   // 挂载 XLSX 解析 API 路由（必须在通用 /api 之前）
   app.use('/api/xlsx', xlsxParserRouter);
+
+  // 挂载认证 API 路由
+  app.use('/api/auth', authApiRouter);
 
   // 挂载具体 API 路由（必须在通用 /api 之前）
   app.use('/api/todos', todoApiRouter);
@@ -116,6 +136,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/xlsx-parser', express.static(xlsxParserDir));
   app.get('/xlsx-parser', (req, res) => {
     res.sendFile(path.join(xlsxParserDir, 'index.html'));
+  });
+
+  // 登录页面
+  const loginDir = path.join(ROOT_DIR, 'public/login');
+  app.use('/login', express.static(loginDir));
+  app.get('/login', (req, res) => {
+    res.sendFile(path.join(loginDir, 'index.html'));
+  });
+
+  // 日历管理页面
+  const calendarDir = path.join(ROOT_DIR, 'public/calendar');
+  app.use('/calendar', express.static(calendarDir));
+  app.get('/calendar', (req, res) => {
+    res.sendFile(path.join(calendarDir, 'index.html'));
   });
 
   // 用户目录静态资源（最后）

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📅 日历管理 - TODO 系统</title>
+
+  <!-- Vue 3 (本地 libs) -->
+  <script src="/libs/vue/dist/vue.global.prod.js"></script>
+
+  <!-- FullCalendar (本地 libs) -->
+  <script src="/libs/fullcalendar/index.global.min.js"></script>
+
+  <!-- Axios (本地 libs) -->
+  <script src="/libs/axios/dist/axios.min.js"></script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --fc-border-color: #e5e7eb;
+      --fc-button-bg-color: #0ea5e9;
+      --fc-button-border-color: #0ea5e9;
+      --fc-button-hover-bg-color: #0284c7;
+      --fc-button-hover-border-color: #0284c7;
+      --fc-button-active-bg-color: #0369a1;
+      --fc-button-active-border-color: #0369a1;
+      --fc-event-bg-color: #3b82f6;
+      --fc-event-border-color: #2563eb;
+      --fc-today-bg-color: rgba(14, 165, 233, 0.1);
+      --fc-bg-color: #ffffff;
+      --fc-text-color: #111827;
+      --fc-neutral-color: #f9fafb;
+    }
+    
+    [data-theme="dark"] {
+      --fc-border-color: #374151;
+      --fc-bg-color: #1f2937;
+      --fc-text-color: #f9fafb;
+      --fc-neutral-color: #374151;
+      --fc-today-bg-color: rgba(14, 165, 233, 0.2);
+    }
+
+    body { 
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      transition: background 0.3s ease;
+    }
+    
+    [data-theme="dark"] body {
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    }
+    
+    .calendar-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    
+    .calendar-card { 
+      background: var(--fc-bg-color); 
+      border-radius: 16px; 
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+      overflow: hidden;
+      transition: background 0.3s ease;
+    }
+    
+    .fc { font-family: inherit; color: var(--fc-text-color); }
+    .fc-toolbar-title { font-size: 20px !important; font-weight: 600; color: var(--fc-text-color); }
+    .fc-button { border-radius: 8px !important; padding: 8px 16px !important; font-weight: 500; }
+    .fc-daygrid-day-number { font-weight: 500; color: var(--fc-text-color); }
+    .fc-col-header-cell { padding: 12px 0 !important; font-weight: 600; color: #6b7280; }
+    .fc-col-header-cell-dark { color: #9ca3af !important; }
+    .fc-event { border-radius: 4px; padding: 2px 4px; font-size: 12px; cursor: pointer; }
+    .fc-event-title { font-weight: 500; }
+    .fc-today { background-color: var(--fc-today-bg-color) !important; }
+    .fc-scrollgrid { border-color: var(--fc-border-color); }
+    .fc-daygrid-day { border-color: var(--fc-border-color); background: var(--fc-bg-color); }
+    .fc-list { background: var(--fc-bg-color); color: var(--fc-text-color); }
+    .fc-list-day-cushion { background: var(--fc-neutral-color) !important; color: var(--fc-text-color); }
+    .fc-list-event:hover td { background: var(--fc-neutral-color) !important; }
+    
+    .sidebar-card { background: var(--fc-bg-color); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: background 0.3s ease; }
+    [data-theme="dark"] .sidebar-card { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .task-item { padding: 12px; border-radius: 8px; margin-bottom: 8px; background: var(--fc-neutral-color); border-left: 3px solid #3b82f6; cursor: pointer; transition: all 0.2s; }
+    [data-theme="dark"] .task-item { background: #374151; }
+    .task-item:hover { background: #eff6ff; transform: translateX(4px); }
+    [data-theme="dark"] .task-item:hover { background: #1e3a5f; }
+    .task-item.completed { opacity: 0.6; }
+    .task-item.completed .task-title { text-decoration: line-through; }
+    .task-title { font-size: 14px; font-weight: 500; color: var(--fc-text-color); }
+    .task-meta { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    [data-theme="dark"] .task-meta { color: #9ca3af; }
+    .priority-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .priority-high { background: #ef4444; }
+    .priority-medium { background: #f59e0b; }
+    .priority-low { background: #10b981; }
+    
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: var(--fc-bg-color); border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; transition: background 0.3s ease; }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--fc-border-color); display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h3 { color: var(--fc-text-color); }
+    .modal-body { padding: 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--fc-border-color); display: flex; justify-content: flex-end; gap: 12px; }
+    
+    .form-label { display: block; font-size: 14px; font-weight: 500; color: var(--fc-text-color); margin-bottom: 6px; }
+    .form-input { width: 100%; padding: 10px 14px; border: 2px solid var(--fc-border-color); border-radius: 8px; font-size: 14px; transition: all 0.2s; background: var(--fc-bg-color); color: var(--fc-text-color); }
+    .form-input:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    
+    .theme-toggle { 
+      position: fixed; 
+      top: 20px; 
+      right: 20px; 
+      width: 48px; 
+      height: 48px; 
+      border-radius: 50%; 
+      background: var(--fc-bg-color); 
+      border: 2px solid var(--fc-border-color);
+      cursor: pointer; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+    .theme-toggle:hover { transform: scale(1.1); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+    [data-theme="dark"] .theme-toggle { background: #374151; border-color: #4b5563; }
+    
+    @media (max-width: 768px) {
+      .calendar-container { padding: 12px; }
+      .fc-toolbar { flex-direction: column; gap: 12px; }
+      .sidebar { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+      {{ isDark ? '☀️' : '🌙' }}
+    </button>
+
+    <div class="calendar-container">
+      <!-- 头部 -->
+      <div class="mb-6">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="text-4xl">📅</span>
+          <div>
+            <h1 class="text-2xl font-bold" :class="isDark ? 'text-white' : 'text-gray-900'">日历管理</h1>
+            <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">查看和管理您的日程安排</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- 主日历区 -->
+        <div class="lg:col-span-3">
+          <div class="calendar-card p-6">
+            <div ref="calendarRef"></div>
+          </div>
+        </div>
+        
+        <!-- 侧边栏 -->
+        <div class="sidebar space-y-4">
+          <!-- 今日任务 -->
+          <div class="sidebar-card">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-900'">📋 今日任务</h3>
+              <button @click="openAddModal(today)" class="text-sm text-primary-600 hover:text-primary-700 font-medium">+ 添加</button>
+            </div>
+
+            <div v-if="todayTasks.length === 0" class="text-center py-8" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+              <span class="text-4xl block mb-2">🎉</span>
+              <p class="text-sm">今日无任务</p>
+            </div>
+
+            <div v-else>
+              <div v-for="task in todayTasks" :key="task.id"
+                   class="task-item" :class="{ completed: task.completed }"
+                   @click="toggleTask(task)">
+                <div class="flex items-start gap-2">
+                  <input type="checkbox" :checked="task.completed" @click.stop="toggleTask(task)" class="mt-1">
+                  <div class="flex-1">
+                    <div class="task-title" :class="isDark ? 'text-white' : 'text-gray-900'" v-text="task.content"></div>
+                    <div class="task-meta">
+                      <span class="priority-dot" :class="'priority-' + getPriorityName(task.priority)"></span>
+                      <span>{{ getPriorityText(task.priority) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 统计信息 -->
+          <div class="sidebar-card">
+            <h3 class="font-semibold mb-4" :class="isDark ? 'text-white' : 'text-gray-900'">📊 本月统计</h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="text-center p-3 rounded-lg" :class="isDark ? 'bg-blue-900/30' : 'bg-blue-50'">
+                <div class="text-2xl font-bold text-blue-600" v-text="stats.total"></div>
+                <div class="text-xs mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">总任务</div>
+              </div>
+              <div class="text-center p-3 rounded-lg" :class="isDark ? 'bg-green-900/30' : 'bg-green-50'">
+                <div class="text-2xl font-bold text-green-600" v-text="stats.completed"></div>
+                <div class="text-xs mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">已完成</div>
+              </div>
+              <div class="text-center p-3 rounded-lg" :class="isDark ? 'bg-amber-900/30' : 'bg-amber-50'">
+                <div class="text-2xl font-bold text-amber-600" v-text="stats.pending"></div>
+                <div class="text-xs mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">待处理</div>
+              </div>
+              <div class="text-center p-3 rounded-lg" :class="isDark ? 'bg-purple-900/30' : 'bg-purple-50'">
+                <div class="text-2xl font-bold text-purple-600" v-text="stats.today"></div>
+                <div class="text-xs mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">今日</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 快捷操作 -->
+          <div class="sidebar-card">
+            <h3 class="font-semibold mb-4" :class="isDark ? 'text-white' : 'text-gray-900'">⚡ 快捷操作</h3>
+            <div class="space-y-2">
+              <button @click="calendarRef && calendarRef.getApi().changeView('dayGridMonth')" 
+                      class="w-full text-left px-3 py-2 text-sm rounded-lg transition-colors"
+                      :class="isDark ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-50 text-gray-600'">
+                📅 月视图
+              </button>
+              <button @click="calendarRef && calendarRef.getApi().changeView('dayGridWeek')" 
+                      class="w-full text-left px-3 py-2 text-sm rounded-lg transition-colors"
+                      :class="isDark ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-50 text-gray-600'">
+                📆 周视图
+              </button>
+              <button @click="calendarRef && calendarRef.getApi().changeView('dayGridDay')" 
+                      class="w-full text-left px-3 py-2 text-sm rounded-lg transition-colors"
+                      :class="isDark ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-50 text-gray-600'">
+                📄 日视图
+              </button>
+              <button @click="calendarRef && calendarRef.getApi().today()" 
+                      class="w-full text-left px-3 py-2 text-sm rounded-lg transition-colors"
+                      :class="isDark ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-50 text-gray-600'">
+                🎯 回到今天
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 添加/编辑任务模态框 -->
+    <div v-if="modalVisible" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="text-lg font-semibold">{{ editingTask ? '编辑任务' : '添加任务' }}</h3>
+          <button @click="closeModal" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <form @submit.prevent="saveTask">
+            <div class="mb-4">
+              <label class="form-label">任务内容 <span class="text-red-500">*</span></label>
+              <input type="text" v-model="formData.content" class="form-input" placeholder="请输入任务内容" required autofocus>
+            </div>
+            
+            <div class="mb-4">
+              <label class="form-label">日期</label>
+              <input type="date" v-model="formData.date" class="form-input" required>
+            </div>
+            
+            <div class="mb-4">
+              <label class="form-label">优先级</label>
+              <div class="flex gap-2">
+                <button type="button" @click="formData.priority = 1" 
+                        class="flex-1 px-3 py-2 rounded-lg border-2 transition-all"
+                        :class="formData.priority === 1 ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 hover:border-gray-300'">
+                  🔴 高
+                </button>
+                <button type="button" @click="formData.priority = 2" 
+                        class="flex-1 px-3 py-2 rounded-lg border-2 transition-all"
+                        :class="formData.priority === 2 ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 hover:border-gray-300'">
+                  🟡 中
+                </button>
+                <button type="button" @click="formData.priority = 3" 
+                        class="flex-1 px-3 py-2 rounded-lg border-2 transition-all"
+                        :class="formData.priority === 3 ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-gray-300'">
+                  🟢 低
+                </button>
+              </div>
+            </div>
+            
+            <div class="mb-4">
+              <label class="form-label">备注</label>
+              <textarea v-model="formData.note" class="form-input form-textarea" placeholder="添加备注..."></textarea>
+            </div>
+          </form>
+        </div>
+        
+        <div class="modal-footer">
+          <button v-if="editingTask" @click="deleteTask" class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+            🗑️ 删除
+          </button>
+          <div class="flex gap-2 ml-auto">
+            <button @click="closeModal" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+              取消
+            </button>
+            <button @click="saveTask" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+              💾 保存
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const { createApp, ref, computed, onMounted, reactive } = Vue;
+
+    createApp({
+      setup() {
+        // 引用
+        const calendarRef = ref(null);
+        const calendarInstance = ref(null);
+
+        // 主题状态
+        const isDark = ref(false);
+
+        // 主题切换
+        const toggleTheme = () => {
+          isDark.value = !isDark.value;
+          document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+          localStorage.setItem('calendar-theme', isDark.value ? 'dark' : 'light');
+          
+          // 更新日历主题
+          if (calendarInstance.value) {
+            calendarInstance.value.rerender();
+          }
+        };
+
+        // 加载保存的主题
+        onMounted(() => {
+          const savedTheme = localStorage.getItem('calendar-theme') || 'light';
+          isDark.value = savedTheme === 'dark';
+          document.documentElement.setAttribute('data-theme', savedTheme);
+        });
+
+        // 状态
+        const todos = ref([]);
+        const modalVisible = ref(false);
+        const editingTask = ref(null);
+        const today = new Date().toISOString().split('T')[0];
+        
+        // 表单数据
+        const formData = reactive({
+          content: '',
+          date: today,
+          priority: 2,
+          note: ''
+        });
+        
+        // 统计
+        const stats = computed(() => {
+          const now = new Date();
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          
+          const monthTasks = todos.value.filter(t => {
+            const d = new Date(t.due_date || t.created_at);
+            return d >= monthStart && d <= monthEnd;
+          });
+          
+          const todayTasks = todos.value.filter(t => t.due_date === today);
+          
+          return {
+            total: monthTasks.length,
+            completed: monthTasks.filter(t => t.completed).length,
+            pending: monthTasks.filter(t => !t.completed).length,
+            today: todayTasks.length
+          };
+        });
+        
+        // 今日任务
+        const todayTasks = computed(() => {
+          return todos.value.filter(t => t.due_date === today);
+        });
+        
+        // 日历事件
+        const calendarEvents = computed(() => {
+          return todos.value.map(todo => ({
+            id: todo.id,
+            title: todo.content,
+            start: todo.due_date,
+            backgroundColor: getEventColor(todo.priority),
+            borderColor: getEventColor(todo.priority),
+            extendedProps: todo
+          }));
+        });
+        
+        // 获取优先级名称
+        const getPriorityName = (priority) => {
+          return { 1: 'high', 2: 'medium', 3: 'low' }[priority] || 'medium';
+        };
+        
+        // 获取优先级文本
+        const getPriorityText = (priority) => {
+          return { 1: '高', 2: '中', 3: '低' }[priority] || '中';
+        };
+        
+        // 获取事件颜色
+        const getEventColor = (priority) => {
+          return { 1: '#ef4444', 2: '#f59e0b', 3: '#10b981' }[priority] || '#3b82f6';
+        };
+        
+        // 加载任务
+        const loadTodos = async () => {
+          try {
+            const res = await axios.get('/api/todos');
+            if (res.data.success) {
+              todos.value = res.data.data.filter(t => t.due_date);
+            }
+          } catch (err) {
+            console.error('加载任务失败:', err);
+          }
+        };
+        
+        // 初始化日历
+        const initCalendar = () => {
+          if (!calendarRef.value) return;
+          
+          const calendar = new FullCalendar.Calendar(calendarRef.value, {
+            initialView: 'dayGridMonth',
+            locale: 'zh-cn',
+            headerToolbar: {
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth,dayGridWeek,dayGridDay'
+            },
+            buttonText: {
+              today: '今天',
+              month: '月',
+              week: '周',
+              day: '日'
+            },
+            events: calendarEvents.value,
+            selectable: true,
+            editable: false,
+            height: 'auto',
+            eventClick: (info) => {
+              openEditModal(info.event.extendedProps);
+            },
+            dateClick: (info) => {
+              openAddModal(info.dateStr);
+            },
+            eventDidMount: (info) => {
+              info.el.title = `${info.event.title}\n优先级：${getPriorityText(info.event.extendedProps.priority)}`;
+            }
+          });
+          
+          calendar.render();
+          calendarInstance.value = calendar;
+        };
+        
+        // 打开添加模态框
+        const openAddModal = (date) => {
+          editingTask.value = null;
+          formData.content = '';
+          formData.date = date || today;
+          formData.priority = 2;
+          formData.note = '';
+          modalVisible.value = true;
+        };
+        
+        // 打开编辑模态框
+        const openEditModal = (task) => {
+          editingTask.value = { ...task };
+          formData.content = task.content;
+          formData.date = task.due_date;
+          formData.priority = task.priority;
+          formData.note = task.note || '';
+          modalVisible.value = true;
+        };
+        
+        // 关闭模态框
+        const closeModal = () => {
+          modalVisible.value = false;
+          editingTask.value = null;
+        };
+        
+        // 保存任务
+        const saveTask = async () => {
+          if (!formData.content.trim()) {
+            alert('请输入任务内容');
+            return;
+          }
+          
+          try {
+            if (editingTask.value) {
+              // 更新
+              const res = await axios.put(`/api/todos/${editingTask.value.id}`, {
+                content: formData.content,
+                due_date: formData.date,
+                priority: formData.priority,
+                note: formData.note
+              });
+              if (res.data.success) {
+                alert('任务已更新');
+              }
+            } else {
+              // 创建
+              const res = await axios.post('/api/todos', {
+                content: formData.content,
+                due_date: formData.date,
+                priority: formData.priority,
+                note: formData.note
+              });
+              if (res.data.success) {
+                alert('任务已添加');
+              }
+            }
+            
+            closeModal();
+            await loadTodos();
+            
+            // 刷新日历
+            if (calendarInstance.value) {
+              calendarInstance.value.removeAllEvents();
+              calendarInstance.value.addEventSource(calendarEvents.value);
+            }
+          } catch (err) {
+            console.error('保存失败:', err);
+            alert('保存失败，请重试');
+          }
+        };
+        
+        // 删除任务
+        const deleteTask = async () => {
+          if (!confirm('确定删除此任务？')) return;
+          
+          try {
+            const res = await axios.delete(`/api/todos/${editingTask.value.id}`);
+            if (res.data.success) {
+              alert('任务已删除');
+              closeModal();
+              await loadTodos();
+              
+              if (calendarInstance.value) {
+                calendarInstance.value.removeAllEvents();
+                calendarInstance.value.addEventSource(calendarEvents.value);
+              }
+            }
+          } catch (err) {
+            console.error('删除失败:', err);
+            alert('删除失败，请重试');
+          }
+        };
+        
+        // 切换任务状态
+        const toggleTask = async (task) => {
+          try {
+            const res = await axios.put(`/api/todos/${task.id}`, {
+              completed: !task.completed
+            });
+            if (res.data.success) {
+              await loadTodos();
+            }
+          } catch (err) {
+            console.error('更新失败:', err);
+          }
+        };
+        
+        // 初始化
+        onMounted(() => {
+          loadTodos();
+          setTimeout(() => {
+            initCalendar();
+          }, 100);
+        });
+        
+        return {
+          isDark,
+          toggleTheme,
+          calendarRef,
+          today,
+          stats,
+          todayTasks,
+          modalVisible,
+          editingTask,
+          formData,
+          getPriorityName,
+          getPriorityText,
+          openAddModal,
+          openEditModal,
+          closeModal,
+          saveTask,
+          deleteTask,
+          toggleTask
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

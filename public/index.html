@@ -5,6 +5,104 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🧰 Web 工具箱</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --primary: #0ea5e9;
+      --primary-dark: #0284c7;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 40px; }
+    .title { font-size: 36px; font-weight: bold; color: #1a1a1a; margin-bottom: 8px; }
+    .logo { font-size: 48px; vertical-align: middle; margin-right: 12px; }
+    .subtitle { color: #6b7280; font-size: 16px; }
+    .tools-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+      gap: 24px; 
+      margin-bottom: 40px;
+    }
+    .tool-card { 
+      background: #fff; 
+      border-radius: 16px; 
+      padding: 24px; 
+      text-decoration: none; 
+      color: inherit; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+    .tool-card:hover { 
+      transform: translateY(-4px); 
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+      border-color: var(--primary);
+    }
+    .tool-icon { font-size: 48px; margin-bottom: 16px; }
+    .tool-name { font-size: 20px; font-weight: 600; color: #111827; margin-bottom: 8px; }
+    .tool-desc { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 16px; }
+    .tool-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag { 
+      padding: 4px 12px; 
+      background: #f3f4f6; 
+      border-radius: 12px; 
+      font-size: 12px; 
+      color: #4b5563;
+      font-weight: 500;
+    }
+    .tag.new { background: #dbeafe; color: #1d4ed8; }
+    .tag.hot { background: #fee2e2; color: #991b1b; }
+    .tag.recommended { background: #d1fae5; color: #065f46; }
+    .footer { text-align: center; color: #6b7280; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+    .section-title { 
+      font-size: 24px; 
+      font-weight: bold; 
+      color: #111827; 
+      margin: 40px 0 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--primary);
+      display: inline-block;
+    }
+    .version-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .version-card { 
+      background: #fff; 
+      border-radius: 12px; 
+      padding: 20px; 
+      text-decoration: none; 
+      color: inherit;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: all 0.3s;
+      border-left: 4px solid var(--primary);
+    }
+    .version-card:hover { transform: translateX(4px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+    .version-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .version-badge { 
+      padding: 4px 10px; 
+      background: var(--primary); 
+      color: #fff; 
+      border-radius: 6px; 
+      font-size: 12px; 
+      font-weight: 600;
+    }
+    .version-name { font-size: 18px; font-weight: 600; color: #111827; }
+    .version-tech { font-size: 13px; color: #6b7280; margin-bottom: 8px; }
+    .version-features { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .feature-tag { padding: 2px 8px; background: #f3f4f6; border-radius: 4px; font-size: 11px; color: #6b7280; }
+    .placeholder { opacity: 0.6; }
+    @media (max-width: 768px) {
+      .tools-grid, .version-grid { grid-template-columns: 1fr; }
+      .title { font-size: 28px; }
+      .logo { font-size: 36px; }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -15,11 +113,12 @@
           <span class="logo">🧰</span>
           <span>Web 工具箱</span>
         </h1>
-        <p class="subtitle">本地开发工具集</p>
+        <p class="subtitle">本地开发工具集 · 高效 · 便捷 · 实用</p>
       </div>
     </header>
 
-    <!-- 工具卡片列表 -->
+    <!-- 核心工具 -->
+    <h2 class="section-title">🔧 核心工具</h2>
     <div class="tools-grid">
       <!-- 文件查看器 -->
       <a href="/file-viewer/" class="tool-card">
@@ -28,29 +127,7 @@
         <p class="tool-desc">浏览、搜索、上传本地文件，支持图片、视频、PDF 预览</p>
         <div class="tool-tags">
           <span class="tag">文件管理</span>
-          <span class="tag">预览</span>
-        </div>
-      </a>
-
-      <!-- TODO 应用 -->
-      <a href="/todo/" class="tool-card">
-        <div class="tool-icon">✅</div>
-        <h2 class="tool-name">TODO 清单</h2>
-        <p class="tool-desc">简洁的任务管理工具，支持分类、优先级、完成状态</p>
-        <div class="tool-tags">
-          <span class="tag">任务管理</span>
-          <span class="tag">生产力</span>
-        </div>
-      </a>
-
-      <!-- 番茄时钟 -->
-      <a href="/pomodoro/" class="tool-card">
-        <div class="tool-icon">🍅</div>
-        <h2 class="tool-name">番茄时钟</h2>
-        <p class="tool-desc">专注工作学习的番茄钟，支持夜间模式、统计记录、历史记录</p>
-        <div class="tool-tags">
-          <span class="tag">时间管理</span>
-          <span class="tag">生产力</span>
+          <span class="tag recommended">推荐</span>
         </div>
       </a>
 
@@ -76,7 +153,141 @@
         </div>
       </a>
 
-      <!-- 占位卡片 - 未来工具 -->
+      <!-- 番茄时钟 -->
+      <a href="/pomodoro/" class="tool-card">
+        <div class="tool-icon">🍅</div>
+        <h2 class="tool-name">番茄时钟</h2>
+        <p class="tool-desc">专注工作学习的番茄钟，支持夜间模式、统计记录</p>
+        <div class="tool-tags">
+          <span class="tag">时间管理</span>
+          <span class="tag">生产力</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- TODO 应用系列 -->
+    <h2 class="section-title">✅ TODO 应用系列</h2>
+    <div class="version-grid">
+      <a href="/todo/" class="version-card">
+        <div class="version-header">
+          <span class="version-badge">v1</span>
+          <span class="version-name">原生版</span>
+        </div>
+        <div class="version-tech">原生 HTML/CSS/JS</div>
+        <div class="version-features">
+          <span class="feature-tag">零依赖</span>
+          <span class="feature-tag">学习用</span>
+        </div>
+      </a>
+
+      <a href="/todo-v2/" class="version-card">
+        <div class="version-header">
+          <span class="version-badge">v2</span>
+          <span class="version-name">现代化 UI</span>
+        </div>
+        <div class="version-tech">Tailwind CSS + Alpine.js</div>
+        <div class="version-features">
+          <span class="feature-tag">响应式</span>
+          <span class="feature-tag">现代化</span>
+        </div>
+      </a>
+
+      <a href="/todo-v3/" class="version-card">
+        <div class="version-header">
+          <span class="version-badge">v3</span>
+          <span class="version-name">经典组件</span>
+        </div>
+        <div class="version-tech">Bootstrap 5 + Alpine.js</div>
+        <div class="version-features">
+          <span class="feature-tag">组件丰富</span>
+          <span class="feature-tag">企业级</span>
+        </div>
+      </a>
+
+      <a href="/todo-v4/" class="version-card" style="border-left-color: var(--success);">
+        <div class="version-header">
+          <span class="version-badge" style="background: var(--success);">v4</span>
+          <span class="version-name">轻量级</span>
+        </div>
+        <div class="version-tech">Alpine.js + Tailwind CSS</div>
+        <div class="version-features">
+          <span class="feature-tag recommended">推荐</span>
+          <span class="feature-tag">精简</span>
+          <span class="feature-tag">高性能</span>
+        </div>
+      </a>
+
+      <a href="/todo-v5/" class="version-card">
+        <div class="version-header">
+          <span class="version-badge">v5</span>
+          <span class="version-name">超轻量</span>
+        </div>
+        <div class="version-tech">Petite-Vue + Tailwind CSS</div>
+        <div class="version-features">
+          <span class="feature-tag">最小体积</span>
+          <span class="feature-tag">快速加载</span>
+        </div>
+      </a>
+
+      <a href="/todo-v6/" class="version-card" style="border-left-color: var(--warning);">
+        <div class="version-header">
+          <span class="version-badge" style="background: var(--warning);">v6</span>
+          <span class="version-name">Vue 3</span>
+        </div>
+        <div class="version-tech">Vue 3 + Tailwind CSS</div>
+        <div class="version-features">
+          <span class="feature-tag recommended">推荐</span>
+          <span class="feature-tag">Composition API</span>
+          <span class="feature-tag">生产就绪</span>
+        </div>
+      </a>
+
+      <a href="/todo-v7/" class="version-card" style="border-left-color: var(--danger);">
+        <div class="version-header">
+          <span class="version-badge" style="background: var(--danger);">v7</span>
+          <span class="version-name">React + Ant Design</span>
+        </div>
+        <div class="version-tech">React 18 + Ant Design v5</div>
+        <div class="version-features">
+          <span class="feature-tag new">新</span>
+          <span class="feature-tag recommended">推荐</span>
+          <span class="feature-tag">企业级 UI</span>
+          <span class="feature-tag">国内 CDN</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- 新增工具 -->
+    <h2 class="section-title">🆕 新增工具</h2>
+    <div class="tools-grid">
+      <!-- 登录入口 -->
+      <a href="/login/" class="tool-card">
+        <div class="tool-icon">🔐</div>
+        <h2 class="tool-name">登录入口</h2>
+        <p class="tool-desc">基于 Pico CSS 的登录页面，支持明/暗主题切换、记住我功能</p>
+        <div class="tool-tags">
+          <span class="tag new">新</span>
+          <span class="tag">认证</span>
+          <span class="tag">Pico CSS</span>
+        </div>
+      </a>
+
+      <!-- 日历管理 -->
+      <a href="/calendar/" class="tool-card">
+        <div class="tool-icon">📅</div>
+        <h2 class="tool-name">日历管理</h2>
+        <p class="tool-desc">基于 FullCalendar 的日历管理，支持月/周/日视图、任务添加编辑</p>
+        <div class="tool-tags">
+          <span class="tag new">新</span>
+          <span class="tag recommended">推荐</span>
+          <span class="tag">FullCalendar</span>
+          <span class="tag">Vue 3</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- 占位卡片 -->
+    <div class="tools-grid" style="margin-top: 24px;">
       <div class="tool-card placeholder">
         <div class="tool-icon">🔜</div>
         <h2 class="tool-name">更多工具</h2>
@@ -89,7 +300,10 @@
 
     <!-- 底部信息 -->
     <footer class="footer">
-      <p>🚀 本地开发工具集 | 高效、便捷、实用</p>
+      <p>🚀 本地开发工具集 | 高效 · 便捷 · 实用</p>
+      <p style="margin-top: 8px; font-size: 13px; color: #9ca3af;">
+        所有工具均在本地运行，数据不会上传到服务器
+      </p>
     </footer>
   </div>
 </body>
