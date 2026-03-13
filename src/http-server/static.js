@@ -152,6 +152,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(calendarDir, 'index.html'));
   });
 
+  // 时间工具页面
+  const timeDir = path.join(ROOT_DIR, 'public/time');
+  app.use('/time', express.static(timeDir));
+  app.get('/time', (req, res) => {
+    res.sendFile(path.join(timeDir, 'index.html'));
+  });
+
   // 用户目录静态资源（最后）
   app.use('/files', express.static(options.dir));
   

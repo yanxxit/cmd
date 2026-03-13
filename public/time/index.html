@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⏰ 时间工具 - TODO 系统</title>
+  
+  <!-- Vue 3 (国内 CDN) -->
+  <script src="https://cdn.staticfile.org/vue/3.4.21/vue.global.prod.js"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #111827;
+      --border-color: #e5e7eb;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --muted-text: #6b7280;
+    }
+    
+    [data-theme="dark"] {
+      --bg-color: #111827;
+      --text-color: #f9fafb;
+      --border-color: #374151;
+      --card-bg: #1f2937;
+      --input-bg: #374151;
+      --muted-text: #9ca3af;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      transition: background 0.3s ease;
+    }
+    
+    [data-theme="dark"] body {
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    }
+    
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="dark"] .card {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .time-display {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
+      font-size: 48px;
+      font-weight: 700;
+      text-align: center;
+      padding: 32px;
+      background: linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .date-display {
+      text-align: center;
+      font-size: 20px;
+      color: var(--muted-text);
+      margin-top: 8px;
+    }
+    
+    .timezone-select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      font-size: 15px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      cursor: pointer;
+    }
+    
+    .input-group { margin-bottom: 20px; }
+    .input-label { display: block; font-size: 14px; font-weight: 600; color: var(--text-color); margin-bottom: 8px; }
+    .input-field {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      font-size: 15px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      transition: all 0.2s;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-primary { background: linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4); }
+    .btn-secondary { background: var(--input-bg); color: var(--text-color); border: 2px solid var(--border-color); }
+    .btn-secondary:hover { background: var(--border-color); }
+    
+    .result-box {
+      background: var(--input-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+      font-size: 16px;
+      color: var(--text-color);
+      word-break: break-all;
+    }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+    .theme-toggle:hover { transform: scale(1.1); }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .copy-btn {
+      padding: 4px 12px;
+      font-size: 12px;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-color);
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { background: var(--border-color); }
+    
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    
+    @media (max-width: 768px) {
+      .time-display { font-size: 32px; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+      {{ isDark ? '☀️' : '🌙' }}
+    </button>
+
+    <div class="container">
+      <!-- 页面标题 -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-2" :class="isDark ? 'text-white' : 'text-gray-900'">⏰ 时间工具</h1>
+        <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">实时时钟 · 时区转换 · 时间戳转换</p>
+      </div>
+
+      <!-- 实时时钟 -->
+      <div class="card mb-6">
+        <div class="section-title">🕐 实时时钟</div>
+        <div class="time-display" v-text="currentTime"></div>
+        <div class="date-display" v-text="currentDate"></div>
+        
+        <div class="mt-6">
+          <label class="input-label">选择时区</label>
+          <select v-model="selectedTimezone" @change="updateTime" class="timezone-select">
+            <option v-for="tz in timezones" :key="tz.value" :value="tz.value">
+              {{ tz.label }} ({{ tz.offset }})
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- 时间转时间戳 -->
+        <div class="card">
+          <div class="section-title">📅 时间 → 时间戳</div>
+          
+          <div class="input-group">
+            <label class="input-label">选择日期时间</label>
+            <input type="datetime-local" v-model="dateTimeInput" @input="convertToTimestamp" class="input-field">
+          </div>
+          
+          <div class="input-group">
+            <label class="input-label">时间戳 (毫秒)</label>
+            <div class="flex gap-2">
+              <input type="text" v-model="timestampFromDateTime" readonly class="input-field flex-1">
+              <button @click="copyTimestamp1" class="copy-btn">复制</button>
+            </div>
+          </div>
+          
+          <div class="input-group">
+            <label class="input-label">时间戳 (秒)</label>
+            <div class="flex gap-2">
+              <input type="text" v-model="timestampSeconds" readonly class="input-field flex-1">
+              <button @click="copyTimestamp2" class="copy-btn">复制</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 时间戳转时间 -->
+        <div class="card">
+          <div class="section-title">🔄 时间戳 → 时间</div>
+          
+          <div class="input-group">
+            <label class="input-label">输入时间戳</label>
+            <input type="text" v-model="timestampInput" @input="convertToDateTime" placeholder="请输入时间戳（毫秒或秒）" class="input-field">
+          </div>
+          
+          <div class="input-group">
+            <label class="input-label">转换结果</label>
+            <div class="result-box">
+              <div v-if="dateTimeFromTimestamp">
+                <div class="mb-2">
+                  <span class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">格式 1:</span>
+                  <span class="ml-2" v-text="dateTimeFromTimestamp.format1"></span>
+                </div>
+                <div class="mb-2">
+                  <span class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">格式 2:</span>
+                  <span class="ml-2" v-text="dateTimeFromTimestamp.format2"></span>
+                </div>
+                <div>
+                  <span class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">格式 3:</span>
+                  <span class="ml-2" v-text="dateTimeFromTimestamp.format3"></span>
+                </div>
+              </div>
+              <div v-else class="text-sm" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+                请输入有效的时间戳
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex gap-2">
+            <button @click="setNowTimestamp" class="btn btn-secondary flex-1">⏱️ 当前时间戳</button>
+            <button @click="clearTimestamp" class="btn btn-secondary flex-1">🗑️ 清空</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 常用时间戳参考 -->
+      <div class="card mt-6">
+        <div class="section-title">📌 常用时间戳参考</div>
+        <div class="grid-2">
+          <div class="result-box">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">今天 00:00:00</span>
+              <button @click="copyText(todayStart)" class="copy-btn">复制</button>
+            </div>
+            <div class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'" v-text="todayStart"></div>
+          </div>
+          <div class="result-box">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">本周开始 (周一)</span>
+              <button @click="copyText(weekStart)" class="copy-btn">复制</button>
+            </div>
+            <div class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'" v-text="weekStart"></div>
+          </div>
+          <div class="result-box">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">本月开始</span>
+              <button @click="copyText(monthStart)" class="copy-btn">复制</button>
+            </div>
+            <div class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'" v-text="monthStart"></div>
+          </div>
+          <div class="result-box">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium">今年开始</span>
+              <button @click="copyText(yearStart)" class="copy-btn">复制</button>
+            </div>
+            <div class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'" v-text="yearStart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
+
+    createApp({
+      setup() {
+        // 主题状态
+        const isDark = ref(false);
+        const currentTime = ref('');
+        const currentDate = ref('');
+        const selectedTimezone = ref('Asia/Shanghai');
+        let timer = null;
+
+        // 时区列表
+        const timezones = [
+          { value: 'UTC', label: '世界协调时', offset: '+00:00' },
+          { value: 'Asia/Shanghai', label: '北京时间', offset: '+08:00' },
+          { value: 'Asia/Tokyo', label: '东京时间', offset: '+09:00' },
+          { value: 'Asia/Seoul', label: '首尔时间', offset: '+09:00' },
+          { value: 'Asia/Hong_Kong', label: '香港时间', offset: '+08:00' },
+          { value: 'Asia/Taipei', label: '台北时间', offset: '+08:00' },
+          { value: 'Asia/Singapore', label: '新加坡时间', offset: '+08:00' },
+          { value: 'Asia/Bangkok', label: '曼谷时间', offset: '+07:00' },
+          { value: 'Asia/Dubai', label: '迪拜时间', offset: '+04:00' },
+          { value: 'Europe/London', label: '伦敦时间', offset: '+00:00' },
+          { value: 'Europe/Paris', label: '巴黎时间', offset: '+01:00' },
+          { value: 'Europe/Berlin', label: '柏林时间', offset: '+01:00' },
+          { value: 'Europe/Moscow', label: '莫斯科时间', offset: '+03:00' },
+          { value: 'America/New_York', label: '纽约时间', offset: '-05:00' },
+          { value: 'America/Los_Angeles', label: '洛杉矶时间', offset: '-08:00' },
+          { value: 'America/Chicago', label: '芝加哥时间', offset: '-06:00' },
+          { value: 'America/Toronto', label: '多伦多时间', offset: '-05:00' },
+          { value: 'Australia/Sydney', label: '悉尼时间', offset: '+11:00' },
+          { value: 'Pacific/Auckland', label: '奥克兰时间', offset: '+13:00' }
+        ];
+
+        // 时间转时间戳
+        const dateTimeInput = ref('');
+        const timestampFromDateTime = ref('');
+        const timestampSeconds = ref('');
+
+        // 时间戳转时间
+        const timestampInput = ref('');
+        const dateTimeFromTimestamp = ref(null);
+
+        // 常用时间戳
+        const todayStart = ref('');
+        const weekStart = ref('');
+        const monthStart = ref('');
+        const yearStart = ref('');
+
+        // 主题切换
+        const toggleTheme = () => {
+          isDark.value = !isDark.value;
+          document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+          localStorage.setItem('time-tool-theme', isDark.value ? 'dark' : 'light');
+        };
+
+        // 更新时间
+        const updateTime = () => {
+          const now = new Date();
+          const options = { 
+            timeZone: selectedTimezone.value,
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          };
+          const dateOptions = {
+            timeZone: selectedTimezone.value,
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            weekday: 'long'
+          };
+          currentTime.value = now.toLocaleTimeString('zh-CN', options);
+          currentDate.value = now.toLocaleDateString('zh-CN', dateOptions);
+        };
+
+        // 时间转时间戳
+        const convertToTimestamp = () => {
+          if (dateTimeInput.value) {
+            const date = new Date(dateTimeInput.value);
+            const timestamp = date.getTime();
+            timestampFromDateTime.value = timestamp.toString();
+            timestampSeconds.value = Math.floor(timestamp / 1000).toString();
+          } else {
+            timestampFromDateTime.value = '';
+            timestampSeconds.value = '';
+          }
+        };
+
+        // 时间戳转时间
+        const convertToDateTime = () => {
+          const ts = parseInt(timestampInput.value);
+          if (!ts) {
+            dateTimeFromTimestamp.value = null;
+            return;
+          }
+          
+          // 判断是秒还是毫秒
+          let timestamp = ts;
+          if (ts < 10000000000) {
+            // 10 位数字，认为是秒
+            timestamp = ts * 1000;
+          }
+          
+          const date = new Date(timestamp);
+          if (isNaN(date.getTime())) {
+            dateTimeFromTimestamp.value = null;
+            return;
+          }
+          
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const seconds = String(date.getSeconds()).padStart(2, '0');
+          
+          dateTimeFromTimestamp.value = {
+            format1: `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`,
+            format2: `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`,
+            format3: `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`
+          };
+        };
+
+        // 设置当前时间戳
+        const setNowTimestamp = () => {
+          timestampInput.value = Date.now().toString();
+          convertToDateTime();
+        };
+
+        // 清空
+        const clearTimestamp = () => {
+          timestampInput.value = '';
+          dateTimeFromTimestamp.value = null;
+        };
+
+        // 复制功能
+        const copyText = (text) => {
+          navigator.clipboard.writeText(text).then(() => {
+            alert('已复制到剪贴板');
+          });
+        };
+
+        const copyTimestamp1 = () => {
+          if (timestampFromDateTime.value) copyText(timestampFromDateTime.value);
+        };
+
+        const copyTimestamp2 = () => {
+          if (timestampSeconds.value) copyText(timestampSeconds.value);
+        };
+
+        // 计算常用时间戳
+        const calculateCommonTimestamps = () => {
+          const now = new Date();
+          
+          // 今天 00:00:00
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          todayStart.value = today.getTime().toString();
+          
+          // 本周开始 (周一)
+          const day = now.getDay() || 7;
+          const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+          monday.setHours(0, 0, 0, 0);
+          weekStart.value = monday.getTime().toString();
+          
+          // 本月开始
+          const month = new Date(now.getFullYear(), now.getMonth(), 1);
+          month.setHours(0, 0, 0, 0);
+          monthStart.value = month.getTime().toString();
+          
+          // 今年开始
+          const year = new Date(now.getFullYear(), 0, 1);
+          year.setHours(0, 0, 0, 0);
+          yearStart.value = year.getTime().toString();
+        };
+
+        // 初始化
+        onMounted(() => {
+          // 加载主题
+          const savedTheme = localStorage.getItem('time-tool-theme') || 'light';
+          isDark.value = savedTheme === 'dark';
+          document.documentElement.setAttribute('data-theme', savedTheme);
+          
+          // 初始化时间
+          updateTime();
+          timer = setInterval(updateTime, 1000);
+          
+          // 计算常用时间戳
+          calculateCommonTimestamps();
+          
+          // 设置默认日期选择为当前时间
+          const now = new Date();
+          const localISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+          dateTimeInput.value = localISO;
+          convertToTimestamp();
+        });
+
+        onUnmounted(() => {
+          if (timer) clearInterval(timer);
+        });
+
+        return {
+          isDark,
+          toggleTheme,
+          currentTime,
+          currentDate,
+          selectedTimezone,
+          timezones,
+          updateTime,
+          dateTimeInput,
+          timestampFromDateTime,
+          timestampSeconds,
+          convertToTimestamp,
+          timestampInput,
+          dateTimeFromTimestamp,
+          convertToDateTime,
+          setNowTimestamp,
+          clearTimestamp,
+          copyText,
+          copyTimestamp1,
+          copyTimestamp2,
+          todayStart,
+          weekStart,
+          monthStart,
+          yearStart
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

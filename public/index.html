@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,99 +12,243 @@
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
+      --bg-gradient-start: #f5f7fa;
+      --bg-gradient-end: #c3cfe2;
+      --card-bg: #ffffff;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --text-muted: #9ca3af;
+      --border-color: #e5e7eb;
+      --tag-bg: #f3f4f6;
+      --tag-text: #4b5563;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+      --shadow-lg: 0 12px 24px rgba(0,0,0,0.15);
     }
+    
+    [data-theme="dark"] {
+      --bg-gradient-start: #1f2937;
+      --bg-gradient-end: #111827;
+      --card-bg: #1f2937;
+      --text-primary: #f9fafb;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --border-color: #374151;
+      --tag-bg: #374151;
+      --tag-text: #d1d5db;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-lg: 0 12px 24px rgba(0,0,0,0.5);
+    }
+    
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
+    
+    body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
       min-height: 100vh;
       padding: 40px 20px;
+      transition: background 0.3s ease;
+      position: relative;
     }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    
+    .theme-toggle:hover {
+      transform: scale(1.1) rotate(15deg);
+      box-shadow: var(--shadow-lg);
+    }
+    
     .container { max-width: 1400px; margin: 0 auto; }
+    
     .header { text-align: center; margin-bottom: 40px; }
-    .title { font-size: 36px; font-weight: bold; color: #1a1a1a; margin-bottom: 8px; }
+    .title { 
+      font-size: 36px; 
+      font-weight: bold; 
+      color: var(--text-primary); 
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .logo { font-size: 48px; vertical-align: middle; margin-right: 12px; }
-    .subtitle { color: #6b7280; font-size: 16px; }
-    .tools-grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
-      gap: 24px; 
+    .subtitle { color: var(--text-secondary); font-size: 16px; }
+    
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
       margin-bottom: 40px;
     }
-    .tool-card { 
-      background: #fff; 
-      border-radius: 16px; 
-      padding: 24px; 
-      text-decoration: none; 
-      color: inherit; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+    
+    .tool-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: var(--shadow-md);
       transition: all 0.3s;
       border: 2px solid transparent;
     }
-    .tool-card:hover { 
-      transform: translateY(-4px); 
-      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+    
+    .tool-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
       border-color: var(--primary);
     }
+    
     .tool-icon { font-size: 48px; margin-bottom: 16px; }
-    .tool-name { font-size: 20px; font-weight: 600; color: #111827; margin-bottom: 8px; }
-    .tool-desc { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 16px; }
+    .tool-name { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+    .tool-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; }
     .tool-tags { display: flex; flex-wrap: wrap; gap: 8px; }
-    .tag { 
-      padding: 4px 12px; 
-      background: #f3f4f6; 
-      border-radius: 12px; 
-      font-size: 12px; 
-      color: #4b5563;
+    
+    .tag {
+      padding: 4px 12px;
+      background: var(--tag-bg);
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--tag-text);
       font-weight: 500;
+      transition: all 0.2s;
     }
+    
     .tag.new { background: #dbeafe; color: #1d4ed8; }
+    [data-theme="dark"] .tag.new { background: #1e3a5f; color: #60a5fa; }
+    
     .tag.hot { background: #fee2e2; color: #991b1b; }
+    [data-theme="dark"] .tag.hot { background: #451a1a; color: #f87171; }
+    
     .tag.recommended { background: #d1fae5; color: #065f46; }
-    .footer { text-align: center; color: #6b7280; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-    .section-title { 
-      font-size: 24px; 
-      font-weight: bold; 
-      color: #111827; 
+    [data-theme="dark"] .tag.recommended { background: #064e3b; color: #34d399; }
+    
+    .footer { 
+      text-align: center; 
+      color: var(--text-secondary); 
+      padding-top: 20px; 
+      border-top: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+    
+    .section-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--text-primary);
       margin: 40px 0 20px;
       padding-bottom: 12px;
       border-bottom: 2px solid var(--primary);
       display: inline-block;
+      transition: color 0.3s ease;
     }
-    .version-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-    .version-card { 
-      background: #fff; 
-      border-radius: 12px; 
-      padding: 20px; 
-      text-decoration: none; 
+    
+    .version-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    
+    .version-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
       color: inherit;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      box-shadow: var(--shadow-sm);
       transition: all 0.3s;
       border-left: 4px solid var(--primary);
     }
-    .version-card:hover { transform: translateX(4px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+    
+    .version-card:hover { 
+      transform: translateX(4px); 
+      box-shadow: var(--shadow-md);
+    }
+    
     .version-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .version-badge { 
-      padding: 4px 10px; 
-      background: var(--primary); 
-      color: #fff; 
-      border-radius: 6px; 
-      font-size: 12px; 
+    .version-badge {
+      padding: 4px 10px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 6px;
+      font-size: 12px;
       font-weight: 600;
     }
-    .version-name { font-size: 18px; font-weight: 600; color: #111827; }
-    .version-tech { font-size: 13px; color: #6b7280; margin-bottom: 8px; }
+    .version-name { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+    .version-tech { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
     .version-features { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-    .feature-tag { padding: 2px 8px; background: #f3f4f6; border-radius: 4px; font-size: 11px; color: #6b7280; }
+    .feature-tag { 
+      padding: 2px 8px; 
+      background: var(--tag-bg); 
+      border-radius: 4px; 
+      font-size: 11px; 
+      color: var(--tag-text);
+      transition: all 0.2s;
+    }
+    
     .placeholder { opacity: 0.6; }
+    
+    .stats-bar {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 40px;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    
+    .stat-item {
+      text-align: center;
+      padding: 10px 20px;
+    }
+    
+    .stat-number {
+      font-size: 32px;
+      font-weight: bold;
+      color: var(--primary);
+      display: block;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    
     @media (max-width: 768px) {
       .tools-grid, .version-grid { grid-template-columns: 1fr; }
       .title { font-size: 28px; }
       .logo { font-size: 36px; }
+      .theme-toggle { width: 48px; height: 48px; font-size: 24px; }
+      .stats-bar { flex-direction: column; }
     }
   </style>
 </head>
 <body>
+  <!-- 主题切换按钮 -->
+  <button class="theme-toggle" onclick="toggleTheme()" title="切换主题" id="themeToggle">
+    🌙
+  </button>
+
   <div class="container">
     <!-- 头部 -->
     <header class="header">
@@ -116,6 +260,26 @@
         <p class="subtitle">本地开发工具集 · 高效 · 便捷 · 实用</p>
       </div>
     </header>
+
+    <!-- 统计栏 -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-number" id="toolCount">0</span>
+        <span class="stat-label">工具总数</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">7</span>
+        <span class="stat-label">TODO 版本</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">100%</span>
+        <span class="stat-label">本地运行</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">0</span>
+        <span class="stat-label">数据上传</span>
+      </div>
+    </div>
 
     <!-- 核心工具 -->
     <h2 class="section-title">🔧 核心工具</h2>
@@ -260,13 +424,24 @@
     <!-- 新增工具 -->
     <h2 class="section-title">🆕 新增工具</h2>
     <div class="tools-grid">
+      <!-- 时间工具 -->
+      <a href="/time/" class="tool-card">
+        <div class="tool-icon">⏰</div>
+        <h2 class="tool-name">时间工具</h2>
+        <p class="tool-desc">实时时钟、时区切换、时间戳转换，支持多时区显示</p>
+        <div class="tool-tags">
+          <span class="tag new">新</span>
+          <span class="tag recommended">推荐</span>
+          <span class="tag">时间管理</span>
+        </div>
+      </a>
+
       <!-- 登录入口 -->
       <a href="/login/" class="tool-card">
         <div class="tool-icon">🔐</div>
         <h2 class="tool-name">登录入口</h2>
         <p class="tool-desc">基于 Pico CSS 的登录页面，支持明/暗主题切换、记住我功能</p>
         <div class="tool-tags">
-          <span class="tag new">新</span>
           <span class="tag">认证</span>
           <span class="tag">Pico CSS</span>
         </div>
@@ -276,9 +451,8 @@
       <a href="/calendar/" class="tool-card">
         <div class="tool-icon">📅</div>
         <h2 class="tool-name">日历管理</h2>
-        <p class="tool-desc">基于 FullCalendar 的日历管理，支持月/周/日视图、任务添加编辑</p>
+        <p class="tool-desc">基于 FullCalendar 的日历管理，支持月/周/日视图、任务添加编辑、夜间模式</p>
         <div class="tool-tags">
-          <span class="tag new">新</span>
           <span class="tag recommended">推荐</span>
           <span class="tag">FullCalendar</span>
           <span class="tag">Vue 3</span>
@@ -301,10 +475,67 @@
     <!-- 底部信息 -->
     <footer class="footer">
       <p>🚀 本地开发工具集 | 高效 · 便捷 · 实用</p>
-      <p style="margin-top: 8px; font-size: 13px; color: #9ca3af;">
+      <p style="margin-top: 8px; font-size: 13px; color: var(--text-muted);">
         所有工具均在本地运行，数据不会上传到服务器
       </p>
     </footer>
   </div>
+
+  <script>
+    // 主题切换
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      // 更新按钮图标
+      const btn = document.getElementById('themeToggle');
+      btn.textContent = newTheme === 'light' ? '🌙' : '☀️';
+    }
+
+    // 加载保存的主题
+    (function() {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      
+      // 更新按钮图标
+      const btn = document.getElementById('themeToggle');
+      btn.textContent = savedTheme === 'light' ? '🌙' : '☀️';
+    })();
+
+    // 统计工具数量
+    (function() {
+      const toolCards = document.querySelectorAll('.tool-card:not(.placeholder)');
+      const versionCards = document.querySelectorAll('.version-card');
+      const total = toolCards.length + versionCards.length;
+      const counter = document.getElementById('toolCount');
+      
+      // 动画效果
+      let current = 0;
+      const increment = Math.ceil(total / 20);
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= total) {
+          current = total;
+          clearInterval(timer);
+        }
+        counter.textContent = current;
+      }, 50);
+    })();
+
+    // 添加键盘快捷键
+    document.addEventListener('keydown', (e) => {
+      // 按 T 键切换主题
+      if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        toggleTheme();
+      }
+      // 按 / 键聚焦搜索（未来功能）
+      if (e.key === '/' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+      }
+    });
+  </script>
 </body>
 </html>
