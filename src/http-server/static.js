@@ -83,18 +83,18 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(todoV4Dir, 'index.html'));
   });
 
-  // TODO v5 应用前端页面（Tailwind + Petite-Vue + axios）
-  const todoV5Dir = path.join(ROOT_DIR, 'public/todo-v5');
-  app.use('/todo-v5', express.static(todoV5Dir));
-  app.get('/todo-v5', (req, res) => {
-    res.sendFile(path.join(todoV5Dir, 'index.html'));
-  });
-
   // TODO v6 应用前端页面（Vue 3 + Tailwind + axios）
   const todoV6Dir = path.join(ROOT_DIR, 'public/todo-v6');
   app.use('/todo-v6', express.static(todoV6Dir));
   app.get('/todo-v6', (req, res) => {
     res.sendFile(path.join(todoV6Dir, 'index.html'));
+  });
+
+  // TODO v7 应用前端页面（React + Ant Design v5）
+  const todoV7Dir = path.join(ROOT_DIR, 'public/todo-v7');
+  app.use('/todo-v7', express.static(todoV7Dir));
+  app.get('/todo-v7', (req, res) => {
+    res.sendFile(path.join(todoV7Dir, 'index.html'));
   });
 
   // 番茄时钟前端页面

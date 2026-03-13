@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📝 TODO List v7 - React + Ant Design</title>
+  
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
+  
+  <!-- Ant Design v5 -->
+  <script src="https://unpkg.com/dayjs/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5.15.0/dist/antd.min.js"></script>
+  
+  <!-- Axios -->
+  <script src="https://unpkg.com/axios@1.6.2/dist/axios.min.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    .app-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    .header-card { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      color: #fff;
+    }
+    .stats-card { border-radius: 12px; }
+    .task-card { border-radius: 12px; margin-bottom: 16px; transition: all 0.3s; }
+    .task-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .task-content { flex: 1; cursor: pointer; }
+    .task-content.completed .task-text { text-decoration: line-through; color: #999; }
+    .priority-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .priority-high { background: #fff1f0; color: #ff4d4f; }
+    .priority-medium { background: #fff7e6; color: #fa8c16; }
+    .priority-low { background: #f6ffed; color: #52c41a; }
+    .subtask-info { background: #e6f7ff; color: #1890ff; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .note-badge { background: #f9f0ff; color: #722ed1; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .sidebar-menu { border-radius: 12px; }
+    .mode-switch { background: #f0f0f0; padding: 4px; border-radius: 8px; display: inline-flex; }
+    .mode-btn { padding: 6px 16px; border-radius: 6px; border: none; background: transparent; cursor: pointer; transition: all 0.3s; }
+    .mode-btn.active { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-icon { font-size: 64px; margin-bottom: 16px; }
+    @media (max-width: 768px) {
+      .app-container { padding: 12px; }
+      .header-card { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback } = React;
+    const { 
+      Layout, Card, Button, Input, Select, Menu, Badge, Tag, 
+      Modal, Form, DatePicker, Checkbox, message, Empty, Spin,
+      Statistic, Row, Col, Divider, Space, Typography, Dropdown
+    } = antd;
+    const { Search } = Input;
+    const { Option } = Select;
+    const { Text } = Typography;
+    const { Content, Sider } = Layout;
+
+    // 主应用组件
+    function TodoApp() {
+      // 状态管理
+      const [todos, setTodos] = useState([]);
+      const [stats, setStats] = useState({ total: 0, pending: 0, completed: 0 });
+      const [filter, setFilter] = useState('all');
+      const [sort, setSort] = useState('created_desc');
+      const [search, setSearch] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [selectedIds, setSelectedIds] = useState([]);
+      const [mode, setMode] = useState('work');
+      
+      // 模态框状态
+      const [modalVisible, setModalVisible] = useState(false);
+      const [editingTodo, setEditingTodo] = useState(null);
+      const [subtasks, setSubtasks] = useState([]);
+      const [editingSubtaskId, setEditingSubtaskId] = useState(null);
+      const [editingSubtaskContent, setEditingSubtaskContent] = useState('');
+      
+      // 表单状态
+      const [form] = Form.useForm();
+      const [subtaskForm] = Form.useForm();
+
+      // 加载任务
+      const loadTodos = useCallback(async () => {
+        setLoading(true);
+        try {
+          const params = new URLSearchParams();
+          if (filter !== 'all') params.set('filter', filter);
+          params.set('sort', sort);
+          if (search) params.set('search', search);
+          const res = await axios.get(`/api/todos?${params}`);
+          if (res.data.success) setTodos(res.data.data);
+        } catch (err) {
+          message.error('加载任务失败');
+        }
+        setLoading(false);
+      }, [filter, sort, search]);
+
+      // 加载统计
+      const loadStats = useCallback(async () => {
+        try {
+          const res = await axios.get('/api/todos/stats');
+          if (res.data.success) setStats(res.data.data);
+        } catch (err) {}
+      }, []);
+
+      // 初始化
+      useEffect(() => {
+        loadTodos();
+        loadStats();
+        const interval = setInterval(() => { loadTodos(); loadStats(); }, 30000);
+        return () => clearInterval(interval);
+      }, [loadTodos, loadStats]);
+
+      // 过滤后的任务
+      const filteredTodos = useMemo(() => {
+        let result = [...todos];
+        if (filter === 'pending') result = result.filter(t => !t.completed);
+        else if (filter === 'completed') result = result.filter(t => t.completed);
+        if (search) result = result.filter(t => t.content.toLowerCase().includes(search.toLowerCase()));
+        result.sort((a, b) => {
+          switch (sort) {
+            case 'created_asc': return new Date(a.created_at) - new Date(b.created_at);
+            case 'created_desc': return new Date(b.created_at) - new Date(a.created_at);
+            case 'priority_asc': return a.priority - b.priority;
+            case 'priority_desc': return b.priority - a.priority;
+            case 'due_date_asc': return (a.due_date || '9999') > (b.due_date || '9999') ? 1 : -1;
+            default: return 0;
+          }
+        });
+        return result;
+      }, [todos, filter, sort, search]);
+
+      // 添加任务
+      const handleAddTodo = async (values) => {
+        try {
+          const res = await axios.post('/api/todos', { ...values, priority: 2 });
+          if (res.data.success) {
+            message.success('任务添加成功');
+            form.resetFields();
+            loadTodos();
+            loadStats();
+          }
+        } catch (err) {
+          message.error('添加失败');
+        }
+      };
+
+      // 切换完成状态
+      const toggleTodoStatus = async (id, completed) => {
+        try {
+          const res = await axios.put(`/api/todos/${id}`, { completed });
+          if (res.data.success) {
+            message.success(completed ? '任务已完成' : '任务已恢复');
+            loadStats();
+          }
+        } catch (err) {
+          message.error('更新失败');
+        }
+      };
+
+      // 打开编辑模态框
+      const openEditModal = async (todo) => {
+        setEditingTodo(todo);
+        setModalVisible(true);
+        form.setFieldsValue({
+          content: todo.content,
+          completed: todo.completed,
+          note: todo.note,
+          due_date: todo.due_date
+        });
+        await loadSubtasks(todo.id);
+      };
+
+      // 加载子任务
+      const loadSubtasks = async (todoId) => {
+        try {
+          const res = await axios.get(`/api/todos/subtasks?todo_id=${todoId}`);
+          if (res.data.success) setSubtasks(res.data.data);
+        } catch (err) {}
+      };
+
+      // 保存编辑
+      const handleSaveEdit = async () => {
+        try {
+          const values = await form.validateFields();
+          const res = await axios.put(`/api/todos/${editingTodo.id}`, {
+            ...values,
+            due_date: values.due_date ? values.due_date.format('YYYY-MM-DD') : null
+          });
+          if (res.data.success) {
+            message.success('任务已保存');
+            setModalVisible(false);
+            loadTodos();
+            loadStats();
+          }
+        } catch (err) {
+          message.error('保存失败');
+        }
+      };
+
+      // 删除任务
+      const handleDelete = async (id) => {
+        Modal.confirm({
+          title: '确认删除',
+          content: '确定要删除此任务吗？',
+          onOk: async () => {
+            try {
+              const res = await axios.delete(`/api/todos/${id}`);
+              if (res.data.success) {
+                message.success('任务已删除');
+                setModalVisible(false);
+                loadTodos();
+                loadStats();
+              }
+            } catch (err) {
+              message.error('删除失败');
+            }
+          }
+        });
+      };
+
+      // 添加子任务
+      const handleAddSubtask = async () => {
+        try {
+          const values = await subtaskForm.validateFields();
+          const res = await axios.post('/api/todos/subtasks', {
+            todo_id: editingTodo.id,
+            content: values.content,
+            priority: 2
+          });
+          if (res.data.success) {
+            message.success('子任务添加成功');
+            subtaskForm.resetFields();
+            loadSubtasks(editingTodo.id);
+            loadTodos();
+          }
+        } catch (err) {
+          message.error('添加失败');
+        }
+      };
+
+      // 切换子任务状态
+      const toggleSubtaskStatus = async (id, completed) => {
+        try {
+          const res = await axios.put(`/api/todos/subtasks/${id}`, { completed });
+          if (res.data.success) loadTodos();
+        } catch (err) {
+          message.error('更新失败');
+        }
+      };
+
+      // 删除子任务
+      const deleteSubtask = async (id) => {
+        try {
+          const res = await axios.delete(`/api/todos/subtasks/${id}`);
+          if (res.data.success) {
+            message.success('子任务已删除');
+            loadSubtasks(editingTodo.id);
+            loadTodos();
+          }
+        } catch (err) {
+          message.error('删除失败');
+        }
+      };
+
+      // 开始编辑子任务
+      const startEditSubtask = (subtask) => {
+        setEditingSubtaskId(subtask.id);
+        setEditingSubtaskContent(subtask.content);
+      };
+
+      // 保存子任务编辑
+      const saveSubtaskEdit = async (id) => {
+        if (!editingSubtaskContent.trim()) {
+          setEditingSubtaskId(null);
+          return;
+        }
+        try {
+          const res = await axios.put(`/api/todos/subtasks/${id}`, { content: editingSubtaskContent });
+          if (res.data.success) {
+            message.success('子任务已更新');
+            loadSubtasks(editingTodo.id);
+            loadTodos();
+          }
+        } catch (err) {
+          message.error('更新失败');
+        }
+        setEditingSubtaskId(null);
+      };
+
+      // 批量完成
+      const batchComplete = async () => {
+        try {
+          await Promise.all(selectedIds.map(id => axios.put(`/api/todos/${id}`, { completed: true })));
+          message.success(`已完成 ${selectedIds.length} 个任务`);
+          setSelectedIds([]);
+          loadTodos();
+          loadStats();
+        } catch (err) {
+          message.error('操作失败');
+        }
+      };
+
+      // 批量删除
+      const batchDelete = async () => {
+        Modal.confirm({
+          title: '确认删除',
+          content: `确定要删除选中的 ${selectedIds.length} 个任务吗？`,
+          onOk: async () => {
+            try {
+              await Promise.all(selectedIds.map(id => axios.delete(`/api/todos/${id}`)));
+              message.success(`已删除 ${selectedIds.length} 个任务`);
+              setSelectedIds([]);
+              loadTodos();
+              loadStats();
+            } catch (err) {
+              message.error('删除失败');
+            }
+          }
+        });
+      };
+
+      // 优先级图标
+      const getPriorityIcon = (priority) => {
+        return { 1: '🔴', 2: '🟡', 3: '🟢' }[priority] || '🟡';
+      };
+
+      // 格式化日期
+      const formatDueDate = (dateStr) => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const days = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
+        if (days < 0) return `逾期${Math.abs(days)}天`;
+        if (days === 0) return '今天';
+        if (days === 1) return '明天';
+        if (days <= 7) return `${days}天后`;
+        return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+      };
+
+      // 格式化时间
+      const formatTime = (dateStr) => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const days = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+        if (days === 0) return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        if (days === 1) return '昨天';
+        if (days < 7) return `${days}天前`;
+        return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+      };
+
+      // 侧边栏菜单
+      const sidebarMenu = (
+        <Menu
+          mode="inline"
+          selectedKeys={[filter]}
+          onClick={({ key }) => setFilter(key)}
+          style={{ border: 'none' }}
+        >
+          <Menu.Item key="all" icon={<span>📋</span>}>
+            <Space between><span>全部任务</span><Badge count={stats.total} size="small" /></Space>
+          </Menu.Item>
+          <Menu.Item key="pending" icon={<span>⏳</span>}>
+            <Space between><span>待处理</span><Badge count={stats.pending} size="small" /></Space>
+          </Menu.Item>
+          <Menu.Item key="completed" icon={<span>✅</span>}>
+            <Space between><span>已完成</span><Badge count={stats.completed} size="small" /></Space>
+          </Menu.Item>
+        </Menu>
+      );
+
+      return (
+        <div className="app-container">
+          {/* 头部卡片 */}
+          <Card className="header-card" bordered={false}>
+            <Row align="middle" justify="space-between">
+              <Col>
+                <Space>
+                  <span style={{ fontSize: 36 }}>✅</span>
+                  <div>
+                    <h1 style={{ fontSize: 24, fontWeight: 'bold', margin: 0 }}>TODO List</h1>
+                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>v7 - React + Ant Design v5</Text>
+                  </div>
+                </Space>
+              </Col>
+              <Col>
+                <Space size="large">
+                  <div className="mode-switch">
+                    <button 
+                      className={`mode-btn ${mode === 'work' ? 'active' : ''}`}
+                      onClick={() => setMode('work')}
+                    >💼 工作</button>
+                    <button 
+                      className={`mode-btn ${mode === 'study' ? 'active' : ''}`}
+                      onClick={() => setMode('study')}
+                    >📚 学习</button>
+                    <button 
+                      className={`mode-btn ${mode === 'life' ? 'active' : ''}`}
+                      onClick={() => setMode('life')}
+                    >🏠 生活</button>
+                  </div>
+                  <Space>
+                    <Tag color="default">总计：{stats.total}</Tag>
+                    <Tag color="orange">待处理：{stats.pending}</Tag>
+                    <Tag color="green">已完成：{stats.completed}</Tag>
+                  </Space>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+
+          <Layout style={{ background: 'transparent' }}>
+            {/* 侧边栏 */}
+            <Sider width={280} style={{ background: 'transparent', marginRight: 24 }}>
+              <Card className="sidebar-menu" title="筛选" bordered={false}>
+                {sidebarMenu}
+              </Card>
+              <Card style={{ marginTop: 16 }} title="排序" bordered={false}>
+                <Select 
+                  value={sort} 
+                  onChange={setSort} 
+                  style={{ width: '100%' }}
+                  options={[
+                    { value: 'created_desc', label: '按创建时间 (最新)' },
+                    { value: 'created_asc', label: '按创建时间 (最早)' },
+                    { value: 'priority_desc', label: '按优先级 (高到低)' },
+                    { value: 'priority_asc', label: '按优先级 (低到高)' },
+                    { value: 'due_date_asc', label: '按截止日期 (临近)' }
+                  ]}
+                />
+              </Card>
+            </Sider>
+
+            {/* 主内容区 */}
+            <Content>
+              {/* 添加任务 */}
+              <Card className="stats-card" bordered={false} style={{ marginBottom: 16 }}>
+                <Form form={form} onFinish={handleAddTodo} layout="inline">
+                  <Form.Item name="content" style={{ flex: 1 }} rules={[{ required: true, message: '请输入任务内容' }]}>
+                    <Input placeholder="添加新任务..." size="large" onPressEnter={() => form.submit()} />
+                  </Form.Item>
+                  <Form.Item>
+                    <Button type="primary" htmlType="submit" size="large" icon={<span>➕</span>}>添加</Button>
+                  </Form.Item>
+                </Form>
+              </Card>
+
+              {/* 搜索栏 */}
+              <Card bordered={false} style={{ marginBottom: 16 }}>
+                <Search 
+                  placeholder="搜索任务..." 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  allowClear
+                  size="large"
+                />
+              </Card>
+
+              {/* 任务列表 */}
+              <Card bordered={false}>
+                <Row align="middle" justify="space-between" style={{ marginBottom: 16 }}>
+                  <Col><Text strong>任务列表</Text></Col>
+                  <Col><Text type="secondary">{filteredTodos.length} 个任务</Text></Col>
+                </Row>
+
+                {loading ? (
+                  <div style={{ textAlign: 'center', padding: 40 }}>
+                    <Spin size="large" tip="加载中..." />
+                  </div>
+                ) : filteredTodos.length === 0 ? (
+                  <Empty description="暂无任务" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                ) : (
+                  <>
+                    {selectedIds.length > 0 && (
+                      <Card size="small" style={{ marginBottom: 16, background: '#e6f7ff' }}>
+                        <Space>
+                          <Text>已选择 {selectedIds.length} 个任务</Text>
+                          <Button size="small" onClick={batchComplete}>✅ 完成</Button>
+                          <Button size="small" danger onClick={batchDelete}>🗑️ 删除</Button>
+                          <Button size="small" onClick={() => setSelectedIds([])}>取消</Button>
+                        </Space>
+                      </Card>
+                    )}
+
+                    {filteredTodos.map(todo => (
+                      <Card 
+                        key={todo.id} 
+                        className="task-card"
+                        size="small"
+                        styles={{ body: { padding: '12px 16px' } }}
+                      >
+                        <Space align="start" style={{ width: '100%' }}>
+                          <Checkbox 
+                            checked={todo.completed} 
+                            onChange={(e) => toggleTodoStatus(todo.id, e.target.checked)}
+                          />
+                          <div className={`task-content ${todo.completed ? 'completed' : ''}`} onClick={() => openEditModal(todo)}>
+                            <Text className="task-text" style={{ fontSize: 15, display: 'block', marginBottom: 8 }}>
+                              {todo.content}
+                            </Text>
+                            <Space wrap>
+                              <span className={`priority-badge priority-${todo.priority === 1 ? 'high' : todo.priority === 2 ? 'medium' : 'low'}`}>
+                                {getPriorityIcon(todo.priority)} {todo.priority === 1 ? '高' : todo.priority === 2 ? '中' : '低'}
+                              </span>
+                              {todo.due_date && (
+                                <Tag color={new Date(todo.due_date) < new Date() && !todo.completed ? 'red' : 'default'}>
+                                  📅 {formatDueDate(todo.due_date)}
+                                </Tag>
+                              )}
+                              {todo.subtask_count > 0 && (
+                                <span className="subtask-info">
+                                  📝 {todo.subtask_completed}/{todo.subtask_count}
+                                </span>
+                              )}
+                              {todo.note && (
+                                <span className="note-badge">📝 备注</span>
+                              )}
+                              <Text type="secondary" style={{ fontSize: 12 }}>⏰ {formatTime(todo.created_at)}</Text>
+                            </Space>
+                          </div>
+                          <Space>
+                            <Button size="small" onClick={() => openEditModal(todo)}>✏️</Button>
+                            <Button size="small" danger onClick={() => handleDelete(todo.id)}>🗑️</Button>
+                          </Space>
+                        </Space>
+                      </Card>
+                    ))}
+                  </>
+                )}
+              </Card>
+            </Content>
+          </Layout>
+
+          {/* 编辑模态框 */}
+          <Modal
+            title="编辑任务"
+            open={modalVisible}
+            onOk={handleSaveEdit}
+            onCancel={() => setModalVisible(false)}
+            width={700}
+            footer={[
+              <Button key="delete" danger onClick={() => handleDelete(editingTodo?.id)}>🗑️ 删除</Button>,
+              <Button key="cancel" onClick={() => setModalVisible(false)}>取消</Button>,
+              <Button key="save" type="primary" onClick={handleSaveEdit}>💾 保存</Button>
+            ]}
+          >
+            <Form form={form} layout="vertical">
+              <Form.Item name="completed" valuePropName="checked">
+                <Checkbox size="large">标记为已完成</Checkbox>
+              </Form.Item>
+              <Form.Item name="content" label="任务内容" rules={[{ required: true }]}>
+                <Input.TextArea rows={3} />
+              </Form.Item>
+              <Form.Item name="note" label="备注">
+                <Input.TextArea rows={2} placeholder="添加备注..." />
+              </Form.Item>
+              <Form.Item name="due_date" label="截止日期">
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Form>
+
+            <Divider>子任务</Divider>
+            
+            <Form form={subtaskForm} onFinish={handleAddSubtask} layout="inline">
+              <Form.Item name="content" style={{ flex: 1 }} rules={[{ required: true }]}>
+                <Input placeholder="添加子任务..." onPressEnter={() => subtaskForm.submit()} />
+              </Form.Item>
+              <Form.Item>
+                <Button type="primary" htmlType="submit">添加</Button>
+              </Form.Item>
+            </Form>
+
+            <div style={{ marginTop: 16, maxHeight: 200, overflowY: 'auto' }}>
+              {subtasks.map(subtask => (
+                <Card 
+                  key={subtask.id} 
+                  size="small" 
+                  style={{ marginBottom: 8, background: subtask.completed ? '#f5f5f5' : '#fff' }}
+                >
+                  <Space style={{ width: '100%' }}>
+                    <Checkbox checked={subtask.completed} onChange={(e) => toggleSubtaskStatus(subtask.id, e.target.checked)} />
+                    {editingSubtaskId === subtask.id ? (
+                      <Input 
+                        value={editingSubtaskContent}
+                        onChange={(e) => setEditingSubtaskContent(e.target.value)}
+                        onBlur={() => saveSubtaskEdit(subtask.id)}
+                        onPressEnter={() => saveSubtaskEdit(subtask.id)}
+                        autoFocus
+                        style={{ flex: 1 }}
+                        size="small"
+                      />
+                    ) : (
+                      <Text 
+                        style={{ flex: 1, textDecoration: subtask.completed ? 'line-through' : 'none', color: subtask.completed ? '#999' : 'inherit', cursor: 'pointer' }}
+                        onDoubleClick={() => startEditSubtask(subtask)}
+                      >
+                        {subtask.content}
+                      </Text>
+                    )}
+                    <Button size="small" danger type="text" onClick={() => deleteSubtask(subtask.id)}>🗑️</Button>
+                  </Space>
+                </Card>
+              ))}
+              {subtasks.length === 0 && <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: 16 }}>暂无子任务</Text>}
+            </div>
+          </Modal>
+        </div>
+      );
+    }
+
+    // 渲染应用
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<TodoApp />);
+  </script>
+</body>
+</html>

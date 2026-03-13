@@ -84,9 +84,17 @@ x-static
 - **v1** (`/todo/`) - 原生 HTML/CSS/JS 实现
 - **v2** (`/todo-v2/`) - Tailwind CSS + Alpine.js 实现，现代化 UI
 - **v3** (`/todo-v3/`) - Bootstrap 5 + Alpine.js 实现，经典组件库
-- **v4** (`/todo-v4/`) - Alpine.js + Tailwind + axios，轻量级响应式
-- **v5** (`/todo-v5/`) - Tailwind + Petite-Vue + axios，轻量级 Vue 方案（本地依赖）
-- **v6** (`/todo-v6/`) - Vue 3 + Tailwind + axios，完整 Vue 3 体验
+- **v4** (`/todo-v4/`) - Alpine.js + Tailwind CSS，轻量级响应式
+- **v5** (`/todo-v5/`) - Petite-Vue + Tailwind CSS，轻量级 Vue 方案
+- **v6** (`/todo-v6/`) - Vue 3 + Tailwind CSS，完整 Vue 3 体验
+- **v7** (`/todo-v7/`) - React 18 + Ant Design v5，企业级 UI 组件
+
+**v7 React + Ant Design 特性：**
+- ⚛️ React 18 Hooks
+- 🎨 Ant Design v5 组件库
+- 💯 企业级 UI 设计
+- 📦 完整的组件生态
+- 🎯 适合企业项目
 
 **v4 Alpine.js 特性：**
 - 🎯 使用 Alpine.js 3.x
