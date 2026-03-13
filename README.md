@@ -84,13 +84,16 @@ x-static
 - **v1** (`/todo/`) - 原生 HTML/CSS/JS 实现
 - **v2** (`/todo-v2/`) - Tailwind CSS + Alpine.js 实现，现代化 UI
 - **v3** (`/todo-v3/`) - Bootstrap 5 + Alpine.js 实现，经典组件库
+- **v4** (`/todo-v4/`) - Alpine.js + Tailwind + axios，轻量级响应式
+- **v5** (`/todo-v5/`) - Tailwind + Petite-Vue + axios，轻量级 Vue 方案（本地依赖）
+- **v6** (`/todo-v6/`) - Vue 3 + Tailwind + axios，完整 Vue 3 体验
 
-**v2.1 新增功能：**
-- 💼 业务模式切换（工作/学习/生活）
-- ✅ 批量选择和批量操作
-- 📝 子任务 inline 编辑（双击切换输入框，回车保存）
-- 🌅 智能问候语和欢迎提示
-- 🎨 优化的 UI 设计和动画效果
+**v4 Alpine.js 特性：**
+- 🎯 使用 Alpine.js 3.x
+- 🔧 x-data / x-init 响应式
+- 💡 x-model 双向绑定
+- 🔄 x-for / x-if / x-show 模板指令
+- ⚡ 轻量级（仅 15KB）
 
 **API 接口：**
 ```bash

@@ -1,5 +1,25 @@
 # 参考  当前版本的 TODO，创建版本/todo-v2  页面，基于框架基于HTML + JS + Tailwind CSS (CDN) + Alpine.js 来实现，可以基于原版的样式，也可以按照自己的想法来实现
 
+黄金组合：Shoelace (负责 UI 组件) + Alpine.js (负责业务逻辑) + Tailwind (负责布局排版)。
+这是目前原生开发中最强大、最灵活、且 AI 最容易生成的“三剑客”。
+
+| 特性 | Shoelace | Alpine.js | Bootstrap |
+| :--- | :--- | :--- | :--- |
+| 核心定位 | UI 组件库 (按钮、表格、弹窗) | 交互逻辑框架 (状态管理、事件绑定) | UI 框架 + 简单逻辑 |
+| 你需要写什么 | 几乎只写 HTML 标签 `<sl-xxx>` | 写 HTML + `x-data` 逻辑 | 写 HTML + class 类名 |
+| 样式定制 | 通过 CSS 变量 (Tokens) 全局定制 | 需自己写 CSS 或配合 Tailwind | 需覆盖 class 或编译 Sass |
+| 交互逻辑 | 内置 (点击自动弹窗、自动校验) | 手写 (需自己写 `open = !open`) | 内置 (依赖 Bootstrap JS) |
+| AI 生成难度 | 极低 (标签语义清晰) | 低 (逻辑需 AI 推理) | 低 (类名需记忆) |
+| 最佳搭档 | 原生 JS 或 Alpine.js | Tailwind CSS | 无 (自带样式) |
+
+
 
 ## v3 版本
 基于HTML + JS + Bootstrap 5 (CDN)，实现个 /todo-v3 版本
+
+
+## v4版本
+
+参考 /todo-v2版本，推荐使用HTML + JS + Tailwind CSS (CDN) + Shoelace + Petite-Vue + axios 实现 /todo-v4 版本
+
+参考 /todo-v2版本，推荐使用HTML + JS + Tailwind CSS (CDN)  + Petite-Vue + axios 实现 /todo-v5 版本

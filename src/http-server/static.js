@@ -36,6 +36,9 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // 允许访问 node_modules 目录（用于本地依赖）
+  app.use('/node_modules', express.static(path.join(ROOT_DIR, 'node_modules')));
+
   // 挂载 XLSX 解析 API 路由（必须在通用 /api 之前）
   app.use('/api/xlsx', xlsxParserRouter);
 
@@ -71,6 +74,27 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/todo-v3', express.static(todoV3Dir));
   app.get('/todo-v3', (req, res) => {
     res.sendFile(path.join(todoV3Dir, 'index.html'));
+  });
+
+  // TODO v4 应用前端页面（Tailwind + Shoelace + Petite-Vue + axios）
+  const todoV4Dir = path.join(ROOT_DIR, 'public/todo-v4');
+  app.use('/todo-v4', express.static(todoV4Dir));
+  app.get('/todo-v4', (req, res) => {
+    res.sendFile(path.join(todoV4Dir, 'index.html'));
+  });
+
+  // TODO v5 应用前端页面（Tailwind + Petite-Vue + axios）
+  const todoV5Dir = path.join(ROOT_DIR, 'public/todo-v5');
+  app.use('/todo-v5', express.static(todoV5Dir));
+  app.get('/todo-v5', (req, res) => {
+    res.sendFile(path.join(todoV5Dir, 'index.html'));
+  });
+
+  // TODO v6 应用前端页面（Vue 3 + Tailwind + axios）
+  const todoV6Dir = path.join(ROOT_DIR, 'public/todo-v6');
+  app.use('/todo-v6', express.static(todoV6Dir));
+  app.get('/todo-v6', (req, res) => {
+    res.sendFile(path.join(todoV6Dir, 'index.html'));
   });
 
   // 番茄时钟前端页面
