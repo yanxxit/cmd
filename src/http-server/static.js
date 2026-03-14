@@ -14,6 +14,7 @@ import httpbinApiRouter from './httpbin-api.js';
 import mockApiRouter from './mock-api.js';
 import pgliteExportApiRouter from './pglite-export-api.js';
 import xlsxParserRouter from './xlsx-parser.js';
+import aiChatApiRouter from './ai-chat-api.js';
 import { createRequestLogger } from './request-logger.js';
 import requestLoggerApiRouter from './request-logger-api.js';
 import { initDatabase as initTodoDatabase } from '../model/database.js';
@@ -82,6 +83,9 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 挂载 PGLite 导出 API 路由
   app.use('/api/pglite', pgliteExportApiRouter);
+
+  // 挂载 AI 聊天 API 路由
+  app.use('/api/ai', aiChatApiRouter);
 
   // 挂载具体 API 路由（必须在通用 /api 之前）
   app.use('/api/todos', todoApiRouter);
@@ -213,6 +217,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/pglite-export', express.static(pgliteExportDir));
   app.get('/pglite-export', (req, res) => {
     res.sendFile(path.join(pgliteExportDir, 'index.html'));
+  });
+
+  // AI 聊天工具
+  const aiChatDir = path.join(ROOT_DIR, 'public/ai-chat');
+  app.use('/ai-chat', express.static(aiChatDir));
+  app.get('/ai-chat', (req, res) => {
+    res.sendFile(path.join(aiChatDir, 'index.html'));
   });
 
   // 用户目录静态资源（最后）

@@ -6,13 +6,17 @@
   <title>🗄️ PGLite 数据导出工具</title>
   
   <!-- Vue 3 -->
-  <script src="https://cdn.staticfile.org/vue/3.4.21/vue.global.prod.js"></script>
+  <script src="/libs/vue/dist/vue.global.prod.js"></script>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- XLSX (用于 Excel 导出) -->
-  <script src="https://cdn.staticfile.org/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="/libs/xlsx/dist/xlsx.full.min.js"></script>
+  
+  <!-- SQL 语法高亮 -->
+  <script src="/libs/prismjs/prism.js"></script>
+  <link rel="stylesheet" href="/libs/prismjs/themes/prism-tomorrow.min.css">
   
   <style>
     :root {
@@ -23,6 +27,9 @@
       --border-color: #e5e7eb;
       --accent-color: #0ea5e9;
       --accent-gradient: linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%);
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
     }
     
     [data-theme="dark"] {
@@ -43,7 +50,7 @@
       background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
     }
     
-    .container { max-width: 1600px; margin: 0 auto; }
+    .container { max-width: 1800px; margin: 0 auto; }
     
     .card {
       background: var(--bg-primary);
@@ -109,6 +116,11 @@
       color: white;
     }
     
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+    }
+    
     .btn-sm { padding: 8px 14px; font-size: 13px; }
     
     .output-box {
@@ -129,6 +141,8 @@
       overflow-x: auto;
       border-radius: 8px;
       border: 1px solid var(--border-color);
+      max-height: 500px;
+      overflow-y: auto;
     }
     
     .data-table {
@@ -141,12 +155,16 @@
       border: 1px solid var(--border-color);
       padding: 12px 16px;
       text-align: left;
+      white-space: nowrap;
     }
     
     .data-table th {
       background: var(--accent-gradient);
       color: white;
       font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
     
     .data-table tr:nth-child(even) {
@@ -233,6 +251,72 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    
+    .sql-editor {
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .query-history {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .query-history-item {
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      font-size: 13px;
+      font-family: monospace;
+    }
+    
+    .query-history-item:hover {
+      background: rgba(14, 165, 233, 0.1);
+      border-color: var(--accent-color);
+    }
+    
+    .syntax-help {
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    
+    .syntax-help h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    
+    .syntax-help code {
+      display: block;
+      background: var(--bg-primary);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 4px;
+      font-family: monospace;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 4px;
+    }
+    
+    .badge-select { background: #3b82f6; color: white; }
+    .badge-where { background: #10b981; color: white; }
+    .badge-join { background: #8b5cf6; color: white; }
+    .badge-group { background: #f59e0b; color: white; }
+    .badge-order { background: #ef4444; color: white; }
   </style>
 </head>
 <body>
@@ -246,31 +330,98 @@
       <!-- 头部 -->
       <header class="card" style="margin-bottom: 24px; text-align: center;">
         <h1 class="text-3xl font-bold mb-2" :class="isDark ? 'text-white' : 'text-gray-900'">🗄️ PGLite 数据导出工具</h1>
-        <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">SQL 查询 · CSV 导出 · SQL 导出 · Excel 导出</p>
+        <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+          SQL 查询 · CSV 导出 · SQL 导出 · Excel 导出 · 语法高亮
+        </p>
       </header>
 
       <!-- SQL 查询区 -->
       <div class="card" style="margin-bottom: 24px;">
-        <h2 class="text-xl font-bold mb-4" :class="isDark ? 'text-white' : 'text-gray-900'">📝 SQL 查询</h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold" :class="isDark ? 'text-white' : 'text-gray-900'">📝 SQL 查询</h2>
+          <div class="flex gap-2">
+            <button @click="formatSQL" class="btn btn-secondary btn-sm">
+              ✨ 格式化
+            </button>
+            <button @click="showHistory = !showHistory" class="btn btn-secondary btn-sm">
+              📜 历史
+            </button>
+          </div>
+        </div>
+        
         <div class="mb-4">
           <textarea 
             v-model="sqlQuery" 
-            placeholder="输入 SQL 查询语句，例如：SELECT * FROM todos LIMIT 100"
-            class="form-textarea"
-            style="height: 120px;"
+            @keydown.ctrl.enter="executeQuery"
+            @keydown.cmd.enter="executeQuery"
+            placeholder="输入 SQL 查询语句，例如：&#10;SELECT * FROM todos WHERE completed = false&#10;LIMIT 100;"
+            class="form-textarea sql-editor"
+            style="height: 160px;"
           ></textarea>
         </div>
-        <div class="flex gap-2">
+        
+        <div class="flex flex-wrap gap-2 mb-4">
           <button @click="executeQuery" class="btn btn-primary" :disabled="loading">
             <span v-if="loading" class="loading"></span>
             {{ loading ? '执行中...' : '▶️ 执行查询' }}
+            <span class="text-xs opacity-75 ml-1">(Ctrl+Enter)</span>
           </button>
           <button @click="loadTables" class="btn btn-secondary" :disabled="loading">
-            📋 加载表结构
+            📋 加载表
           </button>
           <button @click="clearResults" class="btn btn-secondary">
-            🗑️ 清空结果
+            🗑️ 清空
           </button>
+          <div class="flex-1"></div>
+          <button @click="saveQuery" class="btn btn-success btn-sm">
+            💾 保存查询
+          </button>
+        </div>
+
+        <!-- 查询历史 -->
+        <div v-if="showHistory" class="query-history mb-4">
+          <div 
+            v-for="(item, index) in queryHistory" 
+            :key="index"
+            @click="selectHistory(index)"
+            class="query-history-item"
+          >
+            <div class="flex items-center justify-between">
+              <code>{{ item.sql.substring(0, 80) }}{{ item.sql.length > 80 ? '...' : '' }}</code>
+              <button @click.stop="deleteHistory(index)" class="btn btn-danger btn-sm">🗑️</button>
+            </div>
+            <div class="text-xs text-gray-500 mt-1">{{ item.time }}</div>
+          </div>
+          <div v-if="queryHistory.length === 0" class="text-center text-gray-400 py-4">
+            暂无查询历史
+          </div>
+        </div>
+
+        <!-- SQL 语法帮助 -->
+        <div class="syntax-help">
+          <h4>📚 常用 SQL 语法</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <span class="badge badge-select">SELECT</span>
+              <code>SELECT id, content FROM todos WHERE completed = false</code>
+              
+              <span class="badge badge-where">WHERE</span>
+              <code>WHERE priority = 1 AND created_at > '2026-01-01'</code>
+              
+              <span class="badge badge-join">JOIN</span>
+              <code>SELECT * FROM todos t LEFT JOIN subtasks s ON t.id = s.todo_id</code>
+            </div>
+            <div>
+              <span class="badge badge-group">GROUP BY</span>
+              <code>SELECT priority, COUNT(*) FROM todos GROUP BY priority</code>
+              
+              <span class="badge badge-order">ORDER BY</span>
+              <code>ORDER BY created_at DESC LIMIT 100</code>
+              
+              <span class="badge badge-select">聚合函数</span>
+              <code>SELECT COUNT(*), AVG(priority), MAX(created_at) FROM todos</code>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -287,6 +438,33 @@
             📄 {{ table.table_name }}
           </button>
         </div>
+        
+        <!-- 表详情 -->
+        <div v-if="selectedTableInfo" class="mt-4 p-4" style="background: var(--bg-secondary); border-radius: 8px;">
+          <h3 class="font-bold mb-2" :class="isDark ? 'text-white' : 'text-gray-900'">
+            📋 {{ selectedTableInfo.tableName }} 表结构
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 class="font-semibold mb-2 text-sm" :class="isDark ? 'text-gray-300' : 'text-gray-700'">列信息</h4>
+              <div class="text-xs space-y-1">
+                <div v-for="col in selectedTableInfo.columns" :key="col.column_name" class="flex items-center gap-2">
+                  <span class="font-mono" :class="isDark ? 'text-blue-400' : 'text-blue-600'">{{ col.column_name }}</span>
+                  <span class="text-gray-500">{{ col.data_type }}</span>
+                  <span v-if="col.is_nullable === 'NO'" class="badge" style="background: #ef4444; color: white;">NOT NULL</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-2 text-sm" :class="isDark ? 'text-gray-300' : 'text-gray-700'">索引</h4>
+              <div class="text-xs space-y-1">
+                <div v-for="idx in selectedTableInfo.indexes" :key="idx.indexname">
+                  <span class="font-mono" :class="isDark ? 'text-purple-400' : 'text-purple-600'">{{ idx.indexname }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 结果展示 -->
@@ -295,18 +473,21 @@
           <h2 class="text-xl font-bold" :class="isDark ? 'text-white' : 'text-gray-900'">
             📈 查询结果 
             <span class="text-sm font-normal" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-              ({{ queryResult.rows?.length || 0 }} 行)
+              ({{ queryResult.rows?.length || 0 }} 行，{{ queryTime }}ms)
             </span>
           </h2>
           <div class="flex gap-2">
             <button @click="exportCSV" class="btn btn-success btn-sm" :disabled="!queryResult.rows?.length">
-              📄 导出 CSV
+              📄 CSV
             </button>
             <button @click="exportSQL" class="btn btn-primary btn-sm" :disabled="!queryResult.rows?.length">
-              💾 导出 SQL
+              💾 SQL
             </button>
             <button @click="exportExcel" class="btn btn-secondary btn-sm" :disabled="!queryResult.rows?.length">
-              📊 导出 Excel
+              📊 Excel
+            </button>
+            <button @click="copyJSON" class="btn btn-warning btn-sm" :disabled="!queryResult.rows?.length">
+              📋 复制 JSON
             </button>
           </div>
         </div>
@@ -351,6 +532,12 @@
         <!-- CSV 视图 -->
         <div v-show="outputType === 'csv'" class="output-box" v-text="csvOutput"></div>
       </div>
+
+      <!-- 错误信息 -->
+      <div class="card" v-if="errorMessage" style="margin-top: 24px; border-color: #ef4444;">
+        <h3 class="text-lg font-bold text-red-600 mb-2">❌ 错误信息</h3>
+        <pre class="text-sm text-red-600" style="white-space: pre-wrap;" v-text="errorMessage"></pre>
+      </div>
     </div>
 
     <!-- Toast 提示 -->
@@ -366,8 +553,13 @@
         const sqlQuery = ref('SELECT * FROM todos LIMIT 100;');
         const loading = ref(false);
         const queryResult = ref(null);
+        const queryTime = ref(0);
         const tables = ref([]);
+        const selectedTableInfo = ref(null);
         const outputType = ref('table');
+        const showHistory = ref(false);
+        const queryHistory = ref([]);
+        const errorMessage = ref('');
         const toast = ref({ show: false, message: '' });
 
         // JSON 输出
@@ -381,7 +573,6 @@
           if (!queryResult.value?.rows) return '';
           const fields = queryResult.value.fields.map(f => f.name);
           const rows = queryResult.value.rows.map(row => {
-            // PGLite 返回的是对象，需要转换为数组
             const rowArray = Array.isArray(row) ? row : fields.map(f => row[f]);
             return rowArray.map(cell => {
               if (cell === null) return '';
@@ -402,6 +593,20 @@
           localStorage.setItem('pglite-export-theme', isDark.value ? 'dark' : 'light');
         };
 
+        // 格式化 SQL
+        const formatSQL = () => {
+          const keywords = ['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'ORDER BY', 'GROUP BY', 'LIMIT', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'AS', 'ON'];
+          let formatted = sqlQuery.value.toUpperCase();
+          
+          // 简单格式化
+          formatted = formatted
+            .replace(/\b(SELECT|FROM|WHERE|AND|OR|ORDER BY|GROUP BY|LIMIT|LEFT JOIN|RIGHT JOIN|INNER JOIN|AS|ON)\b/g, '\n$1 ')
+            .trim();
+          
+          sqlQuery.value = formatted;
+          showToast('✅ SQL 已格式化');
+        };
+
         // 执行查询
         const executeQuery = async () => {
           if (!sqlQuery.value.trim()) {
@@ -410,6 +615,9 @@
           }
           
           loading.value = true;
+          errorMessage.value = '';
+          const startTime = Date.now();
+          
           try {
             const response = await fetch('/api/pglite/query', {
               method: 'POST',
@@ -420,11 +628,15 @@
             const result = await response.json();
             if (result.success) {
               queryResult.value = result.data;
+              queryTime.value = Date.now() - startTime;
+              addToHistory(sqlQuery.value);
               showToast('✅ 查询成功');
             } else {
+              errorMessage.value = result.error;
               showToast('❌ ' + result.error);
             }
           } catch (err) {
+            errorMessage.value = err.message;
             showToast('❌ 查询失败：' + err.message);
           } finally {
             loading.value = false;
@@ -451,14 +663,28 @@
         };
 
         // 选择表
-        const selectTable = (tableName) => {
+        const selectTable = async (tableName) => {
           sqlQuery.value = `SELECT * FROM ${tableName} LIMIT 100;`;
+          
+          // 加载表详情
+          try {
+            const response = await fetch(`/api/pglite/table/${tableName}`);
+            const result = await response.json();
+            if (result.success) {
+              selectedTableInfo.value = result.data;
+            }
+          } catch (err) {
+            console.error('加载表详情失败:', err);
+          }
+          
           executeQuery();
         };
 
         // 清空结果
         const clearResults = () => {
           queryResult.value = null;
+          selectedTableInfo.value = null;
+          errorMessage.value = '';
           outputType.value = 'table';
         };
 
@@ -512,7 +738,7 @@
           const rows = queryResult.value.rows.map(row => {
             const obj = {};
             fields.forEach((field, i) => {
-              obj[field] = row[i];
+              obj[field] = Array.isArray(row) ? row[i] : row[field];
             });
             return obj;
           });
@@ -522,6 +748,50 @@
           XLSX.utils.book_append_sheet(wb, ws, 'Data');
           XLSX.writeFile(wb, `export_${new Date().getTime()}.xlsx`);
           showToast('✅ Excel 导出成功');
+        };
+
+        // 复制 JSON
+        const copyJSON = () => {
+          navigator.clipboard.writeText(jsonOutput.value);
+          showToast('✅ JSON 已复制');
+        };
+
+        // 添加到历史
+        const addToHistory = (sql) => {
+          const now = new Date();
+          const time = now.toLocaleString('zh-CN');
+          queryHistory.value.unshift({ sql, time });
+          if (queryHistory.value.length > 20) {
+            queryHistory.value.pop();
+          }
+          localStorage.setItem('pglite-query-history', JSON.stringify(queryHistory.value));
+        };
+
+        // 选择历史
+        const selectHistory = (index) => {
+          sqlQuery.value = queryHistory.value[index].sql;
+          showHistory.value = false;
+        };
+
+        // 删除历史
+        const deleteHistory = (index) => {
+          queryHistory.value.splice(index, 1);
+          localStorage.setItem('pglite-query-history', JSON.stringify(queryHistory.value));
+        };
+
+        // 保存查询
+        const saveQuery = () => {
+          const name = prompt('请输入查询名称:');
+          if (!name) return;
+          
+          const saved = JSON.parse(localStorage.getItem('pglite-saved-queries') || '[]');
+          saved.unshift({
+            name,
+            sql: sqlQuery.value,
+            time: new Date().toLocaleString('zh-CN')
+          });
+          localStorage.setItem('pglite-saved-queries', JSON.stringify(saved));
+          showToast('✅ 查询已保存');
         };
 
         // Toast 提示
@@ -534,6 +804,12 @@
           const savedTheme = localStorage.getItem('pglite-export-theme') || 'light';
           isDark.value = savedTheme === 'dark';
           document.documentElement.setAttribute('data-theme', savedTheme);
+          
+          const savedHistory = localStorage.getItem('pglite-query-history');
+          if (savedHistory) {
+            queryHistory.value = JSON.parse(savedHistory);
+          }
+          
           loadTables();
         });
 
@@ -543,18 +819,28 @@
           sqlQuery,
           loading,
           queryResult,
+          queryTime,
           tables,
+          selectedTableInfo,
           outputType,
+          showHistory,
+          queryHistory,
+          errorMessage,
           toast,
           jsonOutput,
           csvOutput,
+          formatSQL,
           executeQuery,
           loadTables,
           selectTable,
           clearResults,
           exportCSV,
           exportSQL,
-          exportExcel
+          exportExcel,
+          copyJSON,
+          selectHistory,
+          deleteHistory,
+          saveQuery
         };
       }
     }).mount('#app');

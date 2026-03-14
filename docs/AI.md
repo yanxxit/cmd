@@ -23,3 +23,7 @@
 参考 /todo-v2版本，推荐使用HTML + JS + Tailwind CSS (CDN) + Shoelace + Petite-Vue + axios 实现 /todo-v4 版本
 
 参考 /todo-v2版本，推荐使用HTML + JS + Tailwind CSS (CDN)  + Petite-Vue + axios 实现 /todo-v5 版本
+
+## 
+
+实现一个 网页版本的 chat ai 功能，基本代码参考 @bin/chat.js,支持历史消息作为上下文，仅支持最近 2 条消息（包含，问题及回答（最好是精简化的））
