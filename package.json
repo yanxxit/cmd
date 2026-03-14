@@ -21,7 +21,8 @@
     "x-ls-size": "bin/ls-size.js",
     "x-ls-size-fast": "bin/ls-size-fast.js",
     "x-static": "bin/static.js",
-    "x-file-viewer": "bin/static.js"
+    "x-file-viewer": "bin/static.js",
+    "x-http-sniffer": "bin/http-sniffer.js"
   },
   "scripts": {
     "clear": "npm unlink",
@@ -66,6 +67,7 @@
     "marked-terminal": "^7.3.0",
     "morgan": "^1.10.0",
     "no-case": "^2.3.2",
+    "node-forge": "^1.3.3",
     "openai": "^6.17.0",
     "ora": "^5.4.1",
     "play-sound": "^1.1.5",
