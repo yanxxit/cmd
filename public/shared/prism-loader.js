@@ -46,7 +46,7 @@ const LANGUAGE_MAP = {
 };
 
 // CDN 基础路径
-const CDN_BASE = 'https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/';
+const CDN_BASE = '/libs/prismjs/components/';
 
 // 全局对象
 window.PrismLoader = {
@@ -75,29 +75,29 @@ async function loadLanguage(language) {
   if (!language || language === 'plaintext') {
     return;
   }
-  
+
   if (LOADED_LANGUAGES.has(language)) {
     return;
   }
-  
+
   try {
     // 检查是否已全局存在
     if (window.Prism && window.Prism.languages[language]) {
       LOADED_LANGUAGES.add(language);
       return;
     }
-    
+
     // 动态加载
     const script = document.createElement('script');
     script.src = `${CDN_BASE}prism-${language}.min.js`;
     script.async = false;
-    
+
     await new Promise((resolve, reject) => {
       script.onload = resolve;
       script.onerror = () => reject(new Error(`Failed to load language: ${language}`));
       document.head.appendChild(script);
     });
-    
+
     LOADED_LANGUAGES.add(language);
     console.log(`[Prism] Loaded language: ${language}`);
   } catch (error) {
@@ -114,7 +114,7 @@ async function preloadCommonLanguages() {
     'markup', 'css', 'json', 'markdown',
     'yaml', 'bash', 'sql'
   ];
-  
+
   await Promise.all(commonLanguages.map(loadLanguage));
 }
 
@@ -125,7 +125,7 @@ function highlightCode(code, language) {
   if (!code || !window.Prism || !window.Prism.languages[language]) {
     return code;
   }
-  
+
   return window.Prism.highlight(code, window.Prism.languages[language], language);
 }
 

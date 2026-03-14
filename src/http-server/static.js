@@ -18,6 +18,7 @@ import aiChatApiRouter from './ai-chat-api.js';
 import { createRequestLogger } from './request-logger.js';
 import requestLoggerApiRouter from './request-logger-api.js';
 import { initDatabase as initTodoDatabase } from '../model/database.js';
+import { createHashMiddleware, createStaticWithHashInjection } from './hash-middleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -242,13 +243,21 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 轻量级 Web IDE v2 (模块化版本)
   const webIdeLiteV2Dir = path.join(ROOT_DIR, 'public/web-ide-lite-v2');
+  
+  // 添加 hash 中间件（在静态文件服务之前）
+  app.use('/web-ide-lite-v2', createHashMiddleware(webIdeLiteV2Dir, { hashLength: 8 }));
   app.use('/web-ide-lite-v2', express.static(webIdeLiteV2Dir));
+  
+  // HTML 文件 hash 注入
+  app.use(createStaticWithHashInjection(webIdeLiteV2Dir, { hashLength: 8 }));
+  
   app.get('/web-ide-lite-v2', (req, res) => {
     res.sendFile(path.join(webIdeLiteV2Dir, 'index.html'));
   });
-  
+
   // 轻量级 Web IDE v2 JS 模块
   app.use('/web-ide-lite-v2/js', express.static(path.join(webIdeLiteV2Dir, 'js')));
+  app.use('/web-ide-lite-v2/js/actions', express.static(path.join(webIdeLiteV2Dir, 'js/actions')));
 
   // 用户目录静态资源（最后）
   app.use('/files', express.static(options.dir));

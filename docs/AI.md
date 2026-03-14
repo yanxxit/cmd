@@ -44,3 +44,18 @@
 
 
 ## 使用 component 实现功能
+
+1. 找出 3 个优化方向，分步骤进行优化
+
+## 优化前端引用开发逻辑
+
+针对 web-ide-lite-v2 项目，优化如下
+
+1. 使用 script type="module" 实现功能，期望在 from js 文件之后，添加对应的 hash 值，方便判断文件是否变化，进而更新缓存，
+```js
+<script type="module">
+  import { greet } from './utils.js';
+  greet('World');
+</script>
+```
+2. 针对`import { greet } from './utils.js?hash=123456';`，期望在 html 中引用时，也能添加对应的 hash 值，优先考虑第三方解决方案，实现自动添加 hash 值，要求实现简单，使用简单，最好直接引用一个 js 文件就能实现，其次，服务器端也能实现自动添加 hash 值，最后，可以使用脚本去小改的方式

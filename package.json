@@ -27,7 +27,9 @@
   "scripts": {
     "clear": "npm unlink",
     "local": "npm link",
-    "test:todo": "node test/todo-api-test.js"
+    "test:todo": "node test/todo-api-test.js",
+    "build:hash": "node scripts/build-hash.js",
+    "build:web-ide": "node scripts/build-hash.js public/web-ide-lite-v2"
   },
   "author": "yanxxit",
   "homepage": "https://www.yxxit.com/view/",
