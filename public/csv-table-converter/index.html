@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 CSV 转 Markdown/HTML 表格</title>
+  
+  <!-- Vue 3 (国内 CDN) -->
+  <script src="https://cdn.staticfile.org/vue/3.4.21/vue.global.prod.js"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.staticfile.org/tailwindcss/3.4.1/script.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #111827;
+      --border-color: #e5e7eb;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --muted-text: #6b7280;
+      --code-bg: #f3f4f6;
+    }
+    
+    [data-theme="dark"] {
+      --bg-color: #111827;
+      --text-color: #f9fafb;
+      --border-color: #374151;
+      --card-bg: #1f2937;
+      --input-bg: #374151;
+      --muted-text: #9ca3af;
+      --code-bg: #374151;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      transition: background 0.3s ease;
+    }
+    
+    [data-theme="dark"] body {
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    }
+    
+    .container { max-width: 1600px; margin: 0 auto; }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="dark"] .card {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .form-label { display: block; font-size: 14px; font-weight: 600; color: var(--text-color); margin-bottom: 8px; }
+    .form-input, .form-textarea, .form-select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      transition: all 0.2s;
+      font-family: 'Monaco', 'Consolas', monospace;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4); }
+    .btn-secondary { background: var(--input-bg); color: var(--text-color); border: 2px solid var(--border-color); }
+    .btn-secondary:hover { background: var(--border-color); }
+    .btn-success { background: #10b981; color: white; }
+    .btn-success:hover { background: #059669; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+    
+    .output-box {
+      background: var(--code-bg);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 13px;
+      color: var(--text-color);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 500px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+    }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+    .theme-toggle:hover { transform: scale(1.1); }
+    
+    .tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      font-weight: 500;
+      color: var(--muted-text);
+      transition: all 0.2s;
+      border-radius: 8px 8px 0 0;
+    }
+    .tab.active {
+      color: #0ea5e9;
+      border-bottom-color: #0ea5e9;
+      background: var(--input-bg);
+    }
+    
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .preview-table th, .preview-table td {
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .preview-table th {
+      background: var(--input-bg);
+      font-weight: 600;
+    }
+    .preview-table tr:hover {
+      background: var(--input-bg);
+    }
+    
+    .split-view {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    @media (max-width: 1024px) {
+      .split-view { grid-template-columns: 1fr; }
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      background: #10b981;
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+      {{ isDark ? '☀️' : '🌙' }}
+    </button>
+
+    <div class="container">
+      <!-- 页面标题 -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-2" :class="isDark ? 'text-white' : 'text-gray-900'">📊 CSV 转 Markdown/HTML 表格</h1>
+        <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">实时编辑 · 同步渲染 · 一键复制</p>
+      </div>
+
+      <!-- 设置选项 -->
+      <div class="card mb-6">
+        <div class="flex flex-wrap items-center gap-4">
+          <div>
+            <label class="form-label">分隔符</label>
+            <select v-model="delimiter" class="form-select w-32">
+              <option value=",">逗号 (,)</option>
+              <option value=";">分号 (;)</option>
+              <option value="|">竖线 (|)</option>
+              <option value="	">Tab</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">表头</label>
+            <select v-model="hasHeader" class="form-select w-32">
+              <option :value="true">有表头</option>
+              <option :value="false">无表头</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Markdown 对齐</label>
+            <select v-model="mdAlignment" class="form-select w-40">
+              <option value="left">左对齐</option>
+              <option value="center">居中</option>
+              <option value="right">右对齐</option>
+            </select>
+          </div>
+          <div class="flex items-end gap-2">
+            <button @click="loadExample" class="btn btn-secondary">
+              📝 加载示例
+            </button>
+            <button @click="clearAll" class="btn btn-secondary">
+              🗑️ 清空
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 主编辑区 -->
+      <div class="split-view">
+        <!-- 左侧：CSV 输入 -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-900'">📝 CSV 输入</h3>
+            <div class="flex gap-2">
+              <label class="btn btn-secondary btn-sm cursor-pointer">
+                📁 导入文件
+                <input type="file" accept=".csv,.txt" @change="importFile" class="hidden">
+              </label>
+              <button @click="copyCsv" class="btn btn-secondary btn-sm">
+                📋 复制 CSV
+              </button>
+            </div>
+          </div>
+          <textarea 
+            v-model="csvInput" 
+            @input="parseAndRender"
+            placeholder="请输入 CSV 数据，例如：&#10;姓名，年龄，城市&#10;张三，25，北京&#10;李四，30，上海"
+            class="form-textarea"
+            style="height: 400px; resize: vertical;"
+          ></textarea>
+          <div class="mt-2 text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+            📊 {{ rowCount }} 行 × {{ colCount }} 列
+          </div>
+        </div>
+
+        <!-- 右侧：输出 -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-900'">📤 输出结果</h3>
+            <div class="flex gap-2">
+              <button @click="copyOutput" class="btn btn-success btn-sm">
+                ✅ 复制结果
+              </button>
+              <button @click="downloadOutput" class="btn btn-secondary btn-sm">
+                💾 下载文件
+              </button>
+            </div>
+          </div>
+          
+          <!-- 选项卡 -->
+          <div class="tabs">
+            <div class="tab" :class="{ active: outputType === 'markdown' }" @click="outputType = 'markdown'">
+              📝 Markdown
+            </div>
+            <div class="tab" :class="{ active: outputType === 'html' }" @click="outputType = 'html'">
+              🌐 HTML
+            </div>
+            <div class="tab" :class="{ active: outputType === 'preview' }" @click="outputType = 'preview'">
+              👁️ 预览
+            </div>
+          </div>
+          
+          <!-- Markdown 输出 -->
+          <div v-show="outputType === 'markdown'">
+            <div class="output-box" v-text="markdownOutput"></div>
+          </div>
+          
+          <!-- HTML 输出 -->
+          <div v-show="outputType === 'html'">
+            <div class="output-box" v-text="htmlOutput"></div>
+          </div>
+          
+          <!-- 预览 -->
+          <div v-show="outputType === 'preview'" class="overflow-x-auto">
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th v-for="(header, index) in tableHeaders" :key="index" v-text="header"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, rowIndex) in tableRows" :key="rowIndex">
+                  <td v-for="(cell, cellIndex) in row" :key="cellIndex" v-text="cell"></td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-if="tableRows.length === 0" class="text-center text-gray-400 py-8">
+              暂无数据
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div v-if="toast.show" class="toast" v-text="toast.message"></div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const isDark = ref(false);
+        const csvInput = ref('');
+        const delimiter = ref(',');
+        const hasHeader = ref(true);
+        const mdAlignment = ref('left');
+        const outputType = ref('markdown');
+        const toast = ref({ show: false, message: '' });
+        
+        const parsedData = ref({ headers: [], rows: [] });
+        const markdownOutput = ref('');
+        const htmlOutput = ref('');
+
+        // 示例数据
+        const exampleData = `姓名，年龄，城市，职业
+张三，25，北京，工程师
+李四，30，上海，设计师
+王五，28，广州，产品经理
+赵六，35，深圳，数据科学家`;
+
+        // 统计信息
+        const rowCount = computed(() => parsedData.value.rows.length + (parsedData.value.headers.length > 0 ? 1 : 0));
+        const colCount = computed(() => parsedData.value.headers.length || (parsedData.value.rows[0] ? parsedData.value.rows[0].length : 0));
+        
+        // 表格数据
+        const tableHeaders = computed(() => parsedData.value.headers);
+        const tableRows = computed(() => parsedData.value.rows);
+
+        // 主题切换
+        const toggleTheme = () => {
+          isDark.value = !isDark.value;
+          document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+          localStorage.setItem('csv-converter-theme', isDark.value ? 'dark' : 'light');
+        };
+
+        // 解析 CSV
+        const parseCSV = (text) => {
+          if (!text.trim()) return { headers: [], rows: [] };
+          
+          const lines = text.trim().split('\n').map(line => line.trim());
+          const rows = lines.map(line => {
+            // 处理引号内的分隔符
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+              const char = line[i];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === delimiter.value && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            result.push(current.trim());
+            return result;
+          });
+          
+          if (hasHeader.value && rows.length > 0) {
+            return {
+              headers: rows[0],
+              rows: rows.slice(1)
+            };
+          }
+          
+          return { headers: [], rows };
+        };
+
+        // 生成 Markdown 表格
+        const generateMarkdown = (data) => {
+          if (data.rows.length === 0 && data.headers.length === 0) return '';
+          
+          const headers = data.headers.length > 0 ? data.headers : data.rows[0] || [];
+          const rows = data.headers.length > 0 ? data.rows : data.rows.slice(1);
+          
+          // 表头
+          let md = '| ' + headers.join(' | ') + ' |\n';
+          
+          // 分隔行
+          const align = mdAlignment.value;
+          const separators = headers.map(() => {
+            if (align === 'center') return ':---:';
+            if (align === 'right') return '---:';
+            return '---';
+          });
+          md += '| ' + separators.join(' | ') + ' |\n';
+          
+          // 数据行
+          rows.forEach(row => {
+            md += '| ' + row.join(' | ') + ' |\n';
+          });
+          
+          return md.trim();
+        };
+
+        // 生成 HTML 表格
+        const generateHTML = (data) => {
+          if (data.rows.length === 0 && data.headers.length === 0) return '';
+          
+          const headers = data.headers.length > 0 ? data.headers : data.rows[0] || [];
+          const rows = data.headers.length > 0 ? data.rows : data.rows.slice(1);
+          
+          let html = '<table>\n';
+          
+          // 表头
+          if (headers.length > 0) {
+            html += '  <thead>\n    <tr>\n';
+            headers.forEach(h => {
+              html += `      <th>${h}</th>\n`;
+            });
+            html += '    </tr>\n  </thead>\n';
+          }
+          
+          // 表体
+          if (rows.length > 0) {
+            html += '  <tbody>\n';
+            rows.forEach(row => {
+              html += '    <tr>\n';
+              row.forEach(cell => {
+                html += `      <td>${cell}</td>\n`;
+              });
+              html += '    </tr>\n';
+            });
+            html += '  </tbody>\n';
+          }
+          
+          html += '</table>';
+          return html;
+        };
+
+        // 解析并渲染
+        const parseAndRender = () => {
+          parsedData.value = parseCSV(csvInput.value);
+          markdownOutput.value = generateMarkdown(parsedData.value);
+          htmlOutput.value = generateHTML(parsedData.value);
+        };
+
+        // 加载示例
+        const loadExample = () => {
+          csvInput.value = exampleData;
+          parseAndRender();
+          showToast('✅ 示例数据已加载');
+        };
+
+        // 清空
+        const clearAll = () => {
+          csvInput.value = '';
+          parsedData.value = { headers: [], rows: [] };
+          markdownOutput.value = '';
+          htmlOutput.value = '';
+          showToast('🗑️ 已清空');
+        };
+
+        // 导入文件
+        const importFile = (event) => {
+          const file = event.target.files[0];
+          if (!file) return;
+          
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            csvInput.value = e.target.result;
+            parseAndRender();
+            showToast('✅ 文件导入成功');
+          };
+          reader.readAsText(file);
+          event.target.value = '';
+        };
+
+        // 复制 CSV
+        const copyCsv = () => {
+          if (!csvInput.value) {
+            showToast('⚠️ 请先输入 CSV 数据');
+            return;
+          }
+          navigator.clipboard.writeText(csvInput.value);
+          showToast('✅ CSV 已复制');
+        };
+
+        // 复制输出
+        const copyOutput = () => {
+          let text = '';
+          if (outputType.value === 'markdown') {
+            text = markdownOutput.value;
+          } else if (outputType.value === 'html') {
+            text = htmlOutput.value;
+          } else {
+            showToast('⚠️ 预览模式无法复制');
+            return;
+          }
+          
+          if (!text) {
+            showToast('⚠️ 没有可复制的内容');
+            return;
+          }
+          
+          navigator.clipboard.writeText(text);
+          showToast('✅ 已复制到剪贴板');
+        };
+
+        // 下载输出
+        const downloadOutput = () => {
+          let text = '';
+          let filename = '';
+          let type = 'text/plain';
+          
+          if (outputType.value === 'markdown') {
+            text = markdownOutput.value;
+            filename = 'table.md';
+            type = 'text/markdown';
+          } else if (outputType.value === 'html') {
+            text = htmlOutput.value;
+            filename = 'table.html';
+            type = 'text/html';
+          } else {
+            showToast('⚠️ 预览模式无法下载');
+            return;
+          }
+          
+          if (!text) {
+            showToast('⚠️ 没有可下载的内容');
+            return;
+          }
+          
+          const blob = new Blob([text], { type });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast('✅ 文件已下载');
+        };
+
+        // Toast 提示
+        const showToast = (message) => {
+          toast.value = { show: true, message };
+          setTimeout(() => {
+            toast.value.show = false;
+          }, 2000);
+        };
+
+        onMounted(() => {
+          const savedTheme = localStorage.getItem('csv-converter-theme') || 'light';
+          isDark.value = savedTheme === 'dark';
+          document.documentElement.setAttribute('data-theme', savedTheme);
+          
+          // 加载示例数据
+          loadExample();
+        });
+
+        return {
+          isDark,
+          toggleTheme,
+          csvInput,
+          delimiter,
+          hasHeader,
+          mdAlignment,
+          outputType,
+          toast,
+          rowCount,
+          colCount,
+          tableHeaders,
+          tableRows,
+          markdownOutput,
+          htmlOutput,
+          parseAndRender,
+          loadExample,
+          clearAll,
+          importFile,
+          copyCsv,
+          copyOutput,
+          downloadOutput
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

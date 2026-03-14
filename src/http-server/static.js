@@ -181,6 +181,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(mockDir, 'index.html'));
   });
 
+  // CSV 转 Markdown/HTML 表格
+  const csvTableConverterDir = path.join(ROOT_DIR, 'public/csv-table-converter');
+  app.use('/csv-table-converter', express.static(csvTableConverterDir));
+  app.get('/csv-table-converter', (req, res) => {
+    res.sendFile(path.join(csvTableConverterDir, 'index.html'));
+  });
+
   // 用户目录静态资源（最后）
   app.use('/files', express.static(options.dir));
   
