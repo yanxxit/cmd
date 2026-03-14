@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🗄️ PGLite 数据导出工具</title>
+  
+  <!-- Vue 3 -->
+  <script src="https://cdn.staticfile.org/vue/3.4.21/vue.global.prod.js"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- XLSX (用于 Excel 导出) -->
+  <script src="https://cdn.staticfile.org/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f9fafb;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --border-color: #e5e7eb;
+      --accent-color: #0ea5e9;
+      --accent-gradient: linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%);
+    }
+    
+    [data-theme="dark"] {
+      --bg-primary: #1f2937;
+      --bg-secondary: #374151;
+      --text-primary: #f9fafb;
+      --text-secondary: #9ca3af;
+      --border-color: #4b5563;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    
+    [data-theme="dark"] body {
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    }
+    
+    .container { max-width: 1600px; margin: 0 auto; }
+    
+    .card {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+      border: 1px solid var(--border-color);
+    }
+    
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-family: 'Monaco', 'Consolas', monospace;
+    }
+    
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(14, 165, 233, 0.4);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 2px solid var(--border-color);
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+    }
+    
+    .btn-sm { padding: 8px 14px; font-size: 13px; }
+    
+    .output-box {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 13px;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    
+    .data-table th, .data-table td {
+      border: 1px solid var(--border-color);
+      padding: 12px 16px;
+      text-align: left;
+    }
+    
+    .data-table th {
+      background: var(--accent-gradient);
+      color: white;
+      font-weight: 600;
+    }
+    
+    .data-table tr:nth-child(even) {
+      background: var(--bg-secondary);
+    }
+    
+    .data-table tr:hover {
+      background: rgba(14, 165, 233, 0.1);
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      background: var(--bg-secondary);
+      padding: 4px;
+      border-radius: 8px;
+    }
+    
+    .tab {
+      flex: 1;
+      padding: 10px 20px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text-secondary);
+      border-radius: 6px;
+      transition: all 0.2s;
+      border: none;
+      background: transparent;
+    }
+    
+    .tab.active {
+      background: var(--accent-gradient);
+      color: white;
+    }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      z-index: 100;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 15px rgba(0,0,0,0.2);
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+      {{ isDark ? '☀️' : '🌙' }}
+    </button>
+
+    <div class="container">
+      <!-- 头部 -->
+      <header class="card" style="margin-bottom: 24px; text-align: center;">
+        <h1 class="text-3xl font-bold mb-2" :class="isDark ? 'text-white' : 'text-gray-900'">🗄️ PGLite 数据导出工具</h1>
+        <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">SQL 查询 · CSV 导出 · SQL 导出 · Excel 导出</p>
+      </header>
+
+      <!-- SQL 查询区 -->
+      <div class="card" style="margin-bottom: 24px;">
+        <h2 class="text-xl font-bold mb-4" :class="isDark ? 'text-white' : 'text-gray-900'">📝 SQL 查询</h2>
+        <div class="mb-4">
+          <textarea 
+            v-model="sqlQuery" 
+            placeholder="输入 SQL 查询语句，例如：SELECT * FROM todos LIMIT 100"
+            class="form-textarea"
+            style="height: 120px;"
+          ></textarea>
+        </div>
+        <div class="flex gap-2">
+          <button @click="executeQuery" class="btn btn-primary" :disabled="loading">
+            <span v-if="loading" class="loading"></span>
+            {{ loading ? '执行中...' : '▶️ 执行查询' }}
+          </button>
+          <button @click="loadTables" class="btn btn-secondary" :disabled="loading">
+            📋 加载表结构
+          </button>
+          <button @click="clearResults" class="btn btn-secondary">
+            🗑️ 清空结果
+          </button>
+        </div>
+      </div>
+
+      <!-- 表结构 -->
+      <div class="card" style="margin-bottom: 24px;" v-if="tables.length > 0">
+        <h2 class="text-xl font-bold mb-4" :class="isDark ? 'text-white' : 'text-gray-900'">📊 数据库表</h2>
+        <div class="flex flex-wrap gap-2">
+          <button 
+            v-for="table in tables" 
+            :key="table.table_name"
+            @click="selectTable(table.table_name)"
+            class="btn btn-secondary btn-sm"
+          >
+            📄 {{ table.table_name }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 结果展示 -->
+      <div class="card" v-if="queryResult">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold" :class="isDark ? 'text-white' : 'text-gray-900'">
+            📈 查询结果 
+            <span class="text-sm font-normal" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+              ({{ queryResult.rows?.length || 0 }} 行)
+            </span>
+          </h2>
+          <div class="flex gap-2">
+            <button @click="exportCSV" class="btn btn-success btn-sm" :disabled="!queryResult.rows?.length">
+              📄 导出 CSV
+            </button>
+            <button @click="exportSQL" class="btn btn-primary btn-sm" :disabled="!queryResult.rows?.length">
+              💾 导出 SQL
+            </button>
+            <button @click="exportExcel" class="btn btn-secondary btn-sm" :disabled="!queryResult.rows?.length">
+              📊 导出 Excel
+            </button>
+          </div>
+        </div>
+
+        <!-- 选项卡 -->
+        <div class="tabs">
+          <button class="tab" :class="{ active: outputType === 'table' }" @click="outputType = 'table'">
+            📊 表格
+          </button>
+          <button class="tab" :class="{ active: outputType === 'json' }" @click="outputType = 'json'">
+            JSON
+          </button>
+          <button class="tab" :class="{ active: outputType === 'csv' }" @click="outputType = 'csv'">
+            CSV
+          </button>
+        </div>
+
+        <!-- 表格视图 -->
+        <div v-show="outputType === 'table'" class="table-container">
+          <table class="data-table" v-if="queryResult.rows?.length">
+            <thead>
+              <tr>
+                <th v-for="field in queryResult.fields" :key="field.name" v-text="field.name"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, index) in queryResult.rows" :key="index">
+                <td v-for="(field, fIndex) in queryResult.fields" :key="fIndex">
+                  {{ Array.isArray(row) ? row[fIndex] : row[field.name] }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="text-center py-8" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+            暂无数据
+          </div>
+        </div>
+
+        <!-- JSON 视图 -->
+        <div v-show="outputType === 'json'" class="output-box" v-text="jsonOutput"></div>
+
+        <!-- CSV 视图 -->
+        <div v-show="outputType === 'csv'" class="output-box" v-text="csvOutput"></div>
+      </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div v-if="toast.show" class="toast" v-text="toast.message"></div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const isDark = ref(false);
+        const sqlQuery = ref('SELECT * FROM todos LIMIT 100;');
+        const loading = ref(false);
+        const queryResult = ref(null);
+        const tables = ref([]);
+        const outputType = ref('table');
+        const toast = ref({ show: false, message: '' });
+
+        // JSON 输出
+        const jsonOutput = computed(() => {
+          if (!queryResult.value?.rows) return '';
+          return JSON.stringify(queryResult.value.rows, null, 2);
+        });
+
+        // CSV 输出
+        const csvOutput = computed(() => {
+          if (!queryResult.value?.rows) return '';
+          const fields = queryResult.value.fields.map(f => f.name);
+          const rows = queryResult.value.rows.map(row => {
+            // PGLite 返回的是对象，需要转换为数组
+            const rowArray = Array.isArray(row) ? row : fields.map(f => row[f]);
+            return rowArray.map(cell => {
+              if (cell === null) return '';
+              const str = String(cell);
+              if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return '"' + str.replace(/"/g, '""') + '"';
+              }
+              return str;
+            }).join(',');
+          });
+          return [fields.join(','), ...rows].join('\n');
+        });
+
+        // 主题切换
+        const toggleTheme = () => {
+          isDark.value = !isDark.value;
+          document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+          localStorage.setItem('pglite-export-theme', isDark.value ? 'dark' : 'light');
+        };
+
+        // 执行查询
+        const executeQuery = async () => {
+          if (!sqlQuery.value.trim()) {
+            showToast('⚠️ 请输入 SQL 查询语句');
+            return;
+          }
+          
+          loading.value = true;
+          try {
+            const response = await fetch('/api/pglite/query', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sql: sqlQuery.value })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+              queryResult.value = result.data;
+              showToast('✅ 查询成功');
+            } else {
+              showToast('❌ ' + result.error);
+            }
+          } catch (err) {
+            showToast('❌ 查询失败：' + err.message);
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        // 加载表结构
+        const loadTables = async () => {
+          loading.value = true;
+          try {
+            const response = await fetch('/api/pglite/tables');
+            const result = await response.json();
+            if (result.success) {
+              tables.value = result.data;
+              showToast('✅ 已加载 ' + result.data.length + ' 个表');
+            } else {
+              showToast('❌ ' + result.error);
+            }
+          } catch (err) {
+            showToast('❌ 加载失败：' + err.message);
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        // 选择表
+        const selectTable = (tableName) => {
+          sqlQuery.value = `SELECT * FROM ${tableName} LIMIT 100;`;
+          executeQuery();
+        };
+
+        // 清空结果
+        const clearResults = () => {
+          queryResult.value = null;
+          outputType.value = 'table';
+        };
+
+        // 导出 CSV
+        const exportCSV = () => {
+          const csv = csvOutput.value;
+          const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `export_${new Date().getTime()}.csv`;
+          link.click();
+          showToast('✅ CSV 导出成功');
+        };
+
+        // 导出 SQL
+        const exportSQL = () => {
+          if (!queryResult.value?.rows?.length) return;
+          
+          const fields = queryResult.value.fields.map(f => f.name);
+          const rows = queryResult.value.rows;
+          const tableName = 'exported_data';
+          
+          let sql = `-- 导出数据\n-- 时间：${new Date().toISOString()}\n\n`;
+          sql += `CREATE TABLE IF NOT EXISTS ${tableName} (\n`;
+          sql += fields.map(f => `  ${f} TEXT`).join(',\n');
+          sql += '\n);\n\n';
+          
+          rows.forEach(row => {
+            const rowArray = Array.isArray(row) ? row : fields.map(f => row[f]);
+            sql += `INSERT INTO ${tableName} (${fields.join(', ')}) VALUES (`;
+            sql += rowArray.map(cell => {
+              if (cell === null) return 'NULL';
+              return "'" + String(cell).replace(/'/g, "''") + "'";
+            }).join(', ');
+            sql += ');\n';
+          });
+          
+          const blob = new Blob([sql], { type: 'application/sql' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `export_${new Date().getTime()}.sql`;
+          link.click();
+          showToast('✅ SQL 导出成功');
+        };
+
+        // 导出 Excel
+        const exportExcel = () => {
+          if (!queryResult.value?.rows) return;
+          
+          const fields = queryResult.value.fields.map(f => f.name);
+          const rows = queryResult.value.rows.map(row => {
+            const obj = {};
+            fields.forEach((field, i) => {
+              obj[field] = row[i];
+            });
+            return obj;
+          });
+          
+          const ws = XLSX.utils.json_to_sheet(rows);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Data');
+          XLSX.writeFile(wb, `export_${new Date().getTime()}.xlsx`);
+          showToast('✅ Excel 导出成功');
+        };
+
+        // Toast 提示
+        const showToast = (message) => {
+          toast.value = { show: true, message };
+          setTimeout(() => { toast.value.show = false; }, 2000);
+        };
+
+        onMounted(() => {
+          const savedTheme = localStorage.getItem('pglite-export-theme') || 'light';
+          isDark.value = savedTheme === 'dark';
+          document.documentElement.setAttribute('data-theme', savedTheme);
+          loadTables();
+        });
+
+        return {
+          isDark,
+          toggleTheme,
+          sqlQuery,
+          loading,
+          queryResult,
+          tables,
+          outputType,
+          toast,
+          jsonOutput,
+          csvOutput,
+          executeQuery,
+          loadTables,
+          selectTable,
+          clearResults,
+          exportCSV,
+          exportSQL,
+          exportExcel
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

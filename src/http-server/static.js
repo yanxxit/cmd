@@ -12,7 +12,11 @@ import pomodoroApiRouter from './pomodoro-api.js';
 import authApiRouter from './auth-api.js';
 import httpbinApiRouter from './httpbin-api.js';
 import mockApiRouter from './mock-api.js';
+import pgliteExportApiRouter from './pglite-export-api.js';
 import xlsxParserRouter from './xlsx-parser.js';
+import { createRequestLogger } from './request-logger.js';
+import requestLoggerApiRouter from './request-logger-api.js';
+import { initDatabase as initTodoDatabase } from '../model/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +40,9 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   app.use(morgan('tiny'))
 
+  // 添加请求监听中间件（在 morgan 之后，其他中间件之前）
+  app.use(createRequestLogger());
+
   // 添加压缩中间件
   app.use(compression());
 
@@ -58,6 +65,9 @@ export default function (options = { port: 3000, dir: __dirname }) {
     }
   }));
 
+  // 挂载请求监听 API 路由
+  app.use('/api/requests', requestLoggerApiRouter);
+
   // 挂载 XLSX 解析 API 路由（必须在通用 /api 之前）
   app.use('/api/xlsx', xlsxParserRouter);
 
@@ -69,6 +79,9 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 挂载 Mock API 路由
   app.use('/api/mock', mockApiRouter);
+
+  // 挂载 PGLite 导出 API 路由
+  app.use('/api/pglite', pgliteExportApiRouter);
 
   // 挂载具体 API 路由（必须在通用 /api 之前）
   app.use('/api/todos', todoApiRouter);
@@ -188,6 +201,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(csvTableConverterDir, 'index.html'));
   });
 
+  // 请求监听页面
+  const requestLoggerDir = path.join(ROOT_DIR, 'public/request-logger');
+  app.use('/request-logger', express.static(requestLoggerDir));
+  app.get('/request-logger', (req, res) => {
+    res.sendFile(path.join(requestLoggerDir, 'index.html'));
+  });
+
+  // PGLite 数据导出工具
+  const pgliteExportDir = path.join(ROOT_DIR, 'public/pglite-export');
+  app.use('/pglite-export', express.static(pgliteExportDir));
+  app.get('/pglite-export', (req, res) => {
+    res.sendFile(path.join(pgliteExportDir, 'index.html'));
+  });
+
   // 用户目录静态资源（最后）
   app.use('/files', express.static(options.dir));
   
@@ -230,6 +257,11 @@ export default function (options = { port: 3000, dir: __dirname }) {
    * Create HTTP server.
    */
   const server = http.createServer(app);
+
+  // 预初始化 PGLite 数据库
+  initTodoDatabase().catch(err => {
+    console.error('⚠️ PGLite 数据库初始化失败:', err.message);
+  });
 
   /**
    * Listen on provided port, on all network interfaces.

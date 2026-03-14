@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 接口请求监听</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/libs/dayjs/dayjs.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    .status-2xx { background-color: #dcfce7; color: #166534; }
+    .status-3xx { background-color: #fef3c7; color: #92400e; }
+    .status-4xx { background-color: #fef2f2; color: #991b1b; }
+    .status-5xx { background-color: #fee2e2; color: #991b1b; }
+    .method-get { color: #2563eb; }
+    .method-post { color: #16a34a; }
+    .method-put { color: #d97706; }
+    .method-delete { color: #dc2626; }
+    .method-patch { color: #7c3aed; }
+    .json-viewer {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .log-item {
+      transition: background-color 0.2s;
+    }
+    .log-item:hover {
+      background-color: #f9fafb;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="app" class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">📊 接口请求监听</h1>
+      <p class="text-gray-600">实时监听和查看系统中的所有接口请求</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+      <div class="flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-48">
+          <label class="block text-sm font-medium text-gray-700 mb-1">HTTP 方法</label>
+          <select id="methodFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">全部</option>
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="DELETE">DELETE</option>
+            <option value="PATCH">PATCH</option>
+          </select>
+        </div>
+        <div class="flex-1 min-w-48">
+          <label class="block text-sm font-medium text-gray-700 mb-1">路径包含</label>
+          <input type="text" id="pathFilter" placeholder="输入路径关键词..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div class="flex-1 min-w-48">
+          <label class="block text-sm font-medium text-gray-700 mb-1">显示数量</label>
+          <select id="limitFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="50">50 条</option>
+            <option value="100" selected>100 条</option>
+            <option value="200">200 条</option>
+            <option value="500">500 条</option>
+          </select>
+        </div>
+        <div class="flex gap-2">
+          <button id="refreshBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+            <span>🔄</span> 刷新
+          </button>
+          <button id="clearBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2">
+            <span>🗑️</span> 清空
+          </button>
+          <button id="autoRefreshBtn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2">
+            <span id="autoRefreshIcon">⏸️</span> 自动刷新
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b">
+            <tr>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">时间</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">方法</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">路径</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">状态码</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">耗时</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">大小</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">操作</th>
+            </tr>
+          </thead>
+          <tbody id="requestList" class="divide-y divide-gray-100">
+            <tr>
+              <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                加载中...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+      <div class="flex items-center justify-between px-6 py-4 border-b">
+        <h2 id="modalTitle" class="text-xl font-bold text-gray-800">请求详情</h2>
+        <button id="closeModal" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <div id="modalContent" class="flex-1 overflow-y-auto p-6">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let autoRefresh = true;
+    let autoRefreshInterval = null;
+
+    function formatSize(bytes) {
+      if (bytes === null || bytes === undefined) return '-';
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function formatTime(ms) {
+      if (ms === null || ms === undefined) return '-';
+      if (ms < 1000) return ms + 'ms';
+      return (ms / 1000).toFixed(2) + 's';
+    }
+
+    function getStatusClass(status) {
+      if (!status) return 'status-5xx';
+      if (status >= 200 && status < 300) return 'status-2xx';
+      if (status >= 300 && status < 400) return 'status-3xx';
+      if (status >= 400 && status < 500) return 'status-4xx';
+      return 'status-5xx';
+    }
+
+    function getMethodClass(method) {
+      return 'method-' + method.toLowerCase();
+    }
+
+    function formatTimestamp(timestamp) {
+      return dayjs(timestamp).format('HH:mm:ss');
+    }
+
+    function renderJson(obj) {
+      if (obj === null || obj === undefined) return '<span class="text-gray-400">null</span>';
+      if (typeof obj === 'object') {
+        return '<pre class="json-viewer bg-gray-50 p-4 rounded-lg">' + 
+               JSON.stringify(obj, null, 2) + 
+               '</pre>';
+      }
+      return obj;
+    }
+
+    async function loadRequests() {
+      try {
+        const method = document.getElementById('methodFilter').value;
+        const path = document.getElementById('pathFilter').value;
+        const limit = document.getElementById('limitFilter').value;
+        
+        let url = '/api/requests?limit=' + limit;
+        if (method) url += '&method=' + method;
+        if (path) url += '&path=' + encodeURIComponent(path);
+        
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.success) {
+          renderRequestList(result.data);
+        }
+      } catch (err) {
+        console.error('加载请求历史失败:', err);
+        document.getElementById('requestList').innerHTML = `
+          <tr>
+            <td colspan="7" class="px-4 py-8 text-center text-red-500">
+              加载失败: ${err.message}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function renderRequestList(requests) {
+      const container = document.getElementById('requestList');
+      
+      if (requests.length === 0) {
+        container.innerHTML = `
+          <tr>
+            <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+              暂无请求记录
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      container.innerHTML = requests.map(req => `
+        <tr class="log-item">
+          <td class="px-4 py-3 text-sm text-gray-600">${formatTimestamp(req.timestamp)}</td>
+          <td class="px-4 py-3 text-sm font-semibold ${getMethodClass(req.method)}">${req.method}</td>
+          <td class="px-4 py-3 text-sm text-gray-800 font-mono truncate max-w-xs" title="${req.path}">${req.path}</td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(req.statusCode)}">
+              ${req.statusCode || '-'}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-sm text-gray-600">${formatTime(req.responseTime)}</td>
+          <td class="px-4 py-3 text-sm text-gray-600">${formatSize(req.responseSize)}</td>
+          <td class="px-4 py-3">
+            <button onclick="showDetail('${req.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              查看
+            </button>
+          </td>
+        </tr>
+      `).join('');
+      
+      window.currentRequests = requests;
+    }
+
+    function showDetail(id) {
+      const req = window.currentRequests?.find(r => r.id === id);
+      if (!req) return;
+      
+      const modal = document.getElementById('detailModal');
+      const title = document.getElementById('modalTitle');
+      const content = document.getElementById('modalContent');
+      
+      title.textContent = `${req.method} ${req.path}`;
+      
+      content.innerHTML = `
+        <div class="space-y-6">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">📋 基本信息</h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <span class="text-sm text-gray-500">时间</span>
+                <p class="font-medium">${dayjs(req.timestamp).format('YYYY-MM-DD HH:mm:ss')}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">状态码</span>
+                <p class="font-medium">
+                  <span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(req.statusCode)}">
+                    ${req.statusCode || '-'}
+                  </span>
+                </p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">响应耗时</span>
+                <p class="font-medium">${formatTime(req.responseTime)}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">响应大小</span>
+                <p class="font-medium">${formatSize(req.responseSize)}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">IP 地址</span>
+                <p class="font-medium font-mono">${req.ip || '-'}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">完整 URL</span>
+                <p class="font-medium font-mono truncate" title="${req.url}">${req.url}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">📝 请求头</h3>
+            ${renderJson(req.headers)}
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">🔍 查询参数</h3>
+            ${renderJson(req.query)}
+          </div>
+          
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">📦 请求体</h3>
+            ${renderJson(req.body)}
+          </div>
+        </div>
+      `;
+      
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('detailModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function clearRequests() {
+      if (!confirm('确定要清空所有请求历史吗？')) return;
+      
+      try {
+        const response = await fetch('/api/requests', { method: 'DELETE' });
+        const result = await response.json();
+        
+        if (result.success) {
+          await loadRequests();
+        }
+      } catch (err) {
+        console.error('清空请求历史失败:', err);
+        alert('清空失败: ' + err.message);
+      }
+    }
+
+    function toggleAutoRefresh() {
+      autoRefresh = !autoRefresh;
+      const icon = document.getElementById('autoRefreshIcon');
+      const btn = document.getElementById('autoRefreshBtn');
+      
+      if (autoRefresh) {
+        icon.textContent = '⏸️';
+        btn.classList.remove('bg-blue-600');
+        btn.classList.add('bg-gray-600');
+        startAutoRefresh();
+      } else {
+        icon.textContent = '▶️';
+        btn.classList.remove('bg-gray-600');
+        btn.classList.add('bg-blue-600');
+        stopAutoRefresh();
+      }
+    }
+
+    function startAutoRefresh() {
+      if (autoRefreshInterval) return;
+      autoRefreshInterval = setInterval(loadRequests, 2000);
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+      }
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', loadRequests);
+    document.getElementById('clearBtn').addEventListener('click', clearRequests);
+    document.getElementById('autoRefreshBtn').addEventListener('click', toggleAutoRefresh);
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+    
+    document.getElementById('methodFilter').addEventListener('change', loadRequests);
+    document.getElementById('pathFilter').addEventListener('input', function() {
+      clearTimeout(this._timeout);
+      this._timeout = setTimeout(loadRequests, 300);
+    });
+    document.getElementById('limitFilter').addEventListener('change', loadRequests);
+
+    loadRequests();
+    startAutoRefresh();
+  </script>
+</body>
+</html>
