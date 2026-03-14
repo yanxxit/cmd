@@ -1,0 +1,76 @@
+{
+  "name": "Web 工具箱",
+  "short_name": "Web Tools",
+  "description": "本地开发工具集 - 高效、便捷、实用",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "512x512",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "productivity", "developer tools"],
+  "shortcuts": [
+    {
+      "name": "TODO",
+      "short_name": "TODO",
+      "description": "打开 TODO 任务管理",
+      "url": "/todo-v7/",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    },
+    {
+      "name": "Web IDE",
+      "short_name": "IDE",
+      "description": "打开 Web IDE",
+      "url": "/web-ide/",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    },
+    {
+      "name": "AI 聊天",
+      "short_name": "AI",
+      "description": "打开 AI 聊天",
+      "url": "/ai-chat/",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    },
+    {
+      "name": "文件查看器",
+      "short_name": "文件",
+      "description": "打开文件查看器",
+      "url": "/file-viewer/",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": ["image/*", "text/*", "application/json"]
+        }
+      ]
+    }
+  }
+}

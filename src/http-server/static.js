@@ -226,6 +226,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(aiChatDir, 'index.html'));
   });
 
+  // Web IDE
+  const webIdeDir = path.join(ROOT_DIR, 'public/web-ide');
+  app.use('/web-ide', express.static(webIdeDir));
+  app.get('/web-ide', (req, res) => {
+    res.sendFile(path.join(webIdeDir, 'index.html'));
+  });
+
+  // 轻量级 Web IDE
+  const webIdeLiteDir = path.join(ROOT_DIR, 'public/web-ide-lite');
+  app.use('/web-ide-lite', express.static(webIdeLiteDir));
+  app.get('/web-ide-lite', (req, res) => {
+    res.sendFile(path.join(webIdeLiteDir, 'index.html'));
+  });
+
   // 用户目录静态资源（最后）
   app.use('/files', express.static(options.dir));
   
