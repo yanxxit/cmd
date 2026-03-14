@@ -27,3 +27,20 @@
 ## 
 
 实现一个 网页版本的 chat ai 功能，基本代码参考 @bin/chat.js,支持历史消息作为上下文，仅支持最近 2 条消息（包含，问题及回答（最好是精简化的））
+
+## 针对 html script type="module" 实现功能
+
+```html
+<!-- 方式1: 内联模块 -->
+<script type="module">
+  import { greet } from './utils.js';
+  greet('World');
+</script>
+
+<!-- 方式2: 外部模块文件 -->
+<script type="module" src="main.js"></script>
+```
+- [＜script type=“module“＞用法的基本介绍](https://hbiao68.blog.csdn.net/article/details/156541649)
+
+
+## 使用 component 实现功能

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💻 Web IDE Lite v2</title>
+
+  <!-- Import Map for Vue -->
+  <script type="importmap">
+  {
+    "imports": {
+      "vue": "/libs/vue/dist/vue.esm-browser.prod.js"
+    }
+  }
+  </script>
+  
+  <link rel="stylesheet" href="/libs/prismjs/themes/prism-tomorrow.min.css">
+  <script src="/libs/prismjs/prism.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/shared/prism-loader.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ide: { bg: '#1e1e1e', sidebar: '#252526', activity: '#333333', status: '#007acc' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    [v-cloak] { display: none; }
+    .code-highlight { font-family: 'Monaco', 'Consolas', monospace; }
+    @keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .animate-slide-in { animation: slide-in 0.3s ease; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #252526; }
+    ::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; }
+  </style>
+</head>
+<body class="bg-ide-bg text-gray-300 overflow-hidden">
+  <div id="app" v-cloak class="h-screen flex flex-col">
+    <!-- Header -->
+    <header class="h-12 bg-ide-sidebar border-b border-gray-700 flex items-center justify-between px-4 flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">📁</span>
+        <span class="font-semibold text-sm">Web IDE v2</span>
+        <span v-if="rootDirectory" class="text-xs text-gray-500">- {{ rootDirectory }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="openDirectory" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm">📂 打开目录</button>
+        <button @click="createNewFile" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm">📄 新建</button>
+        <button @click="saveCurrentFile" :disabled="!currentFile" class="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded text-sm">💾 保存</button>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <div class="flex-1 flex overflow-hidden">
+      <!-- Sidebar -->
+      <aside class="w-72 bg-ide-sidebar border-r border-gray-700 flex flex-col flex-shrink-0">
+        <div class="p-3 text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-700 flex items-center justify-between">
+          <span>📁 文件</span>
+          <div class="flex gap-1">
+            <button @click="createNewFile" class="p-1 hover:bg-gray-700 rounded">📄</button>
+            <button @click="createNewFolder" class="p-1 hover:bg-gray-700 rounded">📁</button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-2" @contextmenu.prevent="showTreeContextMenu">
+          <template v-if="rootFiles?.length">
+            <div v-for="file in rootFiles" :key="file.id"
+                 class="px-4 py-2 cursor-pointer rounded flex items-center gap-2 text-sm hover:bg-gray-700"
+                 :class="{ 'bg-gray-700': currentFile?.id === file.id }"
+                 @click="openFile(file)" @contextmenu.prevent.stop="showFileContextMenu($event, file, null)">
+              <span class="w-4 text-center">{{ getFileIcon(file.name) }}</span>
+              <span class="truncate">{{ file.name }}</span>
+            </div>
+          </template>
+          <template v-for="folder in folders" :key="folder.id">
+            <div>
+              <div class="px-4 py-2 cursor-pointer rounded flex items-center gap-2 text-sm font-semibold hover:bg-gray-700"
+                   @click.stop="toggleFolder(folder.id)" @contextmenu.prevent.stop="showFolderContextMenu($event, folder)">
+                <span class="w-4 text-center transition-transform" :class="{ 'rotate-90': folder.expanded }">▶</span>
+                <span>📁 {{ folder.name }}</span>
+              </div>
+              <div v-show="folder.expanded" class="ml-4">
+                <div v-for="file in folder.files" :key="file.id"
+                     class="px-4 py-2 cursor-pointer rounded flex items-center gap-2 text-sm hover:bg-gray-700"
+                     :class="{ 'bg-gray-700': currentFile?.id === file.id }"
+                     @click.stop="openFile(file)" @contextmenu.prevent.stop="showFileContextMenu($event, file, folder)">
+                  <span class="w-4 text-center">{{ getFileIcon(file.name) }}</span>
+                  <span class="truncate">{{ file.name }}</span>
+                </div>
+                <div v-if="!folder.files.length" class="px-4 py-2 text-xs text-gray-500">空文件夹</div>
+              </div>
+            </div>
+          </template>
+          <div v-if="!rootFiles?.length && !folders?.length" class="text-center py-8 text-gray-500">
+            <div class="text-4xl mb-3">📂</div>
+            <div class="text-sm">暂无文件</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Editor -->
+      <main class="flex-1 flex flex-col min-w-0">
+        <!-- Tabs -->
+        <div class="h-9 bg-ide-sidebar border-b border-gray-700 flex items-center overflow-x-auto flex-shrink-0">
+          <div v-for="tab in openTabs" :key="tab.id"
+               class="px-4 py-2 cursor-pointer border-r border-gray-700 flex items-center gap-2 text-sm whitespace-nowrap hover:bg-gray-700"
+               :class="{ 'bg-ide-bg text-white': currentFile?.id === tab.id }"
+               @click="openFile(tab)">
+            <span>{{ getFileIcon(tab.name) }}</span>
+            <span>{{ tab.name }}</span>
+            <span v-if="tab.modified" class="text-amber-500">●</span>
+            <span class="hover:text-red-500 cursor-pointer" @click.stop="closeTab(tab)">×</span>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 relative overflow-hidden">
+          <div v-if="!currentFile" class="absolute inset-0 flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-6xl mb-4">📝</div>
+              <h1 class="text-2xl font-semibold mb-2">Web IDE Lite v2</h1>
+              <p class="text-gray-500 mb-6">模块化 · ES Modules · TailwindCSS</p>
+              <div class="flex gap-4 justify-center">
+                <button @click="openDirectory" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded">📂 打开目录</button>
+                <button @click="openFiles" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded">📄 打开文件</button>
+              </div>
+            </div>
+          </div>
+          <div v-show="currentFile" class="absolute inset-0">
+            <pre class="code-highlight absolute inset-0 p-4 font-mono text-sm leading-relaxed whitespace-pre overflow-auto pointer-events-none" v-html="highlightedCode"></pre>
+            <textarea ref="editorRef" v-model="editorContent" @input="onInput" @scroll="syncScroll" @keydown.tab="onTab"
+                      class="code-editor absolute inset-0 p-4 font-mono text-sm leading-relaxed whitespace-pre overflow-auto bg-transparent text-transparent caret-gray-300 resize-none border-none outline-none" spellcheck="false"></textarea>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Status Bar -->
+    <footer class="h-6 bg-ide-status flex items-center justify-between px-3 text-xs flex-shrink-0">
+      <div class="flex items-center gap-4">
+        <span v-if="currentFile">📄 {{ currentFile.name }}</span>
+        <span v-else>就绪</span>
+        <span v-if="rootDirectory">📁 {{ rootDirectory.split('/').pop() }}</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <select v-if="currentFile" v-model="currentLanguage" @change="changeLanguage" class="bg-white/20 border border-white/30 rounded px-2 py-0.5 text-xs outline-none hover:bg-white/30">
+          <option value="plaintext">纯文本</option>
+          <option value="javascript">JavaScript</option>
+          <option value="typescript">TypeScript</option>
+          <option value="python">Python</option>
+          <option value="go">Go</option>
+          <option value="html">HTML</option>
+          <option value="css">CSS</option>
+          <option value="json">JSON</option>
+          <option value="markdown">Markdown</option>
+          <option value="yaml">YAML</option>
+        </select>
+        <span v-if="currentFile">{{ languageName }}</span>
+        <span>UTF-8</span>
+        <span v-if="currentFile">Ln {{ cursorLine }}, Col {{ cursorColumn }}</span>
+        <button @click="toggleTheme" class="hover:bg-white/20 rounded p-0.5">{{ isDark ? '☀️' : '🌙' }}</button>
+      </div>
+    </footer>
+
+    <!-- Toast -->
+    <div class="fixed bottom-10 right-4 z-50 flex flex-col gap-2">
+      <div v-for="toast in toasts" :key="toast.id" class="px-4 py-2 rounded shadow-lg text-sm font-medium animate-slide-in"
+           :class="{ 'bg-green-600': toast.type==='success', 'bg-red-600': toast.type==='error', 'bg-amber-600': toast.type==='warning', 'bg-blue-600': toast.type==='info' }">
+        {{ toast.message }}
+      </div>
+    </div>
+
+    <!-- Hidden Inputs -->
+    <input v-if="supportsDirectoryPicker" ref="directoryInput" type="file" webkitdirectory @change="handleDirectorySelect" class="hidden">
+    <input ref="fileInput" type="file" multiple :accept="fileTypeFilter" @change="handleFileSelect" class="hidden">
+
+    <!-- File Type Dialog -->
+    <div v-show="showFileTypeDialog" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" @click="closeFileTypeDialog">
+      <div class="bg-ide-sidebar rounded-lg w-full max-w-md max-h-[80vh] overflow-hidden shadow-2xl" @click.stop>
+        <div class="p-4 border-b border-gray-700 flex items-center justify-between">
+          <h3 class="font-semibold">📂 选择文件类型</h3>
+          <button @click="closeFileTypeDialog" class="text-gray-400 hover:text-white text-xl">×</button>
+        </div>
+        <div class="p-4 overflow-y-auto max-h-64">
+          <div class="grid grid-cols-2 gap-3">
+            <label v-for="(type, i) in fileTypes" :key="i" class="flex items-center gap-3 p-3 bg-gray-700 rounded cursor-pointer hover:bg-gray-600">
+              <input type="checkbox" :value="type.value" v-model="selectedFileTypes" class="w-4 h-4">
+              <span class="text-lg">{{ type.icon }}</span>
+              <span class="text-sm">{{ type.label }}</span>
+            </label>
+          </div>
+        </div>
+        <div class="p-4 border-t border-gray-700 flex justify-end gap-2">
+          <button @click="selectAllTypes" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm">全选</button>
+          <button @click="deselectAllTypes" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm">取消全选</button>
+          <button @click="confirmFileType" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div v-show="contextMenuVisible" class="fixed bg-ide-sidebar border border-gray-700 rounded py-1 z-[100] shadow-xl min-w-[160px]"
+         :style="{ left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px' }" @click.stop @contextmenu.prevent>
+      <template v-if="contextMenuType === 'file'">
+        <div class="px-4 py-2 cursor-pointer hover:bg-gray-700 flex items-center gap-2 text-sm" @click="openFile(currentContextMenuTarget)">📄 打开</div>
+        <div class="px-4 py-2 cursor-pointer hover:bg-gray-700 flex items-center gap-2 text-sm" @click="renameFileAction(currentContextMenuTarget)">✏️ 重命名</div>
+        <div class="px-4 py-2 cursor-pointer hover:bg-gray-700 flex items-center gap-2 text-sm" @click="copyFileContent(currentContextMenuTarget)">📋 复制</div>
+        <div class="px-4 py-2 cursor-pointer hover:bg-gray-700 flex items-center gap-2 text-sm" @click="downloadFile(currentContextMenuTarget)">💾 下载</div>
+        <div class="h-px bg-gray-700 my-1"></div>
+        <div class="px-4 py-2 cursor-pointer hover:bg-gray-700 flex items-center gap-2 text-sm text-red-500" @click="deleteFileAction(currentContextMenuTarget)">🗑️ 删除</div>
+      </template>
+      <template v-if="contextMenuType === 'folder'">
+        <div class="px-4 py-2 cursor-pointer hover:bg-gray-700 flex items-center gap-2 text-sm" @click="toggleFolder(currentContextMenuTarget.id)">📂 {{ currentContextMenuTarget.expanded ? '折叠' : '展开' }}</div>
+        <div class="px-4 py-2 cursor-pointer hover:bg-gray-700 flex items-center gap-2 text-sm" @click="createFileInFolder(currentContextMenuTarget)">📄 新建文件</div>
+        <div class="h-px bg-gray-700 my-1"></div>
+        <div class="px-4 py-2 cursor-pointer hover:bg-gray-700 flex items-center gap-2 text-sm text-red-500" @click="deleteFolderAction(currentContextMenuTarget)">🗑️ 删除文件夹</div>
+      </template>
+      <template v-if="contextMenuType === 'tree'">
+        <div class="px-4 py-2 cursor-pointer hover:bg-gray-700 flex items-center gap-2 text-sm" @click="createNewFile">📄 新建文件</div>
+        <div class="px-4 py-2 cursor-pointer hover:bg-gray-700 flex items-center gap-2 text-sm" @click="createNewFolder">📁 新建文件夹</div>
+      </template>
+    </div>
+  </div>
+
+  <script type="module" src="/web-ide-lite-v2/js/main.js"></script>
+</body>
+</html>

@@ -3,600 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📁 极简代码编辑器 - 支持打开目录</title>
+  <title>💻 Web IDE Lite - 极简代码编辑器</title>
   
   <!-- Vue 3 (本地 libs) -->
   <script src="/libs/vue/dist/vue.global.prod.js"></script>
   
   <!-- Prism.js 核心 (本地 libs) -->
-  <link rel="stylesheet" href="/libs/prismjs/themes/prism-tomorrow.min.css">
+  <!-- <link rel="stylesheet" href="/libs/prismjs/themes/prism-tomorrow.min.css"> -->
+  <!-- <link rel="stylesheet" href="/libs/prismjs/themes/prism.min.css"> -->
+  <!-- <link rel="stylesheet" href="/libs/prismjs/themes/prism-coy.min.css"> -->
+  <link rel="stylesheet" href="/libs/prismjs/themes/prism-funky.min.css">
   <script src="/libs/prismjs/prism.js"></script>
-  
+
   <!-- Prism 语言动态加载器 -->
   <script src="/shared/prism-loader.js"></script>
-  
-  <style>
-    :root {
-      --bg-primary: #1e1e1e;
-      --bg-secondary: #252526;
-      --bg-sidebar: #333333;
-      --bg-hover: #2a2d2e;
-      --bg-active: #37373d;
-      --text-primary: #cccccc;
-      --text-secondary: #858585;
-      --border-color: #3e3e3e;
-      --accent-color: #007acc;
-      --success-color: #10b981;
-      --warning-color: #f59e0b;
-      --danger-color: #ef4444;
-    }
-    
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      overflow: hidden;
-    }
-    
-    .ide-container {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-    
-    /* 头部 */
-    .ide-header {
-      height: 48px;
-      background: var(--bg-sidebar);
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      flex-shrink: 0;
-    }
-    
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .header-title {
-      font-size: 14px;
-      font-weight: 600;
-    }
-    
-    .header-actions {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .btn {
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--bg-hover);
-      color: var(--text-primary);
-      transition: all 0.2s;
-    }
-    
-    .btn:hover { background: #4a4a4a; }
-    .btn-primary { background: var(--accent-color); color: white; }
-    .btn-primary:hover { background: #005a9e; }
-    .btn-success { background: var(--success-color); color: white; }
-    .btn-success:hover { background: #059669; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    
-    /* 主体 */
-    .ide-body {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-    
-    /* 侧边栏 */
-    .sidebar {
-      width: 280px;
-      background: var(--bg-secondary);
-      border-right: 1px solid var(--border-color);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-    }
-    
-    .sidebar-header {
-      padding: 12px 16px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    
-    .sidebar-actions {
-      display: flex;
-      gap: 4px;
-    }
-    
-    .sidebar-action-btn {
-      padding: 4px 8px;
-      font-size: 16px;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: background 0.2s;
-    }
-    
-    .sidebar-action-btn:hover { background: var(--bg-hover); }
-    
-    .file-tree {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px 0;
-    }
-    
-    .folder-item {
-      padding: 4px 0;
-    }
-    
-    .folder-header {
-      padding: 4px 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      transition: background 0.15s;
-    }
-    
-    .folder-header:hover { background: var(--bg-hover); }
-    .folder-icon { font-size: 14px; transition: transform 0.2s; }
-    .folder-icon.expanded { transform: rotate(90deg); }
-    
-    .folder-children {
-      padding-left: 20px;
-      display: none;
-    }
-    
-    .folder-children.expanded { display: block; }
-    
-    .file-item {
-      padding: 4px 16px 4px 32px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--text-primary);
-      transition: background 0.15s;
-    }
-    
-    .file-item:hover { background: var(--bg-hover); }
-    .file-item.active { background: var(--bg-active); }
-    .file-icon { font-size: 14px; width: 16px; text-align: center; }
-    
-    .empty-folder {
-      padding: 16px;
-      text-align: center;
-      color: var(--text-secondary);
-      font-size: 13px;
-    }
-    
-    /* 编辑器区域 */
-    .editor-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
-    
-    .editor-tabs {
-      display: flex;
-      background: var(--bg-secondary);
-      border-bottom: 1px solid var(--border-color);
-      overflow-x: auto;
-      flex-shrink: 0;
-    }
-    
-    .tab {
-      padding: 8px 16px;
-      font-size: 13px;
-      cursor: pointer;
-      border-right: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    
-    .tab:hover { background: var(--bg-hover); color: var(--text-primary); }
-    .tab.active { background: var(--bg-primary); color: var(--text-primary); }
-    .tab-modified::after { content: '●'; color: var(--warning-color); margin-left: 4px; }
-    .tab-close { font-size: 16px; opacity: 0.6; cursor: pointer; padding: 0 4px; }
-    .tab-close:hover { opacity: 1; color: var(--danger-color); }
-    
-    /* 编辑器 */
-    .editor-wrapper {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .code-editor {
-      width: 100%;
-      height: 100%;
-      padding: 16px;
-      background: var(--bg-primary);
-      color: #d4d4d4;
-      font-family: 'Monaco', 'Consolas', monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      border: none;
-      outline: none;
-      resize: none;
-      white-space: pre;
-      overflow: auto;
-    }
-    
-    .code-editor::-webkit-scrollbar { width: 10px; height: 10px; }
-    .code-editor::-webkit-scrollbar-track { background: var(--bg-secondary); }
-    .code-editor::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; }
-    
-    /* 状态栏 */
-    .status-bar {
-      height: 24px;
-      background: var(--accent-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 12px;
-      font-size: 12px;
-      flex-shrink: 0;
-    }
-    
-    .status-left, .status-right {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-    }
-    
-    .language-select {
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 4px;
-      color: white;
-      padding: 2px 8px;
-      font-size: 11px;
-      cursor: pointer;
-      outline: none;
-      transition: all 0.2s;
-      appearance: none;
-      -webkit-appearance: none;
-      padding-right: 20px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 6px center;
-    }
-    
-    .language-select:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-    
-    .language-select option {
-      background: var(--bg-sidebar);
-      color: var(--text-primary);
-    }
-    
-    /* 夜间模式下的语言选择器 */
-    [data-theme="dark"] .language-select {
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #f9fafb;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f9fafb' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    }
-    
-    [data-theme="dark"] .language-select:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
-    
-    /* 欢迎页面 */
-    .welcome-page {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      text-align: center;
-      padding: 40px;
-    }
-    
-    .welcome-icon { font-size: 72px; margin-bottom: 24px; }
-    .welcome-title { font-size: 24px; font-weight: 600; margin-bottom: 16px; }
-    .welcome-desc { color: var(--text-secondary); margin-bottom: 32px; max-width: 500px; }
-    
-    .welcome-actions {
-      display: flex;
-      gap: 16px;
-      margin-top: 24px;
-    }
-    
-    .welcome-btn {
-      padding: 12px 24px;
-      background: var(--accent-color);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-    
-    .welcome-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(0, 122, 204, 0.4);
-    }
-    
-    .welcome-btn.secondary {
-      background: var(--bg-hover);
-    }
-    
-    /* Toast */
-    .toast-container {
-      position: fixed;
-      bottom: 40px;
-      right: 24px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    
-    .toast {
-      padding: 12px 20px;
-      border-radius: 8px;
-      color: white;
-      font-size: 13px;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      animation: slideIn 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    
-    .toast.success { background: var(--success-color); }
-    .toast.error { background: var(--danger-color); }
-    .toast.warning { background: var(--warning-color); }
-    .toast.info { background: var(--accent-color); }
-    
-    /* 文件类型选择对话框 */
-    .file-type-dialog-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      pointer-events: auto;
-    }
-    
-    .file-type-dialog {
-      background: var(--bg-sidebar);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      width: 90%;
-      max-width: 500px;
-      max-height: 80vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      pointer-events: auto;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    }
-    
-    .dialog-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-    }
-    
-    .dialog-header h3 {
-      font-size: 16px;
-      font-weight: 600;
-    }
-    
-    .dialog-close {
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 24px;
-      cursor: pointer;
-      padding: 0 4px;
-      line-height: 1;
-    }
-    
-    .dialog-close:hover { color: var(--text-primary); }
-    
-    .dialog-body {
-      padding: 20px;
-      overflow-y: auto;
-      flex: 1;
-      min-height: 200px;
-    }
-    
-    .file-type-options {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    
-    .file-type-option {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: var(--bg-secondary);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    
-    .file-type-option:hover { background: var(--bg-hover); }
-    
-    .file-type-option input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
-    
-    .file-type-icon { font-size: 20px; }
-    
-    .dialog-actions {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      padding-top: 16px;
-      border-top: 1px solid var(--border-color);
-    }
-    
-    .dialog-actions .btn {
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s;
-    }
-    
-    .dialog-actions .btn-secondary {
-      background: var(--bg-hover);
-      color: var(--text-primary);
-    }
-    
-    .dialog-actions .btn-secondary:hover {
-      background: #4a4a4a;
-    }
-    
-    .dialog-actions .btn-primary {
-      background: var(--accent-color);
-      color: white;
-    }
-    
-    .dialog-actions .btn-primary:hover {
-      background: #005a9e;
-    }
-    
-    /* 主题切换按钮 */
-    .theme-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: var(--bg-sidebar);
-      border: 2px solid var(--border-color);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-      z-index: 1000;
-    }
-    
-    .theme-toggle:hover {
-      transform: scale(1.1) rotate(15deg);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-    }
-    
-    /* 右键菜单样式 */
-    .context-menu {
-      position: fixed;
-      background: var(--bg-sidebar);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 4px 0;
-      z-index: 1001;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      min-width: 160px;
-    }
-    
-    .context-menu-item {
-      padding: 8px 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      color: var(--text-primary);
-      transition: background 0.15s;
-    }
-    
-    .context-menu-item:hover {
-      background: var(--bg-hover);
-    }
-    
-    .context-menu-item.danger {
-      color: #ef4444;
-    }
-    
-    .context-menu-divider {
-      height: 1px;
-      background: var(--border-color);
-      margin: 4px 0;
-    }
-    
-    /* 滚动条 */
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-track { background: var(--bg-secondary); }
-    ::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; }
-    ::-webkit-scrollbar-thumb:hover { background: #4f4f4f; }
-  </style>
+
+  <!-- 自定义样式 -->
+  <link rel="stylesheet" href="/web-ide-lite/css/styles.css">
 </head>
 <body>
   <div id="app" v-cloak>
     <div class="ide-container">
-      <!-- 主题切换按钮 -->
-      <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
-        {{ isDark ? '☀️' : '🌙' }}
-      </button>
-    
       <!-- 头部 -->
       <header class="ide-header">
         <div class="header-left">
@@ -632,13 +59,13 @@
               <button class="sidebar-action-btn" @click="saveAllFiles" title="保存全部">💾</button>
             </div>
           </div>
-          
-          <div class="file-tree" 
+
+          <div class="file-tree"
                v-if="files && files.length > 0 || folders && folders.length > 0"
                @contextmenu.prevent="showTreeContextMenu">
             <!-- 根目录文件 -->
-            <div 
-              v-for="file in (rootFiles || [])" 
+            <div
+              v-for="file in (rootFiles || [])"
               :key="file.id"
               class="file-item"
               :class="{ active: currentFile?.id === file.id }"
@@ -648,18 +75,18 @@
               <span class="file-icon">{{ getFileIcon(file.name) }}</span>
               <span>{{ file.name }}</span>
             </div>
-            
+
             <!-- 文件夹 -->
             <div v-for="folder in folders" :key="folder.id" class="folder-item">
-              <div class="folder-header" 
+              <div class="folder-header"
                    @click.stop="toggleFolder(folder.id)"
                    @contextmenu.prevent.stop="showFolderContextMenu($event, folder)">
                 <span class="folder-icon" :class="{ expanded: folder.expanded }">▶</span>
                 <span>📁 {{ folder.name }}</span>
               </div>
               <div class="folder-children" :class="{ expanded: folder.expanded }">
-                <div 
-                  v-for="file in folder.files" 
+                <div
+                  v-for="file in folder.files"
                   :key="file.id"
                   class="file-item"
                   :class="{ active: currentFile?.id === file.id }"
@@ -675,7 +102,7 @@
               </div>
             </div>
           </div>
-          
+
           <div v-else class="empty-folder">
             <div style="font-size: 32px; margin-bottom: 12px;">📂</div>
             <div>暂无文件</div>
@@ -689,8 +116,8 @@
         <main class="editor-container">
           <!-- 标签页 -->
           <div class="editor-tabs">
-            <div 
-              v-for="tab in openTabs" 
+            <div
+              v-for="tab in openTabs"
               :key="tab.id"
               class="tab"
               :class="{ active: currentFile?.id === tab.id }"
@@ -724,15 +151,20 @@
             </div>
 
             <!-- 代码编辑器 -->
-            <textarea
-              v-show="currentFile"
-              ref="editorRef"
-              v-model="editorContent"
-              @input="onInput"
-              @keydown.tab="onTab"
-              class="code-editor"
-              spellcheck="false"
-            ></textarea>
+            <div v-show="currentFile" class="editor-container-inner">
+              <!-- Prism 高亮层 -->
+              <pre class="code-highlight" v-html="highlightedCode"></pre>
+              <!-- 透明 textarea 用于输入 -->
+              <textarea
+                ref="editorRef"
+                v-model="editorContent"
+                @input="onInput"
+                @scroll="syncScroll"
+                @keydown.tab="onTab"
+                class="code-editor"
+                spellcheck="false"
+              ></textarea>
+            </div>
           </div>
         </main>
       </div>
@@ -772,6 +204,10 @@
           <span v-if="currentFile">{{ languageName }}</span>
           <span>UTF-8</span>
           <span v-if="currentFile && editorContent">Ln {{ cursorLine }}, Col {{ cursorColumn }}</span>
+          <!-- 主题切换按钮 -->
+          <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+            {{ isDark ? '☀️' : '🌙' }}
+          </button>
         </div>
       </footer>
 
@@ -783,7 +219,7 @@
       </div>
 
       <!-- 隐藏的文件/目录输入 -->
-      <input 
+      <input
         v-if="supportsDirectoryPicker"
         ref="directoryInput"
         type="file"
@@ -791,7 +227,7 @@
         @change="handleDirectorySelect"
         style="display: none"
       >
-      <input 
+      <input
         ref="fileInput"
         type="file"
         multiple
@@ -799,7 +235,7 @@
         @change="handleFileSelect"
         style="display: none"
       >
-      
+
       <!-- 文件类型选择弹窗 -->
       <div v-show="showFileTypeDialog" class="file-type-dialog-overlay" @click="closeFileTypeDialog">
         <div class="file-type-dialog" @click.stop>
@@ -823,9 +259,9 @@
           </div>
         </div>
       </div>
-      
+
       <!-- 右键菜单 -->
-      <div v-show="contextMenuVisible" 
+      <div v-show="contextMenuVisible"
            class="context-menu"
            :style="{ left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px' }"
            @click.stop
@@ -854,7 +290,7 @@
             <span>删除</span>
           </div>
         </template>
-        
+
         <!-- 文件夹菜单 -->
         <template v-if="contextMenuType === 'folder'">
           <div class="context-menu-item" @click="toggleFolder(currentContextMenuTarget.id)">
@@ -871,7 +307,7 @@
             <span>删除文件夹</span>
           </div>
         </template>
-        
+
         <!-- 文件树空白处菜单 -->
         <template v-if="contextMenuType === 'tree'">
           <div class="context-menu-item" @click="createNewFile">
@@ -887,763 +323,7 @@
     </div>
   </div>
 
-  <script>
-    const { createApp, ref, computed, onMounted, nextTick } = Vue;
-
-    createApp({
-      setup() {
-        const editorRef = ref(null);
-        const currentFile = ref(null);
-        const openTabs = ref([]);
-        const files = ref([]);
-        const folders = ref([]);
-        const fileInput = ref(null);
-        const directoryInput = ref(null);
-        const editorContent = ref('');
-        const rootDirectory = ref('');
-        const toasts = ref([]);
-        const cursorLine = ref(1);
-        const cursorColumn = ref(1);
-        
-        // 当前语言
-        const currentLanguage = ref('plaintext');
-        
-        // 主题相关
-        const isDark = ref(false);
-        
-        // 右键菜单相关
-        const contextMenuVisible = ref(false);
-        const contextMenuPosition = ref({ x: 0, y: 0 });
-        const contextMenuType = ref(''); // 'file', 'folder', 'tree'
-        const currentContextMenuTarget = ref(null);
-
-        const supportsDirectoryPicker = 'showDirectoryPicker' in window;
-
-        // 文件类型配置
-        const fileTypes = [
-          { value: '.js,.jsx,.mjs', icon: '🟨', label: 'JavaScript' },
-          { value: '.ts,.tsx', icon: '🔷', label: 'TypeScript' },
-          { value: '.py', icon: '🐍', label: 'Python' },
-          { value: '.go', icon: '🔹', label: 'Go' },
-          { value: '.html,.htm', icon: '🌐', label: 'HTML' },
-          { value: '.css,.scss,.less', icon: '🎨', label: 'CSS' },
-          { value: '.json,.yaml,.yml', icon: '📋', label: '数据配置' },
-          { value: '.md,.txt', icon: '📝', label: '文档' }
-        ];
-
-        // 文件类型选择相关
-        const showFileTypeDialog = ref(false);
-        const selectedFileTypes = ref([]);
-        const fileTypeFilter = ref('');
-
-        // 关闭文件类型对话框
-        const closeFileTypeDialog = () => {
-          showFileTypeDialog.value = false;
-        };
-        
-        // 主题切换
-        const toggleTheme = () => {
-          isDark.value = !isDark.value;
-          document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
-          localStorage.setItem('web-ide-theme', isDark.value ? 'dark' : 'light');
-          console.log('[主题切换]', isDark.value ? '深色模式' : '浅色模式');
-        };
-        
-        // 加载保存的主题
-        const loadTheme = () => {
-          const savedTheme = localStorage.getItem('web-ide-theme') || 'light';
-          isDark.value = savedTheme === 'dark';
-          document.documentElement.setAttribute('data-theme', savedTheme);
-        };
-        
-        // 显示文件树右键菜单
-        const showTreeContextMenu = (e) => {
-          e.preventDefault();
-          contextMenuPosition.value = { x: e.clientX, y: e.clientY };
-          contextMenuType.value = 'tree';
-          currentContextMenuTarget.value = null;
-          contextMenuVisible.value = true;
-        };
-        
-        // 显示文件右键菜单
-        const showFileContextMenu = (e, file, folder) => {
-          e.preventDefault();
-          e.stopPropagation();
-          contextMenuPosition.value = { x: e.clientX, y: e.clientY };
-          contextMenuType.value = 'file';
-          currentContextMenuTarget.value = { ...file, folderId: folder?.id };
-          contextMenuVisible.value = true;
-        };
-        
-        // 显示文件夹右键菜单
-        const showFolderContextMenu = (e, folder) => {
-          e.preventDefault();
-          e.stopPropagation();
-          contextMenuPosition.value = { x: e.clientX, y: e.clientY };
-          contextMenuType.value = 'folder';
-          currentContextMenuTarget.value = folder;
-          contextMenuVisible.value = true;
-        };
-        
-        // 关闭右键菜单
-        const closeContextMenu = () => {
-          contextMenuVisible.value = false;
-          currentContextMenuTarget.value = null;
-        };
-        
-        // 重命名文件动作
-        const renameFileAction = (file) => {
-          closeContextMenu();
-          renameFile(file);
-        };
-        
-        // 删除文件动作
-        const deleteFileAction = (file) => {
-          closeContextMenu();
-          deleteFile(file);
-        };
-        
-        // 删除文件夹动作
-        const deleteFolderAction = (folder) => {
-          if (!confirm(`确定要删除文件夹 "${folder.name}" 及其中的所有文件吗？`)) return;
-          closeContextMenu();
-          const index = folders.value.findIndex(f => f.id === folder.id);
-          if (index > -1) folders.value.splice(index, 1);
-          showToast('✅ 文件夹已删除', 'success');
-        };
-        
-        // 在文件夹中创建文件
-        const createFileInFolder = (folder) => {
-          closeContextMenu();
-          const name = prompt('请输入文件名:', 'untitled.js');
-          if (!name) return;
-          const file = {
-            id: Date.now(),
-            name,
-            content: '',
-            modified: false,
-            folderId: folder.id
-          };
-          folder.files.push(file);
-          folder.expanded = true;
-          openFile(file);
-          showToast('✅ 文件已创建', 'success');
-        };
-        
-        // 全局点击关闭右键菜单
-        const handleGlobalClick = () => {
-          if (contextMenuVisible.value) {
-            closeContextMenu();
-          }
-        };
-
-        const languageMap = {
-          'js': 'javascript', 'jsx': 'javascript', 'mjs': 'javascript',
-          'ts': 'typescript', 'tsx': 'typescript',
-          'py': 'python', 'go': 'go',
-          'html': 'html', 'htm': 'html',
-          'css': 'css', 'scss': 'css', 'less': 'css',
-          'json': 'json', 'md': 'markdown',
-          'yaml': 'yaml', 'yml': 'yaml',
-          'sh': 'bash', 'bash': 'bash',
-          'sql': 'sql', 'xml': 'xml', 'txt': 'plaintext'
-        };
-
-        const fileIcons = {
-          'js': '🟨', 'ts': '🔷', 'py': '🐍', 'go': '🔹',
-          'html': '🌐', 'css': '🎨', 'json': '📋',
-          'md': '📝', 'yaml': '📋', 'sh': '💻', 'sql': '🗄️',
-          'xml': '📄', 'txt': '📄'
-        };
-
-        const languageName = computed(() => {
-          if (!currentFile.value) return '';
-          const ext = getExtension(currentFile.value.name);
-          return languageMap[ext] || 'plaintext';
-        });
-
-        const getExtension = (filename) => {
-          const parts = filename.split('.');
-          return parts.length > 1 ? parts.pop().toLowerCase() : '';
-        };
-
-        const getFileIcon = (filename) => {
-          const ext = getExtension(filename);
-          return fileIcons[ext] || '📄';
-        };
-
-        const getRootFiles = computed(() => {
-          return files.value.filter(f => !f.folderId);
-        });
-
-        const rootFiles = getRootFiles;
-
-        // 打开目录
-        const openDirectory = async () => {
-          if (supportsDirectoryPicker) {
-            try {
-              const dirHandle = await window.showDirectoryPicker();
-              rootDirectory.value = dirHandle.name;
-              
-              // 清空之前的目录
-              folders.value = [];
-              files.value = [];
-              openTabs.value = [];
-              currentFile.value = null;
-              
-              await readDirectory(dirHandle);
-              showToast(`✅ 目录 "${dirHandle.name}" 已打开`, 'success');
-            } catch (err) {
-              if (err.name !== 'AbortError') {
-                showToast('❌ 打开目录失败：' + err.message, 'error');
-              }
-            }
-          } else {
-            directoryInput.value?.click();
-          }
-        };
-
-        // 读取目录
-        const readDirectory = async (dirHandle, parentId = null, depth = 0) => {
-          const folderId = parentId !== null ? parentId : `${Date.now()}-${dirHandle.name}`;
-          const folder = {
-            id: folderId,
-            name: dirHandle.name,
-            expanded: false,  // 默认折叠
-            files: [],
-            isRoot: !parentId,
-            depth: depth
-          };
-
-          try {
-            for await (const entry of dirHandle.values()) {
-              if (entry.kind === 'file') {
-                try {
-                  const file = await entry.getFile();
-                  // 只读取文本文件
-                  if (file.size < 1024 * 1024) { // 限制 1MB
-                    const content = await file.text();
-                    folder.files.push({
-                      id: `${folderId}-${file.name}-${Date.now()}-${Math.random()}`,
-                      name: file.name,
-                      content: content,
-                      modified: false,
-                      folderId: folderId,
-                      fileHandle: entry
-                    });
-                  } else {
-                    // 大文件只创建引用
-                    folder.files.push({
-                      id: `${folderId}-${file.name}-${Date.now()}-${Math.random()}`,
-                      name: file.name,
-                      content: `// 文件过大 (${formatFileSize(file.size)})，无法预览`,
-                      modified: false,
-                      folderId: folderId,
-                      fileHandle: entry,
-                      isLarge: true,
-                      size: file.size
-                    });
-                  }
-                } catch (err) {
-                  console.warn('无法读取文件:', entry.name, err);
-                }
-              } else if (entry.kind === 'directory' && depth < 2) {
-                // 递归读取子目录（每个子目录有独立的 ID）
-                const subFolderId = `${Date.now()}-${entry.name}-${Math.random()}`;
-                await readDirectory(entry, subFolderId, depth + 1);
-              }
-            }
-          } catch (err) {
-            console.error('读取目录失败:', err);
-          }
-
-          folders.value.push(folder);
-          console.log('[目录读取完成]', folder.name, '文件数:', folder.files.length, '深度:', depth, 'ID:', folderId);
-        };
-
-        // 处理目录选择（降级方案）
-        const handleDirectorySelect = (event) => {
-          const fileList = event.target.files;
-          if (!fileList.length) return;
-
-          const folderMap = new Map();
-          rootDirectory.value = fileList[0].webkitRelativePath.split('/')[0] || 'Selected';
-
-          for (const file of fileList) {
-            const parts = file.webkitRelativePath.split('/');
-            if (parts.length > 1) {
-              const folderName = parts[0];
-              const fileName = parts.slice(1).join('/');
-              
-              if (!folderMap.has(folderName)) {
-                folderMap.set(folderName, {
-                  id: Date.now() + Math.random(),
-                  name: folderName,
-                  expanded: true,
-                  files: []
-                });
-              }
-
-              const reader = new FileReader();
-              reader.onload = (e) => {
-                const folder = folderMap.get(folderName);
-                folder.files.push({
-                  id: `${folder.id}-${fileName}-${Date.now()}`,
-                  name: fileName,
-                  content: e.target.result,
-                  modified: false,
-                  folderId: folder.id
-                });
-              };
-              reader.readAsText(file);
-            }
-          }
-
-          folders.value = Array.from(folderMap.values());
-          showToast('✅ 目录已打开', 'success');
-          event.target.value = '';
-        };
-
-        // 打开文件
-        const openFiles = () => {
-          showFileTypeDialog.value = true;
-        };
-        
-        // 选择所有类型
-        const selectAllTypes = () => {
-          selectedFileTypes.value = fileTypes.map(t => t.value);
-          console.log('[selectAllTypes]', selectedFileTypes.value);
-        };
-
-        // 取消全选
-        const deselectAllTypes = () => {
-          selectedFileTypes.value = [];
-          console.log('[deselectAllTypes]', selectedFileTypes.value);
-        };
-
-        // 确认文件类型
-        const confirmFileType = () => {
-          console.log('[confirmFileType] selected:', selectedFileTypes.value);
-          fileTypeFilter.value = selectedFileTypes.value.join(',');
-          console.log('[confirmFileType] filter:', fileTypeFilter.value);
-          showFileTypeDialog.value = false;
-          setTimeout(() => {
-            console.log('[confirmFileType] clicking file input');
-            if (fileInput.value) {
-              fileInput.value.click();
-            }
-          }, 100);
-        };
-
-        const handleFileSelect = (event) => {
-          const fileList = event.target.files;
-          if (!fileList.length) return;
-
-          Array.from(fileList).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const newFile = {
-                id: Date.now() + Math.random(),
-                name: file.name,
-                content: e.target.result,
-                modified: false,
-                fileHandle: null
-              };
-              files.value.push(newFile);
-              openFile(newFile);
-            };
-            reader.readAsText(file);
-          });
-
-          event.target.value = '';
-        };
-
-        const openFile = (file) => {
-          if (!openTabs.value.find(t => t.id === file.id)) {
-            openTabs.value.push({ ...file });
-          }
-          currentFile.value = file;
-          editorContent.value = file.content || '';
-          
-          // 自动检测语言
-          if (file.language) {
-            currentLanguage.value = file.language;
-          } else {
-            currentLanguage.value = detectLanguage(file.name);
-            file.language = currentLanguage.value;
-          }
-          
-          nextTick(async () => {
-            if (editorRef.value) {
-              editorRef.value.focus();
-              // 动态加载语言组件
-              const lang = currentLanguage.value;
-              if (window.PrismLoader) {
-                await window.PrismLoader.loadLanguage(lang);
-              }
-              highlightEditor();
-            }
-          });
-        };
-
-        const closeTab = (tab) => {
-          const index = openTabs.value.findIndex(t => t.id === tab.id);
-          if (index === -1) return;
-          if (tab.modified && !confirm(`${tab.name} 有未保存的修改，确定关闭？`)) return;
-          openTabs.value.splice(index, 1);
-          if (currentFile.value?.id === tab.id) {
-            if (openTabs.value.length > 0) {
-              openFile(openTabs.value[openTabs.value.length - 1]);
-            } else {
-              currentFile.value = null;
-            }
-          }
-        };
-
-        const toggleFolder = (folderId) => {
-          const folder = folders.value.find(f => f.id === folderId);
-          if (folder) {
-            folder.expanded = !folder.expanded;
-            console.log('[切换文件夹]', folder.name, '展开:', folder.expanded);
-          } else {
-            console.warn('[文件夹未找到]', folderId);
-          }
-        };
-
-        const onInput = () => {
-          if (currentFile.value) {
-            currentFile.value.content = editorContent.value;
-            currentFile.value.modified = true;
-            const tab = openTabs.value.find(t => t.id === currentFile.value.id);
-            if (tab) tab.modified = true;
-          }
-          updateCursorPosition();
-        };
-        
-        // 高亮编辑器内容
-        const highlightEditor = () => {
-          // 简单实现：这里可以添加 overlay 层显示高亮
-          // 由于 textarea 限制，完整高亮需要更复杂的实现
-        };
-        
-        // 切换语言
-        const changeLanguage = async () => {
-          if (!currentFile.value) return;
-          
-          // 动态加载语言组件
-          if (window.PrismLoader) {
-            await window.PrismLoader.loadLanguage(currentLanguage.value);
-          }
-          
-          // 更新文件关联的语言
-          currentFile.value.language = currentLanguage.value;
-          
-          showToast(`✅ 语言已切换为 ${currentLanguage.value}`, 'success');
-        };
-        
-        // 自动检测语言
-        const detectLanguage = (filename) => {
-          const ext = getExtension(filename);
-          const langMap = {
-            'js': 'javascript', 'jsx': 'javascript', 'mjs': 'javascript',
-            'ts': 'typescript', 'tsx': 'typescript',
-            'py': 'python',
-            'go': 'go',
-            'html': 'html', 'htm': 'html',
-            'css': 'css', 'scss': 'scss', 'less': 'less',
-            'json': 'json',
-            'md': 'markdown',
-            'yaml': 'yaml', 'yml': 'yaml',
-            'sh': 'bash', 'bash': 'bash',
-            'sql': 'sql',
-            'xml': 'xml',
-            'java': 'java',
-            'c': 'c',
-            'cpp': 'cpp',
-            'cs': 'csharp',
-            'rb': 'ruby',
-            'php': 'php',
-            'rs': 'rust'
-          };
-          return langMap[ext] || 'plaintext';
-        };
-
-        const onTab = (e) => {
-          e.preventDefault();
-          const textarea = editorRef.value;
-          const start = textarea.selectionStart;
-          const end = textarea.selectionEnd;
-          editorContent.value = editorContent.value.substring(0, start) + '  ' + editorContent.value.substring(end);
-          nextTick(() => {
-            textarea.selectionStart = textarea.selectionEnd = start + 2;
-          });
-        };
-
-        const updateCursorPosition = () => {
-          if (editorRef.value) {
-            const text = editorContent.value.substring(0, editorRef.value.selectionStart);
-            const lines = text.split('\n');
-            cursorLine.value = lines.length;
-            cursorColumn.value = lines[lines.length - 1].length + 1;
-          }
-        };
-
-        const saveCurrentFile = async () => {
-          if (!currentFile.value) return;
-          currentFile.value.content = editorContent.value;
-
-          // 如果有 fileHandle，直接保存
-          if (currentFile.value.fileHandle) {
-            try {
-              const writable = await currentFile.value.fileHandle.createWritable();
-              await writable.write(editorContent.value);
-              await writable.close();
-              currentFile.value.modified = false;
-              const tab = openTabs.value.find(t => t.id === currentFile.value.id);
-              if (tab) tab.modified = false;
-              showToast('✅ 文件已保存', 'success');
-              return;
-            } catch (err) {
-              console.error('保存失败:', err);
-            }
-          }
-
-          // 降级：下载文件
-          const blob = new Blob([editorContent.value], { type: 'text/plain' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = currentFile.value.name;
-          a.click();
-          URL.revokeObjectURL(url);
-          
-          currentFile.value.modified = false;
-          const tab = openTabs.value.find(t => t.id === currentFile.value.id);
-          if (tab) tab.modified = false;
-          showToast('✅ 文件已下载', 'success');
-        };
-
-        const createNewFile = () => {
-          const name = prompt('请输入文件名:', 'untitled.js');
-          if (!name) return;
-          const file = { id: Date.now(), name, content: '', modified: false };
-          files.value.push(file);
-          openFile(file);
-          showToast('✅ 文件已创建', 'success');
-        };
-        
-        // 新建文件夹
-        const createNewFolder = () => {
-          const name = prompt('请输入文件夹名称:', 'new-folder');
-          if (!name) return;
-          folders.value.push({
-            id: Date.now(),
-            name,
-            expanded: false,  // 默认折叠
-            files: []
-          });
-          showToast('✅ 文件夹已创建', 'success');
-        };
-        
-        // 保存全部文件
-        const saveAllFiles = async () => {
-          let saved = 0;
-          for (const file of files.value) {
-            if (file.modified && file.fileHandle) {
-              try {
-                const writable = await file.fileHandle.createWritable();
-                await writable.write(file.content);
-                await writable.close();
-                file.modified = false;
-                saved++;
-              } catch (err) {
-                console.error('保存失败:', err);
-              }
-            }
-          }
-          // 更新标签页状态
-          openTabs.value.forEach(tab => {
-            const file = files.value.find(f => f.id === tab.id);
-            if (file) tab.modified = file.modified;
-          });
-          showToast(`✅ 已保存 ${saved} 个文件`, 'success');
-        };
-
-        const showToast = (message, type = 'info') => {
-          const id = Date.now();
-          toasts.value.push({ id, message, type });
-          setTimeout(() => {
-            toasts.value = toasts.value.filter(t => t.id !== id);
-          }, 3000);
-        };
-
-        const handleKeyDown = (e) => {
-          if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            saveCurrentFile();
-          }
-        };
-        
-        // 显示文件右键菜单
-        const showFileMenu = (event, file) => {
-          const menu = document.createElement('div');
-          menu.style.cssText = `
-            position: fixed;
-            left: ${event.clientX}px;
-            top: ${event.clientY}px;
-            background: var(--bg-sidebar);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 4px 0;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-          `;
-          
-          const items = [
-            { icon: '📄', label: '打开', action: () => { openFile(file); menu.remove(); } },
-            { icon: '✏️', label: '重命名', action: () => { renameFile(file); menu.remove(); } },
-            { icon: '📋', label: '复制内容', action: () => { copyFileContent(file); menu.remove(); } },
-            { icon: '💾', label: '下载文件', action: () => { downloadFile(file); menu.remove(); } },
-            { icon: 'ℹ️', label: '查看信息', action: () => { showFileInfo(file); menu.remove(); } },
-            { type: 'divider' },
-            { icon: '🗑️', label: '删除', action: () => { deleteFile(file); menu.remove(); }, danger: true }
-          ];
-          
-          items.forEach(item => {
-            if (item.type === 'divider') {
-              const div = document.createElement('div');
-              div.style.cssText = 'height: 1px; background: var(--border-color); margin: 4px 0;';
-              menu.appendChild(div);
-            } else {
-              const div = document.createElement('div');
-              div.style.cssText = `
-                padding: 8px 16px;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                font-size: 13px;
-                color: ${item.danger ? '#ef4444' : 'var(--text-primary)'};
-              `;
-              div.textContent = `${item.icon} ${item.label}`;
-              div.onmouseover = () => div.style.background = 'var(--bg-hover)';
-              div.onmouseout = () => div.style.background = 'transparent';
-              div.onclick = () => item.action();
-              menu.appendChild(div);
-            }
-          });
-          
-          document.body.appendChild(menu);
-          
-          const closeMenu = () => {
-            menu.remove();
-            document.removeEventListener('click', closeMenu);
-          };
-          setTimeout(() => {
-            document.addEventListener('click', closeMenu);
-          }, 100);
-        };
-        
-        // 复制文件内容
-        const copyFileContent = async (file) => {
-          try {
-            await navigator.clipboard.writeText(file.content || '');
-            showToast('✅ 内容已复制', 'success');
-          } catch (err) {
-            showToast('❌ 复制失败', 'error');
-          }
-        };
-        
-        // 下载文件
-        const downloadFile = (file) => {
-          const blob = new Blob([file.content || ''], { type: 'text/plain' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = file.name;
-          a.click();
-          URL.revokeObjectURL(url);
-          showToast('✅ 文件已下载', 'success');
-        };
-        
-        // 显示文件信息
-        const showFileInfo = (file) => {
-          const size = new Blob([file.content || '']).size;
-          const lines = (file.content || '').split('\n').length;
-          const info = `文件名：${file.name}\n大小：${formatFileSize(size)}\n行数：${lines}\n修改：${file.modified ? '是' : '否'}`;
-          alert(info);
-        };
-        
-        // 格式化文件大小
-        const formatFileSize = (bytes) => {
-          if (bytes === 0) return '0 B';
-          const k = 1024;
-          const sizes = ['B', 'KB', 'MB', 'GB'];
-          const i = Math.floor(Math.log(bytes) / Math.log(k));
-          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        };
-        
-        // 重命名文件
-        const renameFile = (file) => {
-          const newName = prompt('请输入新文件名:', file.name);
-          if (newName && newName !== file.name) {
-            file.name = newName;
-            file.modified = true;
-            showToast('✅ 文件已重命名', 'success');
-          }
-        };
-        
-        // 删除文件
-        const deleteFile = (file) => {
-          if (!confirm(`确定要删除 "${file.name}" 吗？`)) return;
-          
-          // 从文件列表移除
-          const index = files.value.findIndex(f => f.id === file.id);
-          if (index > -1) files.value.splice(index, 1);
-          
-          // 关闭标签页
-          const tabIndex = openTabs.value.findIndex(t => t.id === file.id);
-          if (tabIndex > -1) openTabs.value.splice(tabIndex, 1);
-          
-          // 如果删除的是当前文件
-          if (currentFile.value?.id === file.id) {
-            if (openTabs.value.length > 0) {
-              openFile(openTabs.value[openTabs.value.length - 1]);
-            } else {
-              currentFile.value = null;
-            }
-          }
-          
-          showToast('✅ 文件已删除', 'success');
-        };
-
-        onMounted(() => {
-          // 加载保存的主题
-          loadTheme();
-          
-          document.addEventListener('keydown', handleKeyDown);
-          document.addEventListener('click', handleGlobalClick);
-          
-          // 默认不添加示例文件，等待用户打开目录或文件
-        });
-
-        return {
-          editorRef, currentFile, openTabs, files, folders, fileInput, directoryInput,
-          editorContent, rootDirectory, toasts, cursorLine, cursorColumn, supportsDirectoryPicker,
-          languageName, rootFiles, getFileIcon, openDirectory, openFiles, readDirectory,
-          handleDirectorySelect, handleFileSelect, openFile, closeTab, toggleFolder,
-          onInput, onTab, saveCurrentFile, createNewFile, createNewFolder, saveAllFiles,
-          showFileMenu, showFileTypeDialog, selectedFileTypes, fileTypeFilter, fileTypes,
-          selectAllTypes, deselectAllTypes, confirmFileType, closeFileTypeDialog,
-          showTreeContextMenu, showFileContextMenu, showFolderContextMenu,
-          contextMenuVisible, contextMenuPosition, contextMenuType, currentContextMenuTarget,
-          renameFileAction, deleteFileAction, deleteFolderAction, createFileInFolder,
-          copyFileContent, downloadFile,
-          currentLanguage, changeLanguage,
-          isDark, toggleTheme
-        };
-      }
-    }).mount('#app');
-  </script>
+  <!-- 自定义脚本 -->
+  <script src="/web-ide-lite/js/app.js"></script>
 </body>
 </html>

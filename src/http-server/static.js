@@ -240,6 +240,16 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(webIdeLiteDir, 'index.html'));
   });
 
+  // 轻量级 Web IDE v2 (模块化版本)
+  const webIdeLiteV2Dir = path.join(ROOT_DIR, 'public/web-ide-lite-v2');
+  app.use('/web-ide-lite-v2', express.static(webIdeLiteV2Dir));
+  app.get('/web-ide-lite-v2', (req, res) => {
+    res.sendFile(path.join(webIdeLiteV2Dir, 'index.html'));
+  });
+  
+  // 轻量级 Web IDE v2 JS 模块
+  app.use('/web-ide-lite-v2/js', express.static(path.join(webIdeLiteV2Dir, 'js')));
+
   // 用户目录静态资源（最后）
   app.use('/files', express.static(options.dir));
   
