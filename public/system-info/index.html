@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统信息监控</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              light: '#60a5fa',
+              DEFAULT: '#3b82f6',
+              dark: '#2563eb'
+            },
+            success: {
+              light: '#4ade80',
+              DEFAULT: '#22c55e',
+              dark: '#16a34a'
+            },
+            warning: {
+              light: '#fbbf24',
+              DEFAULT: '#f59e0b',
+              dark: '#d97706'
+            },
+            danger: {
+              light: '#f87171',
+              DEFAULT: '#ef4444',
+              dark: '#dc2626'
+            }
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'spin-slow': 'spin 2s linear infinite',
+            'bounce-slow': 'bounce 2s infinite'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      @apply bg-gray-100 dark:bg-gray-800 rounded;
+    }
+    ::-webkit-scrollbar-thumb {
+      @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      @apply bg-gray-400 dark:bg-gray-500;
+    }
+
+    /* 卡片样式 */
+    .card {
+      @apply bg-white dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700/50 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+    }
+
+    /* 进度条样式 */
+    .progress-bar {
+      @apply h-4 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full overflow-hidden shadow-inner;
+    }
+    .progress-fill {
+      @apply h-full rounded-full transition-all duration-700 ease-out flex items-center justify-end pr-2 text-xs font-medium text-white shadow-lg;
+    }
+    .progress-fill.low { @apply bg-gradient-to-r from-green-400 to-green-500; }
+    .progress-fill.medium { @apply bg-gradient-to-r from-yellow-400 to-orange-500; }
+    .progress-fill.high { @apply bg-gradient-to-r from-red-400 to-red-500; }
+    .progress-fill.info { @apply bg-gradient-to-r from-blue-400 to-blue-500; }
+
+    /* 状态指示器 */
+    .status-indicator {
+      @apply relative flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300;
+    }
+    .status-indicator.connected {
+      @apply bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400;
+    }
+    .status-indicator.disconnected {
+      @apply bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400;
+    }
+    .status-dot {
+      @apply w-2.5 h-2.5 rounded-full animate-pulse;
+    }
+    .status-dot.connected { @apply bg-green-500 shadow-lg shadow-green-500/50; }
+    .status-dot.disconnected { @apply bg-red-500 shadow-lg shadow-red-500/50; }
+
+    /* 图标样式 */
+    .icon-wrapper {
+      @apply w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg;
+    }
+    .icon-blue { @apply icon-wrapper bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400; }
+    .icon-green { @apply icon-wrapper bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400; }
+    .icon-purple { @apply icon-wrapper bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400; }
+    .icon-orange { @apply icon-wrapper bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400; }
+    .icon-red { @apply icon-wrapper bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400; }
+    .icon-cyan { @apply icon-wrapper bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400; }
+
+    /* 标签样式 */
+    .label {
+      @apply text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold;
+    }
+    .value {
+      @apply text-gray-900 dark:text-white text-lg font-bold;
+    }
+    .value-sm {
+      @apply text-gray-700 dark:text-gray-300 text-sm font-medium;
+    }
+
+    /* 网格布局 */
+    .dashboard-grid {
+      @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+    }
+
+    /* 图表容器 */
+    .chart-container {
+      @apply relative h-64 w-full;
+    }
+
+    /* 工具提示 */
+    .tooltip {
+      @apply absolute z-50 px-3 py-2 text-sm bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg shadow-xl opacity-0 invisible transition-all duration-200;
+    }
+    .tooltip-show {
+      @apply opacity-100 visible;
+    }
+
+    /* 加载动画 */
+    .loading-skeleton {
+      @apply animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite];
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* 徽章样式 */
+    .badge {
+      @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    }
+    .badge-blue { @apply badge bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400; }
+    .badge-green { @apply badge bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400; }
+    .badge-purple { @apply badge bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400; }
+
+    [v-cloak] {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen transition-colors duration-500">
+  <div id="app" v-cloak class="container mx-auto px-4 py-8 max-w-7xl">
+    <!-- 头部 -->
+    <header class="mb-8">
+      <div class="card !p-0 overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-8">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl shadow-xl">
+                🖥️
+              </div>
+              <div>
+                <h1 class="text-3xl font-bold text-white">系统信息监控</h1>
+                <p class="text-white/80 text-sm mt-1">实时监控系统资源使用情况 · 数据每 2 秒自动刷新</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <!-- 连接状态 -->
+              <div class="status-indicator" :class="socketConnected ? 'connected' : 'disconnected'">
+                <span class="status-dot" :class="socketConnected ? 'connected' : 'disconnected'"></span>
+                <span>{{ socketConnected ? '实时连接' : '已断开' }}</span>
+              </div>
+              <!-- 主题切换 -->
+              <button 
+                @click="toggleDarkMode" 
+                class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 flex items-center justify-center text-2xl shadow-lg hover:scale-110"
+                :title="isDark ? '切换到浅色模式' : '切换到深色模式'"
+              >
+                {{ isDark ? '☀️' : '🌙' }}
+              </button>
+              <!-- 刷新按钮 -->
+              <button 
+                @click="refreshData" 
+                class="px-5 py-3 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-xl transition-all duration-300 flex items-center gap-2 font-medium hover:scale-105 shadow-lg"
+                :disabled="loading"
+              >
+                <span :class="{'animate-spin': loading}">🔄</span>
+                <span class="hidden sm:inline">{{ loading ? '刷新中...' : '刷新' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主要信息卡片 -->
+    <div class="dashboard-grid mb-6">
+      <!-- 系统信息 -->
+      <div class="card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="icon-blue">💻</div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">系统信息</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">System Information</p>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <span class="label">操作系统</span>
+            <span class="value-sm">{{ getOSName(systemInfo.platform) }} {{ systemInfo.arch }}</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <span class="label">主机名</span>
+            <span class="value-sm font-mono text-xs">{{ systemInfo.hostname }}</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <span class="label">运行时间</span>
+            <span class="value-sm text-xs">{{ systemInfo.uptime }}</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <span class="label">用户</span>
+            <span class="value-sm">{{ systemInfo.user }}</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <span class="label">Node 版本</span>
+            <span class="value-sm font-mono text-xs">{{ systemInfo.nodeVersion }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CPU 信息 -->
+      <div class="card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="icon-purple">🧠</div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">CPU</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Processor</p>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div class="label mb-1">型号</div>
+            <div class="value-sm text-sm">{{ cpuInfo.model }}</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex-1 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+              <div class="label">核心数</div>
+              <div class="value text-xl">{{ cpuInfo.cores }}</div>
+            </div>
+            <div class="flex-1 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+              <div class="label">频率</div>
+              <div class="value text-xl">{{ cpuInfo.speed }}<span class="text-xs"> MHz</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="label">平均使用率</span>
+              <span class="value-sm" :class="getUsageColorClass(cpuInfo.avgUsage)">{{ cpuInfo.avgUsage }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" :class="getProgressClass(cpuInfo.avgUsage)" :style="{ width: cpuInfo.avgUsage + '%' }">
+                <span v-if="cpuInfo.avgUsage > 10">{{ cpuInfo.avgUsage }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 内存信息 -->
+      <div class="card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="icon-green">💾</div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">内存</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Memory</p>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div class="label text-xs">总计</div>
+              <div class="value text-base">{{ memoryInfo.total }}</div>
+            </div>
+            <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div class="label text-xs">已用</div>
+              <div class="value text-base" :class="getUsageColorClass(memoryInfo.usage)">{{ memoryInfo.used }}</div>
+            </div>
+          </div>
+          <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div class="label text-xs">空闲</div>
+            <div class="value text-base">{{ memoryInfo.free }}</div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="label">使用率</span>
+              <span class="value-sm" :class="getUsageColorClass(memoryInfo.usage)">{{ memoryInfo.usage }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" :class="getProgressClass(memoryInfo.usage)" :style="{ width: memoryInfo.usage + '%' }">
+                <span v-if="parseFloat(memoryInfo.usage) > 10">{{ memoryInfo.usage }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 磁盘信息 -->
+      <div class="card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="icon-orange">💿</div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">磁盘</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Storage</p>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div class="label text-xs">总计</div>
+              <div class="value text-base">{{ diskInfo.total }}</div>
+            </div>
+            <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div class="label text-xs">已用</div>
+              <div class="value text-base" :class="getUsageColorClass(diskInfo.usage)">{{ diskInfo.used }}</div>
+            </div>
+          </div>
+          <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div class="label text-xs">空闲</div>
+            <div class="value text-base">{{ diskInfo.free }}</div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="label">使用率</span>
+              <span class="value-sm" :class="getUsageColorClass(diskInfo.usage)">{{ diskInfo.usage }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" :class="getProgressClass(diskInfo.usage)" :style="{ width: diskInfo.usage + '%' }">
+                <span v-if="parseFloat(diskInfo.usage) > 10">{{ diskInfo.usage }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CPU 核心使用率图表 -->
+    <div class="card mb-6">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="icon-cyan">📈</div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">CPU 核心使用率</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">CPU Core Usage</p>
+          </div>
+        </div>
+        <badge-blue>{{ cpuInfo.cores }} 核心</badge-blue>
+      </div>
+      <div class="space-y-3">
+        <div v-for="(cpu, index) in cpuInfo.usage" :key="index" 
+             class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors">
+          <span class="text-sm font-semibold text-gray-600 dark:text-gray-400 w-20">核心 {{ index + 1 }}</span>
+          <div class="progress-bar flex-1">
+            <div class="progress-fill" :class="getProgressClass(cpu.usage)" :style="{ width: cpu.usage + '%' }">
+              <span v-if="cpu.usage > 15">{{ cpu.usage }}%</span>
+            </div>
+          </div>
+          <span class="text-sm font-bold text-gray-700 dark:text-gray-300 w-14 text-right">{{ cpu.usage }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 详细信息 -->
+    <div class="dashboard-grid mb-6">
+      <!-- 网络信息 -->
+      <div class="card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="icon-blue">🌐</div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">网络信息</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Network</p>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <!-- WiFi 状态 -->
+          <div class="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl">
+            <div class="flex items-center justify-between mb-2">
+              <span class="label">WiFi 连接</span>
+              <span class="text-2xl">{{ wifiInfo.ssid === '未连接' ? '❌' : '📶' }}</span>
+            </div>
+            <div class="value-sm text-base" :class="wifiInfo.ssid === '未连接' || wifiInfo.ssid.includes('隐藏') ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'">
+              {{ wifiInfo.ssid }}
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">({{ wifiInfo.platform }})</div>
+          </div>
+          
+          <!-- IP 地址 -->
+          <div>
+            <div class="label mb-2">内网 IP 地址</div>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="ip in networkInfo.internalIPs" :key="ip" 
+                    class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg font-mono text-sm text-gray-700 dark:text-gray-300">
+                {{ ip }}
+              </span>
+              <span v-if="networkInfo.internalIPs.length === 0" class="text-gray-400 text-sm">无</span>
+            </div>
+          </div>
+          
+          <!-- 网络接口 -->
+          <div>
+            <div class="label mb-2">网络接口</div>
+            <div class="space-y-2 max-h-48 overflow-y-auto">
+              <div v-for="iface in networkInfo.interfaces" :key="iface.name" 
+                   class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-semibold text-gray-700 dark:text-gray-300">{{ iface.name }}</span>
+                  <badge-blue v-if="iface.ipv4.length > 0">IPv4</badge-blue>
+                </div>
+                <div class="space-y-1">
+                  <div v-for="ip in iface.ipv4" :key="ip" class="text-xs font-mono text-gray-600 dark:text-gray-400">
+                    📍 {{ ip }}
+                  </div>
+                  <div v-for="ip in iface.ipv6" :key="ip" class="text-xs font-mono text-gray-600 dark:text-gray-400">
+                    🔗 {{ ip }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 电池信息 -->
+      <div v-if="batteryInfo" class="card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="icon-green">🔋</div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">电池状态</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Battery</p>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <!-- 电量百分比 -->
+          <div class="text-center">
+            <div class="text-5xl font-bold mb-2" :class="getBatteryColorClass(batteryInfo.level)">
+              {{ batteryInfo.level }}%
+            </div>
+            <div class="progress-bar h-6">
+              <div class="progress-fill" :class="getBatteryProgressClass(batteryInfo.level)" 
+                   :style="{ width: batteryInfo.level + '%' }">
+              </div>
+            </div>
+          </div>
+          
+          <!-- 状态 -->
+          <div class="p-4 rounded-xl text-center" :class="batteryInfo.charging ? 'bg-green-50 dark:bg-green-900/20' : 'bg-yellow-50 dark:bg-yellow-900/20'">
+            <div class="text-3xl mb-2">{{ batteryInfo.charging ? '⚡' : '🔋' }}</div>
+            <div class="font-semibold" :class="batteryInfo.charging ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'">
+              {{ batteryInfo.status }}
+            </div>
+          </div>
+          
+          <!-- 预计时间 -->
+          <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+            <div class="label">预计剩余时间</div>
+            <div class="value text-lg">{{ getEstimatedTime(batteryInfo.level, batteryInfo.charging) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 进程信息 -->
+      <div class="card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="icon-purple">⚙️</div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">进程信息</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Process</p>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+              <div class="label text-xs">PID</div>
+              <div class="value text-lg font-mono">{{ processInfo.pid }}</div>
+            </div>
+            <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+              <div class="label text-xs">PPID</div>
+              <div class="value text-lg font-mono">{{ processInfo.ppid }}</div>
+            </div>
+          </div>
+          <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div class="label text-xs mb-1">Node 版本</div>
+            <div class="value-sm font-mono text-sm">{{ processInfo.nodeVersion }}</div>
+          </div>
+          <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div class="label text-xs mb-1">工作目录</div>
+            <div class="value-sm font-mono text-xs truncate">{{ processInfo.cwd }}</div>
+          </div>
+          <div class="space-y-2">
+            <div class="label text-xs">内存使用</div>
+            <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600 dark:text-gray-400">RSS:</span>
+                <span class="font-medium">{{ processInfo.memoryUsage.rss }}</span>
+              </div>
+              <div class="flex justify-between text-sm mt-1">
+                <span class="text-gray-600 dark:text-gray-400">Heap:</span>
+                <span class="font-medium">{{ processInfo.memoryUsage.heapUsed }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div class="label text-xs mb-1">运行时间</div>
+            <div class="value-sm">{{ processInfo.uptime }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 系统负载 -->
+      <div class="card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="icon-red">📊</div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">系统负载</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">System Load</p>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div class="grid grid-cols-3 gap-2">
+            <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+              <div class="label text-xs">1 分钟</div>
+              <div class="value text-xl" :class="getLoadColorClass(systemInfo.loadavg?.[0])">{{ systemInfo.loadavg?.[0]?.toFixed(2) }}</div>
+            </div>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+              <div class="label text-xs">5 分钟</div>
+              <div class="value text-xl" :class="getLoadColorClass(systemInfo.loadavg?.[1])">{{ systemInfo.loadavg?.[1]?.toFixed(2) }}</div>
+            </div>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
+              <div class="label text-xs">15 分钟</div>
+              <div class="value text-xl" :class="getLoadColorClass(systemInfo.loadavg?.[2])">{{ systemInfo.loadavg?.[2]?.toFixed(2) }}</div>
+            </div>
+          </div>
+          
+          <!-- 负载图表 -->
+          <div class="chart-container">
+            <canvas ref="loadChart"></canvas>
+          </div>
+          
+          <!-- 负载评估 -->
+          <div class="p-3 rounded-lg text-center" :class="getLoadBgClass(avgLoad)">
+            <div class="text-sm font-medium mb-1">负载评估</div>
+            <div class="text-2xl">{{ getLoadEmoji(avgLoad) }}</div>
+            <div class="text-sm mt-1">{{ getLoadText(avgLoad) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 更新时间 -->
+    <footer class="text-center py-6">
+      <div class="inline-flex items-center gap-4 px-6 py-3 bg-white dark:bg-gray-800 rounded-full shadow-lg">
+        <span class="text-gray-500 dark:text-gray-400 text-sm">🕐 最后更新：{{ lastUpdateTime }}</span>
+        <span class="badge-blue">每 2 秒自动刷新</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted, onUnmounted, nextTick } = Vue;
+
+    createApp({
+      setup() {
+        // 状态
+        const socket = ref(null);
+        const socketConnected = ref(false);
+        const loading = ref(false);
+        const isDark = ref(false);
+        const lastUpdateTime = ref('');
+        const loadChart = ref(null);
+        const loadChartData = ref([]);
+        const loadChartInstance = ref(null);
+        
+        // 系统信息
+        const systemData = ref({
+          system: {},
+          cpu: {},
+          memory: {},
+          disk: {},
+          network: {},
+          process: {},
+          battery: null,
+          wifi: {}
+        });
+
+        // 计算属性
+        const systemInfo = computed(() => systemData.value.system || {});
+        const cpuInfo = computed(() => systemData.value.cpu || { usage: [] });
+        const memoryInfo = computed(() => systemData.value.memory || {});
+        const diskInfo = computed(() => systemData.value.disk || {});
+        const networkInfo = computed(() => systemData.value.network || { interfaces: [], internalIPs: [] });
+        const processInfo = computed(() => systemData.value.process || {});
+        const batteryInfo = computed(() => systemData.value.battery);
+        const wifiInfo = computed(() => systemData.value.wifi || {});
+        const avgLoad = computed(() => systemInfo.value.loadavg?.[0] || 0);
+
+        // 连接 Socket.IO
+        const connectSocket = () => {
+          socket.value = io('/system-info', {
+            transports: ['websocket', 'polling']
+          });
+
+          socket.value.on('connect', () => {
+            console.log('Socket 已连接');
+            socketConnected.value = true;
+          });
+
+          socket.value.on('disconnect', () => {
+            console.log('Socket 已断开');
+            socketConnected.value = false;
+          });
+
+          socket.value.on('system-info', (data) => {
+            systemData.value = data;
+            lastUpdateTime.value = new Date().toLocaleString('zh-CN');
+            loading.value = false;
+            updateLoadChart();
+          });
+
+          socket.value.on('system-error', (error) => {
+            console.error('系统信息错误:', error);
+            loading.value = false;
+          });
+        };
+
+        // 刷新数据
+        const refreshData = () => {
+          loading.value = true;
+          if (socket.value && socket.value.connected) {
+            socket.value.emit('request-info');
+          } else {
+            fetch('/api/system-info')
+              .then(res => res.json())
+              .then(data => {
+                if (data.success) {
+                  systemData.value = data.data;
+                  lastUpdateTime.value = new Date().toLocaleString('zh-CN');
+                  updateLoadChart();
+                }
+              })
+              .finally(() => {
+                loading.value = false;
+              });
+          }
+        };
+
+        // 切换深色模式
+        const toggleDarkMode = () => {
+          isDark.value = !isDark.value;
+          if (isDark.value) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark');
+          }
+          localStorage.setItem('darkMode', isDark.value);
+          updateChartTheme();
+        };
+
+        // 初始化深色模式
+        const initDarkMode = () => {
+          const saved = localStorage.getItem('darkMode');
+          if (saved !== null) {
+            isDark.value = saved === 'true';
+          } else {
+            isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          }
+          if (isDark.value) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark');
+          }
+        };
+
+        // 工具函数
+        const getOSName = (platform) => {
+          const names = {
+            darwin: 'macOS',
+            windows: 'Windows',
+            linux: 'Linux'
+          };
+          return names[platform] || platform;
+        };
+
+        const getUsageColorClass = (usage) => {
+          const num = parseFloat(usage) || 0;
+          if (num > 80) return 'text-danger';
+          if (num > 60) return 'text-warning';
+          return 'text-success';
+        };
+
+        const getProgressClass = (usage) => {
+          const num = parseFloat(usage) || 0;
+          if (num > 80) return 'high';
+          if (num > 60) return 'medium';
+          if (num > 30) return 'low';
+          return 'info';
+        };
+
+        const getBatteryColorClass = (level) => {
+          if (level > 80) return 'text-green-500';
+          if (level > 30) return 'text-yellow-500';
+          return 'text-red-500';
+        };
+
+        const getBatteryProgressClass = (level) => {
+          return getProgressClass(level);
+        };
+
+        const getEstimatedTime = (level, charging) => {
+          if (charging) {
+            const hours = ((100 - level) / 50).toFixed(1);
+            return `约${hours}小时充满`;
+          } else {
+            const hours = (level / 15).toFixed(1);
+            return `约${hours}小时`;
+          }
+        };
+
+        const getLoadColorClass = (load) => {
+          const num = load || 0;
+          if (num > 4) return 'text-danger';
+          if (num > 2) return 'text-warning';
+          return 'text-success';
+        };
+
+        const getLoadBgClass = (load) => {
+          if (load > 4) return 'bg-red-100 dark:bg-red-900/20';
+          if (load > 2) return 'bg-yellow-100 dark:bg-yellow-900/20';
+          return 'bg-green-100 dark:bg-green-900/20';
+        };
+
+        const getLoadEmoji = (load) => {
+          if (load > 4) return '😰';
+          if (load > 2) return '😐';
+          if (load > 1) return '😊';
+          return '😄';
+        };
+
+        const getLoadText = (load) => {
+          if (load > 4) return '负载较高';
+          if (load > 2) return '负载适中';
+          if (load > 1) return '运行良好';
+          return '运行流畅';
+        };
+
+        // 负载图表
+        const initLoadChart = () => {
+          if (!loadChart.value) return;
+          
+          const ctx = loadChart.value.getContext('2d');
+          loadChartInstance.value = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: [],
+              datasets: [{
+                label: '系统负载 (1 分钟)',
+                data: [],
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: {
+                duration: 300
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: 10,
+                  grid: {
+                    color: isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                  }
+                },
+                x: {
+                  grid: {
+                    display: false
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  display: false
+                }
+              }
+            }
+          });
+        };
+
+        const updateLoadChart = () => {
+          const load = systemInfo.value.loadavg?.[0]?.toFixed(2);
+          if (!load) return;
+          
+          const now = new Date();
+          const time = now.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          
+          loadChartData.value.push({ time, load });
+          if (loadChartData.value.length > 30) {
+            loadChartData.value.shift();
+          }
+          
+          if (loadChartInstance.value) {
+            loadChartInstance.value.data.labels = loadChartData.value.map(d => d.time);
+            loadChartInstance.value.data.datasets[0].data = loadChartData.value.map(d => parseFloat(d.load));
+            loadChartInstance.value.update('none');
+          }
+        };
+
+        const updateChartTheme = () => {
+          if (loadChartInstance.value) {
+            loadChartInstance.value.options.scales.y.grid.color = isDark.value 
+              ? 'rgba(255,255,255,0.1)' 
+              : 'rgba(0,0,0,0.1)';
+            loadChartInstance.value.update();
+          }
+        };
+
+        // 生命周期
+        onMounted(() => {
+          initDarkMode();
+          connectSocket();
+          nextTick(() => {
+            initLoadChart();
+          });
+        });
+
+        onUnmounted(() => {
+          if (socket.value) {
+            socket.value.disconnect();
+          }
+          if (loadChartInstance.value) {
+            loadChartInstance.value.destroy();
+          }
+        });
+
+        return {
+          socketConnected,
+          loading,
+          isDark,
+          lastUpdateTime,
+          systemInfo,
+          cpuInfo,
+          memoryInfo,
+          diskInfo,
+          networkInfo,
+          processInfo,
+          batteryInfo,
+          wifiInfo,
+          avgLoad,
+          loadChart,
+          toggleDarkMode,
+          refreshData,
+          getOSName,
+          getUsageColorClass,
+          getProgressClass,
+          getBatteryColorClass,
+          getBatteryProgressClass,
+          getEstimatedTime,
+          getLoadColorClass,
+          getLoadBgClass,
+          getLoadEmoji,
+          getLoadText
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

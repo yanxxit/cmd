@@ -22,7 +22,8 @@
     "x-ls-size-fast": "bin/ls-size-fast.js",
     "x-static": "bin/static.js",
     "x-file-viewer": "bin/static.js",
-    "x-http-sniffer": "bin/http-sniffer.js"
+    "x-http-sniffer": "bin/http-sniffer.js",
+    "x-wifi": "bin/wifi.js"
   },
   "scripts": {
     "clear": "npm unlink",
@@ -83,8 +84,9 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "serve-favicon": "^2.5.0",
-    "shelljs": "^0.8.4",
+    "shelljs": "^0.8.5",
     "signale": "^1.4.0",
+    "socket.io": "^4.8.3",
     "terminal-kit": "^2.1.6",
     "tmp": "^0.2.5",
     "undici": "^5.10.0",

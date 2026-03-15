@@ -39,3 +39,4 @@ public/*.docx
 .pgdata/
 git-log.html
 .http-sniffer/
+__pycache__

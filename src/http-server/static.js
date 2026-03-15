@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import proxy from 'http-proxy-middleware';
 import compression from 'compression';
 import { fileURLToPath } from 'url';
+import { Server } from 'socket.io';
 import fileViewerRouter from './file-viewer.js';
 import todoApiRouter from './todo-api.js';
 import pomodoroApiRouter from './pomodoro-api.js';
@@ -15,10 +16,13 @@ import mockApiRouter from './mock-api.js';
 import pgliteExportApiRouter from './pglite-export-api.js';
 import xlsxParserRouter from './xlsx-parser.js';
 import aiChatApiRouter from './ai-chat-api.js';
+import appsApiRouter from './apps-api.js';
+import contrastApiRouter from './contrast-api.js';
 import { createRequestLogger } from './request-logger.js';
 import requestLoggerApiRouter from './request-logger-api.js';
 import { initDatabase as initTodoDatabase } from '../model/database.js';
 import { createHashMiddleware, createStaticWithHashInjection } from './hash-middleware.js';
+import { setupSystemInfoSocket, setupSystemInfoAPI } from './system-info-api.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -259,6 +263,33 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/web-ide-lite-v2/js', express.static(path.join(webIdeLiteV2Dir, 'js')));
   app.use('/web-ide-lite-v2/js/actions', express.static(path.join(webIdeLiteV2Dir, 'js/actions')));
 
+  // 系统信息监控页面
+  const systemInfoDir = path.join(ROOT_DIR, 'public/system-info');
+  app.use('/system-info', express.static(systemInfoDir));
+  app.get('/system-info', (req, res) => {
+    res.sendFile(path.join(systemInfoDir, 'index.html'));
+  });
+
+  // 应用启动器页面
+  const appsLauncherDir = path.join(ROOT_DIR, 'public/apps-launcher');
+  app.use('/apps-launcher', express.static(appsLauncherDir));
+  app.get('/apps-launcher', (req, res) => {
+    res.sendFile(path.join(appsLauncherDir, 'index.html'));
+  });
+
+  // 挂载应用启动 API 路由
+  app.use('/api/apps', appsApiRouter);
+
+  // 对比学习页面
+  const contrastLearningDir = path.join(ROOT_DIR, 'public/contrast-learning');
+  app.use('/contrast-learning', express.static(contrastLearningDir));
+  app.get('/contrast-learning', (req, res) => {
+    res.sendFile(path.join(contrastLearningDir, 'index.html'));
+  });
+
+  // 挂载对比学习 API 路由
+  app.use('/api/contrast', contrastApiRouter);
+
   // 用户目录静态资源（最后）
   app.use('/files', express.static(options.dir));
   
@@ -301,6 +332,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
    * Create HTTP server.
    */
   const server = http.createServer(app);
+
+  // 初始化 Socket.IO
+  const io = new Server(server, {
+    cors: {
+      origin: '*',
+      methods: ['GET', 'POST']
+    }
+  });
+
+  // 设置系统信息 Socket 路由
+  setupSystemInfoSocket(io);
+
+  // 设置系统信息 HTTP API
+  setupSystemInfoAPI(app);
 
   // 预初始化 PGLite 数据库
   initTodoDatabase().catch(err => {

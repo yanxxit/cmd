@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>应用启动器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@vueuse/shared@10.9.0/index.iife.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-out',
+            'slide-down': 'slideDown 0.3s ease-out',
+            'scale-in': 'scaleIn 0.2s ease-out',
+            'shimmer': 'shimmer 2s linear infinite'
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' }
+            },
+            slideDown: {
+              '0%': { transform: 'translateY(-10px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' }
+            },
+            scaleIn: {
+              '0%': { transform: 'scale(0.95)', opacity: '0' },
+              '100%': { transform: 'scale(1)', opacity: '1' }
+            },
+            shimmer: {
+              '0%': { backgroundPosition: '200% 0' },
+              '100%': { backgroundPosition: '-200% 0' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      @apply bg-gray-100 dark:bg-gray-800 rounded;
+    }
+    ::-webkit-scrollbar-thumb {
+      @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      @apply bg-gray-400 dark:bg-gray-500;
+    }
+
+    .search-glow {
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+    }
+    .dark .search-glow {
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+    }
+
+    .app-card {
+      @apply p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-105;
+    }
+    .app-card:hover {
+      @apply bg-blue-50 dark:bg-blue-900/20 shadow-lg;
+    }
+
+    .category-pill {
+      @apply px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-all duration-200;
+    }
+    .category-pill.active {
+      @apply bg-blue-500 text-white shadow-lg shadow-blue-500/30;
+    }
+    .category-pill.inactive {
+      @apply bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700;
+    }
+
+    [v-cloak] {
+      display: none;
+    }
+
+    /* 键盘导航高亮 */
+    .keyboard-highlight {
+      @apply ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-900;
+    }
+    
+    /* 搜索匹配高亮 */
+    .match-highlight {
+      @apply bg-yellow-200 dark:bg-yellow-800/50 px-0.5 rounded;
+    }
+    
+    /* 加载骨架屏 */
+    .skeleton {
+      @apply bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-[shimmer_2s_infinite];
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen transition-colors duration-500">
+  <div id="app" v-cloak class="min-h-screen flex flex-col">
+    <!-- 顶部导航 -->
+    <header class="sticky top-0 z-50 backdrop-blur-lg bg-white/70 dark:bg-gray-900/70 border-b border-gray-200/50 dark:border-gray-700/50">
+      <div class="container mx-auto px-4 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl shadow-lg">
+              🚀
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-gray-900 dark:text-white">应用启动器</h1>
+              <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <span>快速搜索并启动本地应用</span>
+                <span v-if="cacheInfo" class="text-green-500" :title="'缓存已更新 ' + cacheInfo.age + '秒前'">
+                  {{ cacheInfo.isValid ? '🟢 缓存中' : '🔴 实时' }}
+                </span>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <!-- 扫描按钮 -->
+            <button 
+              @click="scanApps" 
+              class="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200 flex items-center gap-2"
+              :disabled="scanning"
+            >
+              <span :class="{'animate-spin': scanning}">🔄</span>
+              <span class="hidden sm:inline">{{ scanning ? '扫描中...' : '扫描应用' }}</span>
+            </button>
+            <!-- 主题切换 -->
+            <button 
+              @click="toggleDarkMode" 
+              class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 flex items-center justify-center text-xl"
+            >
+              {{ isDark ? '☀️' : '🌙' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="flex-1 container mx-auto px-4 py-8">
+      <!-- 搜索框 -->
+      <div class="max-w-3xl mx-auto mb-8">
+        <div class="relative">
+          <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+            <span class="text-2xl">🔍</span>
+          </div>
+          <input
+            v-model="searchQuery"
+            @input="handleSearch"
+            @keydown.down="navigateResults"
+            @keydown.up="navigateResults"
+            @keydown.enter="launchHighlighted"
+            @keydown.escape="clearSearch"
+            type="text"
+            placeholder="搜索应用名称... (支持拼音首字母，如 'vscode' 搜索 'Visual Studio Code')"
+            class="w-full pl-14 pr-48 py-5 text-lg bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:search-glow transition-all duration-300 text-gray-900 dark:text-white placeholder-gray-400"
+            autocomplete="off"
+            autofocus
+          >
+          <div class="absolute inset-y-0 right-4 flex items-center gap-2">
+            <kbd class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded text-gray-500">⏎ 启动</kbd>
+            <kbd class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded text-gray-500">ESC 清除</kbd>
+          </div>
+        </div>
+        <!-- 搜索提示 -->
+        <div v-if="searchQuery && displayApps.length > 0" class="mt-2 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+          <span>📊 找到 {{ displayApps.length }} 个应用</span>
+          <span v-if="displayApps[0]?.score">· 最佳匹配：<span class="text-blue-500">{{ displayApps[0].displayName }}</span> (得分：{{ Math.round(displayApps[0].score) }})</span>
+        </div>
+      </div>
+
+      <!-- 分类标签 -->
+      <div class="max-w-5xl mx-auto mb-8">
+        <div class="flex flex-wrap gap-2 justify-center">
+          <span
+            v-for="cat in categories"
+            :key="cat.key"
+            @click="selectCategory(cat.key)"
+            :class="selectedCategory === cat.key ? 'category-pill active' : 'category-pill inactive'"
+          >
+            {{ cat.icon }} {{ cat.name.replace(/^[^ ]+ /, '') }}
+          </span>
+        </div>
+      </div>
+
+      <!-- 加载状态 -->
+      <div v-if="loading && displayApps.length === 0" class="max-w-5xl mx-auto text-center py-12">
+        <div class="inline-block animate-spin text-4xl mb-4">⏳</div>
+        <p class="text-gray-500 dark:text-gray-400">正在加载应用...</p>
+      </div>
+
+      <!-- 应用列表 -->
+      <div v-else-if="displayApps.length > 0" class="max-w-5xl mx-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            {{ searchQuery ? `🔍 搜索结果 (${displayApps.length})` : `${selectedCategoryName} (${displayApps.length})` }}
+          </h2>
+          <span class="text-sm text-gray-500 dark:text-gray-400">
+            使用 ↑↓ 键导航，Enter 启动
+          </span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div
+            v-for="(app, index) in displayApps"
+            :key="app.path + index"
+            @click="launchApp(app)"
+            :ref="el => appRefs[index] = el"
+            :class="[
+              'app-card bg-white dark:bg-gray-800 shadow-md hover:shadow-xl',
+              highlightedIndex === index ? 'keyboard-highlight' : ''
+            ]"
+            class="animate-scale-in"
+          >
+            <div class="aspect-square rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-4xl mb-3">
+              {{ getAppIcon(app.name) }}
+            </div>
+            <h3 class="font-medium text-gray-900 dark:text-white text-sm truncate" :title="app.displayName">
+              {{ app.displayName }}
+            </h3>
+            <div class="flex items-center justify-between mt-1">
+              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {{ getCategoryName(app.category) }}
+              </p>
+              <span v-if="app.score" class="text-xs text-blue-500 font-medium">
+                {{ Math.round(app.score) }}分
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 空状态 -->
+      <div v-else-if="!loading && displayApps.length === 0" class="max-w-md mx-auto text-center py-12">
+        <div class="text-6xl mb-4">🔍</div>
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          {{ searchQuery ? '未找到相关应用' : '暂无应用' }}
+        </h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">
+          {{ searchQuery ? '尝试其他关键词或点击"扫描应用"按钮' : '点击右上角"扫描应用"按钮开始扫描' }}
+        </p>
+        <div class="flex gap-3 justify-center">
+          <button
+            @click="scanApps"
+            class="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200"
+          >
+            扫描应用
+          </button>
+          <button
+            v-if="searchQuery"
+            @click="clearSearch"
+            class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:shadow-lg transition-all duration-200"
+          >
+            清除搜索
+          </button>
+        </div>
+        <!-- 搜索建议 -->
+        <div v-if="searchQuery" class="mt-8 text-left">
+          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">💡 搜索建议：</h4>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <span class="text-gray-500">试试拼音首字母：</span>
+              <code class="text-blue-500">vscode</code> → Visual Studio Code
+            </div>
+            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <span class="text-gray-500">试试简称：</span>
+              <code class="text-blue-500">chrome</code> → Google Chrome
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 启动提示 -->
+    <div v-if="launchMessage" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+      <div class="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl shadow-2xl flex items-center gap-3 animate-slide-down">
+        <span>{{ launchMessage.success ? '✅' : '❌' }}</span>
+        <span class="font-medium">{{ launchMessage.text }}</span>
+      </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+      <p>支持 macOS / Windows / Linux · 按 ESC 快速清除搜索 · Ctrl+K 聚焦搜索框</p>
+      <p v-if="cacheInfo" class="mt-2 text-xs">
+        缓存状态：{{ cacheInfo.isValid ? '有效' : '已过期' }} · 更新时间：{{ cacheInfo.age }}秒前
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted, onUnmounted, nextTick } = Vue;
+
+    createApp({
+      setup() {
+        // 状态
+        const isDark = ref(false);
+        const loading = ref(false);
+        const scanning = ref(false);
+        const searchQuery = ref('');
+        const selectedCategory = ref('all');
+        const allApps = ref([]);
+        const searchResults = ref([]);
+        const highlightedIndex = ref(-1);
+        const appRefs = ref({});
+        const launchMessage = ref(null);
+        const cacheInfo = ref(null);
+
+        // 分类
+        const categories = ref([
+          { key: 'all', name: '📱 全部', icon: '📱' },
+          { key: 'browsers', name: '🌐 浏览器', icon: '🌐' },
+          { key: 'editors', name: '📝 编辑器', icon: '📝' },
+          { key: 'communication', name: '💬 通讯工具', icon: '💬' },
+          { key: 'media', name: '🎵 媒体播放', icon: '🎵' },
+          { key: 'development', name: '💻 开发工具', icon: '💻' },
+          { key: 'office', name: '📄 办公软件', icon: '📄' },
+          { key: 'utilities', name: '🔧 实用工具', icon: '🔧' },
+          { key: 'other', name: '📦 其他', icon: '📦' }
+        ]);
+
+        const categoryNames = {
+          all: '全部',
+          browsers: '浏览器',
+          editors: '编辑器',
+          communication: '通讯工具',
+          media: '媒体播放',
+          development: '开发工具',
+          office: '办公软件',
+          utilities: '实用工具',
+          other: '其他'
+        };
+
+        // 计算属性
+        const selectedCategoryName = computed(() => {
+          const cat = categories.value.find(c => c.key === selectedCategory.value);
+          return cat ? cat.name.replace(/^[^ ]+ /, '') : '全部';
+        });
+
+        const displayApps = computed(() => {
+          if (searchQuery.value.trim()) {
+            return searchResults.value.slice(0, 50); // 限制显示数量
+          }
+          if (selectedCategory.value === 'all') {
+            return allApps.value.slice(0, 100); // 限制显示数量
+          }
+          return allApps.value.filter(app => app.category === selectedCategory.value).slice(0, 100);
+        });
+
+        // 方法
+        const initDarkMode = () => {
+          const saved = localStorage.getItem('darkMode');
+          isDark.value = saved === 'true' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark.value) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark');
+          }
+        };
+
+        const toggleDarkMode = () => {
+          isDark.value = !isDark.value;
+          if (isDark.value) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark');
+          }
+          localStorage.setItem('darkMode', isDark.value);
+        };
+
+        const scanApps = async () => {
+          scanning.value = true;
+          try {
+            const res = await fetch('/api/apps/scan?refresh=true');
+            const data = await res.json();
+            if (data.success) {
+              allApps.value = data.data;
+              cacheInfo.value = data.cache;
+              showLaunchMessage({ success: true, text: `已扫描 ${data.count} 个应用` });
+            }
+          } catch (error) {
+            showLaunchMessage({ success: false, text: '扫描失败：' + error.message });
+          } finally {
+            scanning.value = false;
+          }
+        };
+
+        const fetchCacheStatus = async () => {
+          try {
+            const res = await fetch('/api/apps/cache');
+            const data = await res.json();
+            if (data.success) {
+              cacheInfo.value = data.data;
+            }
+          } catch (error) {
+            console.error('获取缓存状态失败:', error);
+          }
+        };
+
+        const handleSearch = async () => {
+          highlightedIndex.value = -1;
+          if (!searchQuery.value.trim()) {
+            searchResults.value = [];
+            return;
+          }
+
+          clearTimeout(window.searchTimeout);
+          window.searchTimeout = setTimeout(async () => {
+            loading.value = true;
+            try {
+              const res = await fetch(`/api/apps/search?q=${encodeURIComponent(searchQuery.value)}`);
+              const data = await res.json();
+              if (data.success) {
+                searchResults.value = data.data;
+              }
+            } catch (error) {
+              console.error('搜索失败:', error);
+            } finally {
+              loading.value = false;
+            }
+          }, 200);
+        };
+
+        const selectCategory = (key) => {
+          selectedCategory.value = key;
+          searchQuery.value = '';
+          searchResults.value = [];
+          highlightedIndex.value = -1;
+        };
+
+        const launchApp = async (app) => {
+          try {
+            const res = await fetch('/api/apps/launch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: app.path })
+            });
+            const data = await res.json();
+            showLaunchMessage({
+              success: data.success,
+              text: data.success ? `已启动 ${app.displayName}` : data.message
+            });
+          } catch (error) {
+            showLaunchMessage({ success: false, text: '启动失败：' + error.message });
+          }
+        };
+
+        const showLaunchMessage = (msg) => {
+          launchMessage.value = msg;
+          setTimeout(() => {
+            launchMessage.value = null;
+          }, 2000);
+        };
+
+        const getAppIcon = (appName) => {
+          const icons = {
+            chrome: '🌐', firefox: '🦊', safari: '🧭', edge: '🌊', brave: '🦁',
+            vscode: '💙', webstorm: '💚', pycharm: '💛', iterm: '💻', terminal: '💻',
+            wechat: '💚', qq: '🐧', dingtalk: '💙', slack: '📣', telegram: '✈️',
+            music: '🎵', spotify: '🎧', vlc: '📀', itunes: '🎵',
+            word: '📘', excel: '📗', powerpoint: '📙', wps: '📝',
+            finder: '😊', calculator: '🔢', calendar: '📅', mail: '📧',
+            notes: '📝', photos: '🖼️', messages: '💬', facetime: '📹',
+            settings: '⚙️', appstore: '🛒', launchpad: '🚀',
+            docker: '🐳', figma: '🎨', sketch: '🎨',
+            netease: '🎵', cloud: '☁️', drive: '💾'
+          };
+          
+          const lower = appName.toLowerCase();
+          for (const [key, icon] of Object.entries(icons)) {
+            if (lower.includes(key)) return icon;
+          }
+          return '📦';
+        };
+
+        const getCategoryName = (category) => {
+          return categoryNames[category] || '其他';
+        };
+
+        const navigateResults = (e) => {
+          e.preventDefault();
+          const maxIndex = displayApps.value.length - 1;
+          
+          if (e.key === 'ArrowDown') {
+            highlightedIndex.value = Math.min(highlightedIndex.value + 1, maxIndex);
+          } else if (e.key === 'ArrowUp') {
+            highlightedIndex.value = Math.max(highlightedIndex.value - 1, 0);
+          }
+          
+          if (highlightedIndex.value >= 0) {
+            nextTick(() => {
+              const el = appRefs.value[highlightedIndex.value];
+              if (el && el.$el) {
+                el.$el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              }
+            });
+          }
+        };
+
+        const launchHighlighted = () => {
+          if (highlightedIndex.value >= 0 && displayApps.value[highlightedIndex.value]) {
+            launchApp(displayApps.value[highlightedIndex.value]);
+          }
+        };
+
+        const clearSearch = () => {
+          searchQuery.value = '';
+          searchResults.value = [];
+          highlightedIndex.value = -1;
+        };
+
+        onMounted(() => {
+          initDarkMode();
+          scanApps();
+          fetchCacheStatus();
+          
+          // 每 30 秒更新缓存状态
+          const cacheInterval = setInterval(fetchCacheStatus, 30000);
+          
+          document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+              e.preventDefault();
+              document.querySelector('input[type="text"]')?.focus();
+            }
+          });
+          
+          onUnmounted(() => {
+            clearInterval(cacheInterval);
+            clearTimeout(window.searchTimeout);
+          });
+        });
+
+        return {
+          isDark,
+          loading,
+          scanning,
+          searchQuery,
+          selectedCategory,
+          categories,
+          selectedCategoryName,
+          displayApps,
+          highlightedIndex,
+          appRefs,
+          launchMessage,
+          cacheInfo,
+          Math,
+          toggleDarkMode,
+          scanApps,
+          handleSearch,
+          selectCategory,
+          launchApp,
+          getAppIcon,
+          getCategoryName,
+          navigateResults,
+          launchHighlighted,
+          clearSearch
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
