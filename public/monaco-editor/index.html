@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-vimium-ignore="true">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💻 Monaco Editor Web IDE</title>
+  <link rel="stylesheet" href="/monaco-editor/css/styles.css">
+</head>
+<body data-vimium-ignore="true">
+  <div id="app" class="ide-container">
+    <!-- 头部 -->
+    <header class="ide-header">
+      <div class="header-left">
+        <span class="logo">💻</span>
+        
+        <!-- 菜单栏 -->
+        <nav class="menu-bar">
+          <div class="menu-item" onclick="toggleMenuDropdown('file-menu')">
+            <span>文件</span>
+            <span class="menu-arrow">▼</span>
+          </div>
+          <div class="menu-item" onclick="toggleMenuDropdown('edit-menu')">
+            <span>编辑</span>
+            <span class="menu-arrow">▼</span>
+          </div>
+          <div class="menu-item" onclick="toggleMenuDropdown('view-menu')">
+            <span>查看</span>
+            <span class="menu-arrow">▼</span>
+          </div>
+          <div class="menu-item" onclick="toggleMenuDropdown('help-menu')">
+            <span>帮助</span>
+            <span class="menu-arrow">▼</span>
+          </div>
+        </nav>
+      </div>
+      
+      <div class="header-actions">
+        <button id="btn-open-dir" class="btn btn-secondary">📂 打开目录</button>
+        <button id="btn-new-file" class="btn btn-secondary">📄 新建</button>
+        <button id="btn-save" class="btn btn-primary">💾 保存</button>
+      </div>
+    </header>
+
+    <!-- 下拉菜单 -->
+    <!-- 文件菜单 -->
+    <div id="file-menu" class="menu-dropdown" style="display: none;">
+      <div class="menu-dropdown-item" onclick="createNewFile()">
+        <span class="menu-icon">📄</span>
+        <span>新建文件</span>
+        <span class="menu-shortcut"></span>
+      </div>
+      <div class="menu-dropdown-item" onclick="openDirectory()">
+        <span class="menu-icon">📂</span>
+        <span>打开目录</span>
+        <span class="menu-shortcut"></span>
+      </div>
+      <div class="menu-dropdown-divider"></div>
+      <div class="menu-dropdown-item" onclick="saveFile()">
+        <span class="menu-icon">💾</span>
+        <span>保存文件</span>
+        <span class="menu-shortcut">Ctrl+S</span>
+      </div>
+      <div class="menu-dropdown-item" onclick="saveAllFiles()">
+        <span class="menu-icon">💾</span>
+        <span>保存全部</span>
+        <span class="menu-shortcut"></span>
+      </div>
+      <div class="menu-dropdown-divider"></div>
+      <div class="menu-dropdown-item" onclick="closeCurrentTab()">
+        <span class="menu-icon">🚫</span>
+        <span>关闭编辑器</span>
+        <span class="menu-shortcut"></span>
+      </div>
+      <div class="menu-dropdown-item" onclick="closeAllTabs()">
+        <span class="menu-icon">🗑️</span>
+        <span>关闭全部</span>
+        <span class="menu-shortcut"></span>
+      </div>
+    </div>
+
+    <!-- 编辑菜单 -->
+    <div id="edit-menu" class="menu-dropdown" style="display: none;">
+      <div class="menu-dropdown-item" onclick="executeEditorAction('undo')">
+        <span class="menu-icon">↩️</span>
+        <span>撤销</span>
+        <span class="menu-shortcut">Ctrl+Z</span>
+      </div>
+      <div class="menu-dropdown-item" onclick="executeEditorAction('redo')">
+        <span class="menu-icon">↪️</span>
+        <span>重做</span>
+        <span class="menu-shortcut">Ctrl+Y</span>
+      </div>
+      <div class="menu-dropdown-divider"></div>
+      <div class="menu-dropdown-item" onclick="executeEditorAction('copy')">
+        <span class="menu-icon">📋</span>
+        <span>复制</span>
+        <span class="menu-shortcut">Ctrl+C</span>
+      </div>
+      <div class="menu-dropdown-item" onclick="executeEditorAction('paste')">
+        <span class="menu-icon">📥</span>
+        <span>粘贴</span>
+        <span class="menu-shortcut">Ctrl+V</span>
+      </div>
+      <div class="menu-dropdown-divider"></div>
+      <div class="menu-dropdown-item" onclick="executeEditorAction('find')">
+        <span class="menu-icon">🔍</span>
+        <span>查找</span>
+        <span class="menu-shortcut">Ctrl+F</span>
+      </div>
+      <div class="menu-dropdown-item" onclick="executeEditorAction('replace')">
+        <span class="menu-icon">🔄</span>
+        <span>替换</span>
+        <span class="menu-shortcut">Ctrl+H</span>
+      </div>
+      <div class="menu-dropdown-divider"></div>
+      <div class="menu-dropdown-item" onclick="formatCode()">
+        <span class="menu-icon">✨</span>
+        <span>格式化代码</span>
+        <span class="menu-shortcut"></span>
+      </div>
+    </div>
+
+    <!-- 查看菜单 -->
+    <div id="view-menu" class="menu-dropdown" style="display: none;">
+      <div class="menu-dropdown-item" onclick="switchView('explorer')">
+        <span class="menu-icon">📁</span>
+        <span>资源管理器</span>
+        <span class="menu-shortcut">Ctrl+Shift+E</span>
+      </div>
+      <div class="menu-dropdown-item" onclick="switchView('search')">
+        <span class="menu-icon">🔍</span>
+        <span>搜索</span>
+        <span class="menu-shortcut">Ctrl+Shift+F</span>
+      </div>
+      <div class="menu-dropdown-item" onclick="switchView('settings')">
+        <span class="menu-icon">⚙️</span>
+        <span>设置</span>
+        <span class="menu-shortcut"></span>
+      </div>
+      <div class="menu-dropdown-divider"></div>
+      <div class="menu-dropdown-item" onclick="toggleMinimap()">
+        <span class="menu-icon">🗺️</span>
+        <span>小地图</span>
+        <span class="menu-shortcut"></span>
+      </div>
+      <div class="menu-dropdown-item" onclick="toggleWordWrap()">
+        <span class="menu-icon">↩️</span>
+        <span>自动换行</span>
+        <span class="menu-shortcut"></span>
+      </div>
+      <div class="menu-dropdown-divider"></div>
+      <div class="menu-dropdown-item" onclick="showCommandPalette()">
+        <span class="menu-icon">⌨️</span>
+        <span>命令面板</span>
+        <span class="menu-shortcut">Ctrl+Shift+P</span>
+      </div>
+    </div>
+
+    <!-- 帮助菜单 -->
+    <div id="help-menu" class="menu-dropdown" style="display: none;">
+      <div class="menu-dropdown-item" onclick="showAbout()">
+        <span class="menu-icon">ℹ️</span>
+        <span>关于</span>
+        <span class="menu-shortcut"></span>
+      </div>
+      <div class="menu-dropdown-item" onclick="showShortcuts()">
+        <span class="menu-icon">⌨️</span>
+        <span>快捷键</span>
+        <span class="menu-shortcut"></span>
+      </div>
+    </div>
+
+    <!-- 主体 -->
+    <div class="ide-body">
+      <!-- 活动栏 -->
+      <aside class="activity-bar">
+        <div class="activity-item active" data-action="explorer" title="资源管理器 (Ctrl+Shift+E)">
+          <span class="activity-icon">📁</span>
+        </div>
+        <div class="activity-item" data-action="search" title="搜索 (Ctrl+Shift+F)">
+          <span class="activity-icon">🔍</span>
+        </div>
+        <div class="activity-divider"></div>
+        <div class="activity-item" data-action="settings" title="设置">
+          <span class="activity-icon">⚙️</span>
+        </div>
+      </aside>
+
+      <!-- 侧边栏 -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span id="sidebar-title">📁 资源管理器</span>
+          <div class="sidebar-actions">
+            <button id="btn-new-file-sidebar" class="sidebar-btn" title="新建文件">📄</button>
+            <button id="btn-new-folder-sidebar" class="sidebar-btn" title="新建文件夹">📁</button>
+          </div>
+        </div>
+
+        <!-- 资源管理器视图 -->
+        <div id="view-explorer" class="sidebar-view">
+          <!-- 打开的编辑器 -->
+          <div class="sidebar-section">
+            <div class="section-header">
+              <span>📝 打开的编辑器</span>
+              <span class="section-count" id="open-editors-count">0</span>
+            </div>
+            <div id="open-editors-list" class="open-editors-list"></div>
+          </div>
+
+          <!-- 文件树 -->
+          <div class="sidebar-section">
+            <div class="section-header">
+              <span>📁 文件夹</span>
+            </div>
+            <div id="file-tree" class="file-tree" oncontextmenu="return false;"></div>
+          </div>
+        </div>
+
+        <!-- 搜索视图 -->
+        <div id="view-search" class="sidebar-view" style="display: none;">
+          <div class="search-container">
+            <input type="text" id="search-input" class="search-input" placeholder="搜索文件内容...">
+            <div class="search-options">
+              <label title="区分大小写">
+                <input type="checkbox" id="search-case-sensitive"> Aa
+              </label>
+              <label title="全字匹配">
+                <input type="checkbox" id="search-whole-word"> Ab
+              </label>
+              <label title="正则表达式">
+                <input type="checkbox" id="search-regex"> .*
+              </label>
+            </div>
+            <button id="btn-search" class="btn-search">🔍 搜索</button>
+          </div>
+          <div id="search-results" class="search-results"></div>
+        </div>
+
+        <!-- 设置视图 -->
+        <div id="view-settings" class="sidebar-view" style="display: none;">
+          <div class="settings-container">
+            <div class="settings-item">
+              <label>编辑器主题</label>
+              <select id="setting-theme" class="setting-select">
+                <option value="vs-dark">深色 (VS Dark)</option>
+                <option value="vs-light">浅色 (VS Light)</option>
+                <option value="hc-black">高对比度 (HC Black)</option>
+              </select>
+            </div>
+            <div class="settings-item">
+              <label>字体大小</label>
+              <input type="number" id="setting-font-size" class="setting-input" value="14" min="10" max="24">
+            </div>
+            <div class="settings-item">
+              <label>
+                <input type="checkbox" id="setting-minimap"> 显示小地图
+              </label>
+            </div>
+            <div class="settings-item">
+              <label>
+                <input type="checkbox" id="setting-word-wrap"> 自动换行
+              </label>
+            </div>
+            <div class="settings-item">
+              <label>
+                <input type="checkbox" id="setting-line-numbers"> 显示行号
+              </label>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 编辑器区域 -->
+      <main class="editor-container">
+        <!-- 面包屑导航 -->
+        <div id="breadcrumbs" class="breadcrumbs">
+          <span class="breadcrumb-item">📁</span>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-item" id="breadcrumb-file">未打开文件</span>
+        </div>
+
+        <!-- 标签页 -->
+        <div id="tabs" class="editor-tabs" oncontextmenu="return false;"></div>
+
+        <!-- Monaco Editor -->
+        <div id="monaco-editor" class="monaco-editor"></div>
+      </main>
+    </div>
+    <!-- ide-body 结束 -->
+
+    <!-- 标签页右键菜单 -->
+    <div id="tab-context-menu" class="context-menu" style="display: none;">
+      <div class="context-menu-item" data-action="close">🚫 关闭</div>
+      <div class="context-menu-item" data-action="close-other">📑 关闭其他</div>
+      <div class="context-menu-item" data-action="close-right">➡️ 关闭右侧</div>
+      <div class="context-menu-item" data-action="close-left">⬅️ 关闭左侧</div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="close-all">🗑️ 关闭全部</div>
+    </div>
+
+    <!-- 文件列表右键菜单 -->
+    <div id="file-context-menu" class="context-menu" style="display: none;">
+      <div class="context-menu-item" data-action="file-new">📄 新建文件</div>
+      <div class="context-menu-item" data-action="folder-new">📁 新建文件夹</div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="file-open">📂 打开</div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="rename">✏️ 重命名</div>
+      <div class="context-menu-item" data-action="copy">📋 复制</div>
+      <div class="context-menu-item" data-action="copy-path">📍 复制路径</div>
+      <div class="context-menu-item" data-action="download">💾 下载</div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="delete" style="color: #ef4444;">🗑️ 删除</div>
+    </div>
+
+    <!-- 命令面板 -->
+    <div id="command-palette" class="command-palette" style="display: none;">
+      <div class="command-palette-input">
+        <span class="command-palette-prefix">></span>
+        <input type="text" id="command-input" class="command-input" placeholder="输入命令...">
+      </div>
+      <div id="command-list" class="command-list"></div>
+    </div>
+
+    <!-- 状态栏 -->
+    <footer class="status-bar">
+      <div class="status-left">
+        <span id="status-file" class="status-item">就绪</span>
+      </div>
+      <div class="status-right">
+        <span id="status-language" class="status-item status-clickable" title="点击切换语言">JavaScript</span>
+        <span id="status-position" class="status-item">Ln 1, Col 1</span>
+        <span id="status-selection" class="status-item" style="display: none;">(0,0)</span>
+        <span class="status-item">UTF-8</span>
+      </div>
+    </footer>
+
+    <!-- 语言选择弹窗 -->
+    <div id="language-picker" class="language-picker" style="display: none;">
+      <div class="language-picker-header">
+        <span>📝 选择语言</span>
+        <button class="language-picker-close" onclick="hideLanguagePicker()">×</button>
+      </div>
+      <div class="language-picker-grid">
+        <div class="language-option" onclick="selectLanguage('plaintext')">📄 纯文本</div>
+        <div class="language-option" onclick="selectLanguage('javascript')">🟨 JavaScript</div>
+        <div class="language-option" onclick="selectLanguage('typescript')">🔷 TypeScript</div>
+        <div class="language-option" onclick="selectLanguage('python')">🐍 Python</div>
+        <div class="language-option" onclick="selectLanguage('go')">🔹 Go</div>
+        <div class="language-option" onclick="selectLanguage('html')">🌐 HTML</div>
+        <div class="language-option" onclick="selectLanguage('css')">🎨 CSS</div>
+        <div class="language-option" onclick="selectLanguage('json')">📋 JSON</div>
+        <div class="language-option" onclick="selectLanguage('markdown')">📝 Markdown</div>
+        <div class="language-option" onclick="selectLanguage('yaml')">📄 YAML</div>
+        <div class="language-option" onclick="selectLanguage('xml')">📄 XML</div>
+        <div class="language-option" onclick="selectLanguage('sql')">🗄️ SQL</div>
+        <div class="language-option" onclick="selectLanguage('java')">☕ Java</div>
+        <div class="language-option" onclick="selectLanguage('c')">⚙️ C</div>
+        <div class="language-option" onclick="selectLanguage('cpp')">⚙️ C++</div>
+        <div class="language-option" onclick="selectLanguage('php')">🐘 PHP</div>
+        <div class="language-option" onclick="selectLanguage('ruby')">💎 Ruby</div>
+        <div class="language-option" onclick="selectLanguage('rust')">🦀 Rust</div>
+        <div class="language-option" onclick="selectLanguage('shell')">💻 Shell</div>
+      </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" id="file-input" multiple style="display: none">
+    <input type="file" id="directory-input" webkitdirectory style="display: none">
+  </div>
+
+  <!-- Monaco Editor 主入口（使用 AMD loader） -->
+  <script src="/monaco-editor/js/main.js"></script>
+</body>
+</html>

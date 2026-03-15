@@ -67,3 +67,9 @@
 
 Monaco Editor + ES Modules 导入所需资源，包括 CSS 和 JS 文件。
 实现一个基本的功能
+
+基于CodeMirror 6实现一个简单的代码编辑器，支持语法高亮、代码补全、代码格式化等功能。
+
+```sh
+pnpm add monaco-editor
+```
