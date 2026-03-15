@@ -18,6 +18,16 @@ import {
 import { initEditorSettings, applySetting as applyEditorSetting } from './composables/editor-settings.js';
 import { initShortcuts, registerShortcut, startRecording, resetShortcuts } from './composables/shortcuts.js';
 import { createEditorContextMenuActions } from './composables/editor-context-menu.js';
+import { searchFiles, createFileSearchState } from './composables/file-search.js';
+import { initRecentFiles, getRecentFiles } from './composables/recent-files.js';
+import { 
+  globalSearch, 
+  createSearchState, 
+  registerSearchShortcut,
+  registerNavigationShortcuts,
+  goToNextSearchResult,
+  goToPreviousSearchResult
+} from './composables/global-search.js';
 
 export function useComposables(state, actions) {
   // 初始化引用
@@ -187,6 +197,107 @@ export function useComposables(state, actions) {
 
   const editorActions = createEditorContextMenuActions(state);
 
+  // 文件搜索功能
+  const fileSearchState = createFileSearchState();
+  
+  const handleFileSearch = () => {
+    const query = state.fileSearchQuery.value;
+    if (!query || !query.trim()) {
+      state.searchResults.value = [];
+      state.filteredFiles.value = [];
+      return;
+    }
+    
+    const allFiles = state.files.value;
+    const results = searchFiles(allFiles, query, { fuzzyMatch: true });
+    state.searchResults.value = results;
+    state.filteredFiles.value = results;
+  };
+  
+  const clearFileSearch = () => {
+    state.fileSearchQuery.value = '';
+    state.searchResults.value = [];
+    state.filteredFiles.value = [];
+  };
+
+  // 最近文件功能
+  let recentFilesActions = null;
+  
+  const initRecentFilesFeature = () => {
+    recentFilesActions = initRecentFiles(state, actions);
+    // 加载最近文件
+    state.recentFiles.value = getRecentFiles();
+  };
+  
+  const addRecentFile = (file) => {
+    if (recentFilesActions) {
+      recentFilesActions.add(file);
+    }
+  };
+  
+  const clearRecentFiles = () => {
+    if (recentFilesActions) {
+      recentFilesActions.clear();
+    }
+  };
+
+  // 全局搜索功能
+  const openSearchPanel = () => {
+    state.searchPanelVisible.value = true;
+    state.searchQuery.value = '';
+    state.searchResults.value = null;
+    // 聚焦到输入框（需要 nextTick）
+    setTimeout(() => {
+      const input = document.querySelector('.search-panel input');
+      if (input) input.focus();
+    }, 100);
+  };
+  
+  const closeSearchPanel = () => {
+    state.searchPanelVisible.value = false;
+  };
+  
+  const performSearch = () => {
+    const query = state.searchQuery.value;
+    if (!query || !query.trim()) {
+      state.searchResults.value = null;
+      return;
+    }
+    
+    const files = state.files.value;
+    const results = globalSearch(files, query, state.searchOptions.value);
+    state.searchResults.value = results;
+  };
+  
+  const navigateToNext = () => {
+    // 实现导航到下一个搜索结果
+    showToast('导航到下一个匹配项', 'info');
+  };
+  
+  const navigateToPrevious = () => {
+    // 实现导航到上一个搜索结果
+    showToast('导航到上一个匹配项', 'info');
+  };
+  
+  const goToMatch = (file, match) => {
+    // 打开文件并定位到匹配位置
+    actions.openFile(file);
+    showToast(`跳转到第 ${match.line} 行`, 'info');
+  };
+  
+  // 注册搜索快捷键
+  const initSearchShortcuts = () => {
+    registerSearchShortcut(() => {
+      openSearchPanel();
+    });
+    
+    registerNavigationShortcuts(() => {
+      navigateToNext();
+    }, () => {
+      navigateToPrevious();
+    });
+  };
+
   // 应用设置变更
   function applySettingChange(key, value) {
     // 主题变更
@@ -275,6 +386,21 @@ export function useComposables(state, actions) {
     showEditorContextMenu,
     hideEditorContextMenu,
     editorActions,
+    // 文件搜索
+    handleFileSearch,
+    clearFileSearch,
+    // 最近文件
+    initRecentFilesFeature,
+    addRecentFile,
+    clearRecentFiles,
+    // 全局搜索
+    openSearchPanel,
+    closeSearchPanel,
+    performSearch,
+    navigateToNext,
+    navigateToPrevious,
+    goToMatch,
+    initSearchShortcuts,
     // 加载状态
     loading
   };

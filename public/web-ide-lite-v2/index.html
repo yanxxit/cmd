@@ -5,23 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>💻 Web IDE Lite v2</title>
 
-  <!-- Hash Version Manager - 自动为模块添加版本号/hash -->
-  <script src="/shared/hash-version.js" data-version="1.0.0" data-debug="false"></script>
-
-  <!-- Import Map for Vue -->
+  <!-- Import Map for Vue and dependencies -->
   <script type="importmap">
   {
     "imports": {
-      "vue": "/libs/vue/dist/vue.esm-browser.prod.js"
+      "vue": "/libs/vue/dist/vue.esm-browser.prod.js",
+      "vue/": "/libs/vue/dist/",
+      "@vue/": "/libs/vue/dist/"
     }
   }
   </script>
-  
-  <link rel="stylesheet" href="/libs/prismjs/themes/prism-tomorrow.min.css">
-  <script src="/libs/prismjs/prism.js"></script>
+
+  <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/shared/prism-loader.js"></script>
-  
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -34,6 +30,13 @@
       }
     }
   </script>
+
+  <!-- PrismJS CSS (loaded via JS module) -->
+  <link rel="stylesheet" href="/libs/prismjs/themes/prism-tomorrow.min.css">
+
+  <!-- PrismJS and loaders -->
+  <script src="/libs/prismjs/prism.js"></script>
+  <script src="/shared/prism-loader.js"></script>
   
   <style>
     /* CSS 变量主题支持 */
@@ -239,6 +242,28 @@
             <button @click="sidebarOpen = false" class="p-1 hover:bg-gray-700 rounded mobile-btn">✕</button>
           </div>
         </div>
+        
+        <!-- 文件搜索框 -->
+        <div class="p-2 border-t border-gray-700">
+          <div class="relative">
+            <input 
+              v-model="fileSearchQuery"
+              @input="handleFileSearch"
+              @keydown.esc="clearFileSearch"
+              type="text"
+              placeholder="🔍 搜索文件..."
+              class="w-full px-3 py-1.5 pl-8 bg-gray-700 border border-gray-600 rounded text-sm outline-none focus:border-blue-500"/>
+            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">🔍</span>
+            <button 
+              v-if="fileSearchQuery"
+              @click="clearFileSearch"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs">✕</button>
+          </div>
+          <div v-if="searchResults && searchResults.length > 0" class="mt-2 text-xs text-gray-400">
+            找到 {{ searchResults.length }} 个文件
+          </div>
+        </div>
+        
         <div class="flex-1 overflow-y-auto p-2" @contextmenu.prevent="showTreeContextMenu">
           <template v-if="rootFiles?.length">
             <div v-for="file in rootFiles" :key="file.id"
@@ -292,6 +317,80 @@
 
         <!-- Content -->
         <div class="flex-1 relative overflow-hidden">
+          <!-- 全局搜索面板 -->
+          <div v-show="searchPanelVisible" 
+               class="absolute top-0 left-0 right-0 z-50 bg-ide-sidebar border-b border-gray-700 shadow-lg p-3"
+               @keydown.esc="closeSearchPanel">
+            <div class="flex items-center gap-2">
+              <div class="flex-1 relative">
+                <input 
+                  v-model="searchQuery"
+                  @input="performSearch"
+                  @keydown.enter="navigateToNext"
+                  @keydown.shift.enter="navigateToPrevious"
+                  type="text"
+                  placeholder="搜索文件内容... (Ctrl+Shift+F)"
+                  class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-sm outline-none focus:border-blue-500"/>
+              </div>
+              <button @click="performSearch" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm">
+                🔍 搜索
+              </button>
+              <button @click="closeSearchPanel" class="p-2 hover:bg-gray-700 rounded">
+                ✕
+              </button>
+            </div>
+            <div class="flex items-center gap-4 mt-2 text-xs">
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" v-model="searchOptions.caseSensitive" @change="performSearch" class="rounded"/>
+                <span>区分大小写</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" v-model="searchOptions.wholeWord" @change="performSearch" class="rounded"/>
+                <span>全词匹配</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" v-model="searchOptions.useRegex" @change="performSearch" class="rounded"/>
+                <span>正则表达式</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" v-model="searchOptions.searchInFilename" @change="performSearch" class="rounded"/>
+                <span>文件名</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" v-model="searchOptions.searchInContent" @change="performSearch" class="rounded"/>
+                <span>文件内容</span>
+              </label>
+              <span v-if="searchResults" class="ml-auto text-gray-400">
+                {{ searchResults.stats?.fileCount || 0 }} 个文件 · {{ searchResults.stats?.totalMatches || 0 }} 处匹配
+              </span>
+            </div>
+            <!-- 搜索结果 -->
+            <div v-if="searchResults && searchResults.contentMatches?.length > 0" 
+                 class="mt-2 max-h-64 overflow-y-auto border-t border-gray-700 pt-2">
+              <div v-for="(result, fileIndex) in searchResults.contentMatches" :key="result.file.id"
+                   class="mb-2">
+                <div class="flex items-center gap-2 text-sm font-semibold text-blue-400 mb-1">
+                  <span>📄</span>
+                  <span>{{ result.file.name }}</span>
+                  <span class="text-gray-500">({{ result.matchCount }} 处匹配)</span>
+                </div>
+                <div class="space-y-1">
+                  <div v-for="(match, matchIndex) in result.matches" :key="matchIndex"
+                       class="ml-6 px-2 py-1 hover:bg-gray-700 rounded cursor-pointer text-xs flex items-start gap-2"
+                       @click="goToMatch(result.file, match)">
+                    <span class="text-gray-500 w-12 flex-shrink-0">{{ match.line }}:{{ match.column }}</span>
+                    <span class="text-gray-300 flex-1 truncate">{{ match.context.lines?.[match.context.highlightIndex] || '' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 无结果提示 -->
+            <div v-if="searchQuery && searchResults && searchResults.contentMatches?.length === 0" 
+                 class="mt-2 text-center text-gray-500 text-sm py-4">
+              未找到匹配的结果
+            </div>
+          </div>
+          
           <div v-if="!currentFile" class="absolute inset-0 flex items-center justify-center">
             <div class="text-center">
               <div class="text-6xl mb-4">📝</div>
@@ -606,6 +705,7 @@
     </div>
   </div>
 
-  <script type="module" src="/web-ide-lite-v2/js/main.js"></script>
+  <!-- ES Module 方式导入主应用 -->
+  <script type="module" src="/web-ide-lite-v2/js/main-esm.js"></script>
 </body>
 </html>

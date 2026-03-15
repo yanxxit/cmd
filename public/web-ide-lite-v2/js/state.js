@@ -36,6 +36,23 @@ export function state() {
     // 设置相关状态
     settingsVisible: ref(false),
     currentSettingsCategory: ref('editor'),
-    settings: ref(null)
+    settings: ref(null),
+    // 文件搜索状态
+    fileSearchQuery: ref(''),
+    searchResults: ref([]),
+    filteredFiles: ref([]),
+    // 最近文件状态
+    recentFiles: ref([]),
+    // 全局搜索状态
+    searchPanelVisible: ref(false),
+    searchQuery: ref(''),
+    searchResults: ref(null),
+    searchOptions: ref({
+      caseSensitive: false,
+      wholeWord: false,
+      useRegex: false,
+      searchInFilename: true,
+      searchInContent: true
+    })
   };
 }
