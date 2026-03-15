@@ -18,6 +18,7 @@ import xlsxParserRouter from './xlsx-parser.js';
 import aiChatApiRouter from './ai-chat-api.js';
 import appsApiRouter from './apps-api.js';
 import contrastApiRouter from './contrast-api.js';
+import markdownContrastApiRouter from './markdown-contrast-api.js';
 import { createRequestLogger } from './request-logger.js';
 import requestLoggerApiRouter from './request-logger-api.js';
 import { initDatabase as initTodoDatabase } from '../model/database.js';
@@ -289,6 +290,16 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 挂载对比学习 API 路由
   app.use('/api/contrast', contrastApiRouter);
+
+  // Markdown 对比编辑器页面
+  const markdownEditorDir = path.join(ROOT_DIR, 'public/markdown-editor');
+  app.use('/markdown-editor', express.static(markdownEditorDir));
+  app.get('/markdown-editor', (req, res) => {
+    res.sendFile(path.join(markdownEditorDir, 'index.html'));
+  });
+
+  // 挂载 Markdown 对比编辑器 API 路由
+  app.use('/api/markdown-contrast', markdownContrastApiRouter);
 
   // 用户目录静态资源（最后）
   app.use('/files', express.static(options.dir));
