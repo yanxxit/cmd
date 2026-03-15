@@ -15,3 +15,6 @@
 - `prismjs@1.30.0`: `/libs/prismjs/themes/prism-tomorrow.min.css`
 - `prismjs@1.30.0`: `/libs/prismjs/themes/prism.min.css`
 - `marked@15.0.12`: `/libs/marked/marked.min.js`
+
+- `mermaid@10.9.1`: `/libs/mermaid/dist/mermaid.min.js`
+- `mermaid@10.9.1`: `/libs/mermaid/dist/mermaid.esm.min.mjs`

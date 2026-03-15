@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-vimium-ignore="true">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧠 Markmap 思维导图</title>
+  <link rel="stylesheet" href="/markmap-editor/styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/markmap-toolbar@0.14.2-alpha.0+518591b/dist/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.28.0/themes/prism.css">
+</head>
+<body data-vimium-ignore="true">
+  <div id="app" class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <div class="header-left">
+        <span class="logo">🧠</span>
+        <span class="title">Markmap 思维导图</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="loadExample('basic')">📝 基础示例</button>
+        <button class="btn btn-secondary" onclick="loadExample('project')">📋 项目计划</button>
+        <button class="btn btn-secondary" onclick="loadExample('knowledge')">📚 知识图谱</button>
+        <div class="divider"></div>
+        <button class="btn btn-primary" onclick="downloadSVG()">📥 下载 SVG</button>
+        <button class="btn btn-primary" onclick="downloadPNG()">🖼️ 下载 PNG</button>
+        <div class="divider"></div>
+        <button class="btn btn-secondary" onclick="toggleFullscreen()">⛶ 全屏</button>
+      </div>
+    </header>
+
+    <!-- 主体 -->
+    <div class="main">
+      <!-- 左侧编辑器 -->
+      <div class="editor-pane" id="editor-pane">
+        <div class="pane-header">
+          <span>📝 Markdown 编辑</span>
+          <div class="pane-actions">
+            <button class="btn-icon" onclick="formatCode()">✨</button>
+            <button class="btn-icon" onclick="clearEditor()">🗑️</button>
+            <button class="btn-icon" onclick="toggleEditor()">◧</button>
+          </div>
+        </div>
+        <div id="editor-container" class="editor-wrapper"></div>
+        <div class="status-bar">
+          <span id="status-info">就绪</span>
+          <span id="char-count">0 字符</span>
+        </div>
+      </div>
+
+      <!-- 右侧思维导图 -->
+      <div class="mindmap-pane" id="mindmap-pane">
+        <div class="pane-header">
+          <span>🧠 思维导图</span>
+          <div class="pane-actions">
+            <button class="btn-icon" onclick="zoomIn()">🔍+</button>
+            <button class="btn-icon" onclick="zoomOut()">🔍-</button>
+            <button class="btn-icon" onclick="resetZoom()">100%</button>
+            <button class="btn-icon" onclick="fitView()">⊡</button>
+          </div>
+        </div>
+        <div id="mindmap-container" class="mindmap-wrapper">
+          <svg id="mindmap"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Markmap 依赖 - 使用稳定版本 -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <!-- 先保存 markmap-lib 的引用 -->
+  <script>
+    window._markmapLibLoaded = false;
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.15.4/dist/browser/index.min.js"></script>
+  <script>
+    window._markmapLib = window.markmap;
+    console.log('markmap-lib 已加载:', Object.keys(window._markmapLib));
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.15.4/dist/browser/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-toolbar@0.15.4/dist/browser/index.min.js"></script>
+  
+  <!-- Katex 字体配置 -->
+  <script>
+    (function(e) {
+      window.WebFontConfig = {
+        custom: {
+          families: [
+            "KaTeX_AMS",
+            "KaTeX_Caligraphic:n4,n7",
+            "KaTeX_Fraktur:n4,n7",
+            "KaTeX_Main:n4,n7,i4,i7",
+            "KaTeX_Math:i4,i7",
+            "KaTeX_Script",
+            "KaTeX_SansSerif:n4,n7,i4",
+            "KaTeX_Size1",
+            "KaTeX_Size2",
+            "KaTeX_Size3",
+            "KaTeX_Size4",
+            "KaTeX_Typewriter"
+          ]
+        },
+        active: function() {
+          e().refreshHook.call();
+        }
+      };
+    })(function() { return window.markmap; });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.js" defer></script>
+
+  <!-- Monaco Editor - 延迟加载 -->
+  <script>
+    // 保存对 d3 和 markmap 的引用，防止被 Monaco 的加载器覆盖
+    window._d3 = window.d3;
+    window._markmap = window.markmap;
+    window._markmapLib = window.markmap;
+    
+    window.monacoLoaded = false;
+    window.loadMonaco = function(callback) {
+      if (window.monacoLoaded) {
+        callback();
+        return;
+      }
+      
+      window.require = {
+        paths: {
+          vs: '/libs/monaco-editor/min/vs'
+        }
+      };
+      
+      const script = document.createElement('script');
+      script.src = '/libs/monaco-editor/min/vs/loader.js';
+      script.onload = function() {
+        window.monacoLoaded = true;
+        callback();
+      };
+      document.head.appendChild(script);
+    };
+  </script>
+
+  <script src="/markmap-editor/app.js"></script>
+</body>
+</html>

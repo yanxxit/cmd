@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 Mermaid 编辑器</title>
+  <link rel="stylesheet" href="/mermaid-editor/styles.css">
+</head>
+<body>
+  <div id="app" class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <div class="header-left">
+        <span class="logo">📊</span>
+        <span class="title">Mermaid 编辑器</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="loadExample('flowchart')" title="加载流程图示例">
+          📊 流程图
+        </button>
+        <button class="btn btn-secondary" onclick="loadExample('sequence')" title="加载时序图示例">
+          📋 时序图
+        </button>
+        <button class="btn btn-secondary" onclick="loadExample('class')" title="加载类图示例">
+          🏷️ 类图
+        </button>
+        <button class="btn btn-secondary" onclick="loadExample('gantt')" title="加载甘特图示例">
+          📅 甘特图
+        </button>
+        <button class="btn btn-secondary" onclick="loadExample('pie')" title="加载饼图示例">
+          🥧 饼图
+        </button>
+        <div class="divider"></div>
+        <button class="btn btn-secondary" onclick="loadExample('er')" title="加载 ER 图示例">
+          🗃️ ER 图
+        </button>
+        <button class="btn btn-secondary" onclick="loadExample('journey')" title="加载旅程图示例">
+          🚶 旅程图
+        </button>
+        <div class="divider"></div>
+        
+        <!-- 主题选择器 -->
+        <select id="theme-selector" class="theme-selector" onchange="changeTheme()" title="切换主题">
+          <option value="default">🎨 默认主题</option>
+          <option value="forest">🌲 森林主题</option>
+          <option value="dark">🌙 深色主题</option>
+          <option value="neutral">⚪ 中性主题</option>
+          <option value="base">📄 基础主题</option>
+          <option value="retro-dos">💾 复古 DOS</option>
+          <option value="summer-juice">🍹 夏日果汁</option>
+          <option value="handdrawn-pastel">✏️ 手绘彩笔</option>
+          <option value="tech-ice">🧊 冰蓝理工</option>
+          <option value="ethereal-purple">💜 紫气东来</option>
+          <option value="macaron">🍬 马卡龙</option>
+          <option value="cyberpunk">🤖 赛博朋克</option>
+        </select>
+        
+        <div class="divider"></div>
+        <button class="btn btn-primary" onclick="downloadSVG()" title="下载 SVG">
+          📥 下载 SVG
+        </button>
+        <button class="btn btn-primary" onclick="downloadPNG()" title="下载 PNG">
+          🖼️ 下载 PNG
+        </button>
+      </div>
+    </header>
+
+    <!-- 主体 -->
+    <div class="main">
+      <!-- 左侧编辑器 -->
+      <div class="editor-pane">
+        <div class="pane-header">
+          <span>📝 代码编辑</span>
+          <div class="pane-actions">
+            <button class="btn-icon" onclick="formatCode()" title="格式化代码">✨</button>
+            <button class="btn-icon" onclick="clearEditor()" title="清空">🗑️</button>
+          </div>
+        </div>
+        <div id="editor-container" class="editor-wrapper"></div>
+        <div class="status-bar">
+          <span id="status-info">就绪</span>
+          <span id="char-count">0 字符</span>
+        </div>
+      </div>
+
+      <!-- 右侧预览 -->
+      <div class="preview-pane">
+        <div class="pane-header">
+          <span>👁️ 实时预览</span>
+          <div class="pane-actions">
+            <button class="btn-icon" onclick="zoomIn()" title="放大">🔍+</button>
+            <button class="btn-icon" onclick="zoomOut()" title="缩小">🔍-</button>
+            <button class="btn-icon" onclick="resetZoom()" title="重置">100%</button>
+          </div>
+        </div>
+        <div id="preview-container" class="preview-wrapper">
+          <div id="mermaid-output" class="mermaid-output"></div>
+          <div id="error-container" class="error-container" style="display: none;">
+            <div class="error-icon">❌</div>
+            <div class="error-message" id="error-message"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monaco Editor Loader -->
+  <script>
+    window.require = {
+      paths: {
+        vs: '/libs/monaco-editor/min/vs'
+      }
+    };
+  </script>
+  <script src="/libs/monaco-editor/min/vs/loader.js"></script>
+
+  <!-- Mermaid ESM -->
+  <script type="module">
+    import mermaid from '/libs/mermaid/dist/mermaid.esm.min.mjs';
+    import { getThemeConfig, isCustomTheme } from '/mermaid-editor/themes.js';
+
+    // 当前主题
+    let currentTheme = localStorage.getItem('mermaid-theme') || 'default';
+
+    // 获取主题配置
+    function getMermaidConfig(themeName) {
+      const baseConfig = {
+        startOnLoad: false,
+        theme: themeName,
+        securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+        sequence: { useMaxWidth: true, mirrorActors: true },
+        pie: { useMaxWidth: true, textPosition: 0.5 },
+        er: { useMaxWidth: true },
+        journey: { useMaxWidth: true }
+      };
+
+      // 如果是自定义主题，添加主题变量
+      if (isCustomTheme(themeName)) {
+        const customConfig = getThemeConfig(themeName);
+        if (customConfig) {
+          baseConfig.themeVariables = customConfig.themeVariables;
+        }
+      }
+
+      return baseConfig;
+    }
+
+    // 初始化 Mermaid
+    mermaid.initialize(getMermaidConfig(currentTheme));
+
+    // 暴露到全局
+    window.mermaid = mermaid;
+    window.currentTheme = currentTheme;
+    window.getMermaidConfig = getMermaidConfig;
+    
+    // 设置主题选择器值
+    document.addEventListener('DOMContentLoaded', () => {
+      const selector = document.getElementById('theme-selector');
+      if (selector) {
+        selector.value = currentTheme;
+      }
+    });
+
+    // 初始化应用
+    initApp();
+  </script>
+
+  <script src="/mermaid-editor/app.js"></script>
+</body>
+</html>
