@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧮 计算稿纸 - 数学演算草稿本</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 顶部导航栏 -->
+    <header class="header">
+      <div class="header-left">
+        <a href="/" class="back-btn" title="返回工具首页">🏠 首页</a>
+        <h1 class="title">🧮 计算稿纸</h1>
+      </div>
+      <div class="header-right">
+        <button class="theme-toggle" id="themeToggle" title="切换夜间模式">🌙</button>
+      </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- 左侧：计算器 -->
+      <section class="calculator-section">
+        <div class="calculator-card">
+          <h2 class="card-title">🔢 科学计算器</h2>
+          
+          <!-- 显示区域 -->
+          <div class="display-container">
+            <div class="display-history" id="displayHistory"></div>
+            <div class="display-main">
+              <input type="text" class="display-input" id="displayInput" value="0" placeholder="输入数字或表达式..." autocomplete="off" />
+              <div class="display-result" id="displayResult">= 0</div>
+            </div>
+            <!-- 展开/收起按钮 -->
+            <button class="toggle-keys-btn" id="toggleKeysBtn" title="展开/收起键盘">
+              <span class="btn-text">⌨️ 键盘</span>
+              <span class="btn-icon">▼</span>
+            </button>
+          </div>
+
+          <!-- 功能按钮 -->
+          <div class="function-keys collapsed" id="functionKeys">
+            <button class="fn-key" data-fn="sin">sin</button>
+            <button class="fn-key" data-fn="cos">cos</button>
+            <button class="fn-key" data-fn="tan">tan</button>
+            <button class="fn-key" data-fn="log">log</button>
+            <button class="fn-key" data-fn="ln">ln</button>
+            <button class="fn-key" data-fn="sqrt">√</button>
+            <button class="fn-key" data-fn="pow">xʸ</button>
+            <button class="fn-key" data-fn="exp">eˣ</button>
+            <button class="fn-key" data-fn="pi">π</button>
+            <button class="fn-key" data-fn="e">e</button>
+            <button class="fn-key" data-fn="abs">|x|</button>
+            <button class="fn-key" data-fn="factorial">n!</button>
+          </div>
+
+          <!-- 计算器键盘 -->
+          <div class="calculator-keys collapsed" id="calculatorKeys">
+            <button class="control-key clear" data-key="clear">AC</button>
+            <button class="control-key backspace" data-key="backspace">⌫</button>
+            <button class="operator-key" data-key="%">%</button>
+            <button class="operator-key" data-key="/">÷</button>
+
+            <button class="number-key" data-key="7">7</button>
+            <button class="number-key" data-key="8">8</button>
+            <button class="number-key" data-key="9">9</button>
+            <button class="operator-key" data-key="*">×</button>
+
+            <button class="number-key" data-key="4">4</button>
+            <button class="number-key" data-key="5">5</button>
+            <button class="number-key" data-key="6">6</button>
+            <button class="operator-key" data-key="-">−</button>
+
+            <button class="number-key" data-key="1">1</button>
+            <button class="number-key" data-key="2">2</button>
+            <button class="number-key" data-key="3">3</button>
+            <button class="operator-key" data-key="+">+</button>
+
+            <button class="number-key" data-key="0">0</button>
+            <button class="number-key" data-key=".">.</button>
+            <button class="number-key" data-key="(">(</button>
+            <button class="number-key" data-key=")">)</button>
+
+            <button class="equals-key" data-key="=">=</button>
+          </div>
+        </div>
+
+        <!-- 草稿纸区域 -->
+        <div class="scratch-card">
+          <div class="scratch-header">
+            <h2 class="card-title">📝 草稿纸</h2>
+            <div class="scratch-controls">
+              <button class="scratch-btn" id="clearScratch" title="清空草稿">🗑️ 清空</button>
+              <button class="scratch-btn" id="copyResult" title="复制结果">📋 复制</button>
+            </div>
+          </div>
+          <div class="scratch-content">
+            <textarea id="scratchPad" placeholder="在这里写下你的计算过程和思路...&#10;&#10;提示：&#10;- 可以使用计算器计算后，点击「发送到草稿纸」按钮&#10;- 支持 Markdown 格式的数学公式&#10;- 自动保存草稿内容"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右侧：历史记录和常用公式 -->
+      <section class="history-section">
+        <!-- 计算历史 -->
+        <div class="history-card">
+          <h2 class="card-title">📜 计算历史</h2>
+          <div class="history-list" id="historyList">
+            <div class="history-empty">暂无计算记录</div>
+          </div>
+          <div class="history-controls">
+            <button class="history-btn" id="clearHistory">清空历史</button>
+          </div>
+        </div>
+
+        <!-- 常用公式 -->
+        <div class="formulas-card">
+          <h2 class="card-title">📐 常用公式</h2>
+          <div class="formula-tabs">
+            <button class="formula-tab active" data-category="math">数学</button>
+            <button class="formula-tab" data-category="physics">物理</button>
+            <button class="formula-tab" data-category="geometry">几何</button>
+          </div>
+          <div class="formula-list" id="formulaList">
+            <!-- 动态生成 -->
+          </div>
+        </div>
+
+        <!-- 快捷操作 -->
+        <div class="quick-actions-card">
+          <h2 class="card-title">⚡ 快捷操作</h2>
+          <div class="quick-actions">
+            <button class="action-btn" id="sendToScratch" title="发送结果到草稿纸">📤 发送到草稿纸</button>
+            <button class="action-btn" id="exportHistory" title="导出历史记录">📥 导出历史</button>
+          </div>
+          <div class="keyboard-hints">
+            <h3>键盘快捷键</h3>
+            <div class="hint-grid">
+              <div class="hint-item"><kbd>Enter</kbd> 计算</div>
+              <div class="hint-item"><kbd>Esc</kbd> 清空</div>
+              <div class="hint-item"><kbd>Backspace</kbd> 删除</div>
+              <div class="hint-item"><kbd>K</kbd> 切换键盘</div>
+              <div class="hint-item"><kbd>S</kbd> 发送到草稿</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 结果弹出提示 -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

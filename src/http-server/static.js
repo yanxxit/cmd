@@ -155,6 +155,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(pomodoroDir, 'index.html'));
   });
 
+  // 计算稿纸前端页面
+  const calculatorDir = path.join(ROOT_DIR, 'public/calculator');
+  app.use('/calculator', express.static(calculatorDir));
+  app.get('/calculator', (req, res) => {
+    res.sendFile(path.join(calculatorDir, 'index.html'));
+  });
+
   // CSV 转 JSON 前端页面
   const csvToJsonDir = path.join(ROOT_DIR, 'public/csv-to-json');
   app.use('/csv-to-json', express.static(csvToJsonDir));
