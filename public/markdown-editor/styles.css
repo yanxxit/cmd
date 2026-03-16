@@ -1,0 +1,130 @@
+/* Markdown 对比编辑器 - 样式文件 */
+
+/* 滚动条样式 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { @apply bg-transparent; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-600 rounded-full; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400 dark:bg-gray-500; }
+
+[v-cloak] { display: none; }
+* { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+html, body, #app { height: 100%; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+/* 头部样式 */
+.header {
+  @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+}
+
+/* 主容器 */
+.main-container {
+  background: linear-gradient(180deg, rgba(249, 250, 251, 0.8) 0%, rgba(243, 244, 246, 0.8) 100%);
+}
+.dark .main-container {
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.8) 100%);
+}
+
+/* 卡片样式 */
+.card {
+  @apply bg-white dark:bg-gray-800/80 rounded-2xl;
+  @apply border border-gray-200/60 dark:border-gray-700/60;
+  @apply shadow-card;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  @apply shadow-card-hover;
+}
+
+.card-elevated {
+  @apply shadow-card-elevated border-gray-200/80 dark:border-gray-700/80;
+}
+
+/* 按钮样式 */
+.btn {
+  @apply px-4 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+.btn-primary {
+  @apply bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-500/25 hover:shadow-xl hover:-translate-y-0.5 focus:ring-primary-500;
+}
+.btn-success {
+  @apply bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:-translate-y-0.5 focus:ring-emerald-500;
+}
+.btn-secondary {
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600;
+}
+.btn-ghost {
+  @apply text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50;
+}
+.btn-danger {
+  @apply text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10;
+}
+
+/* 输入框 */
+.input {
+  @apply px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-gray-900 dark:text-gray-100 text-sm transition-all duration-200;
+}
+
+/* 对比列表项 */
+.contrast-item {
+  @apply px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-200 flex items-center gap-3;
+}
+.contrast-item:hover { @apply bg-gray-100/80 dark:bg-gray-700/50; }
+.contrast-item.active {
+  @apply bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 text-primary-700 dark:text-primary-200 font-medium shadow-sm;
+}
+.contrast-item.inactive { @apply text-gray-600 dark:text-gray-300; }
+
+/* Monaco 编辑器容器 */
+.monaco-container {
+  @apply flex-1 overflow-hidden;
+  min-height: 400px;
+  min-width: 300px;
+}
+.monaco-container .monaco-editor {
+  padding: 0 !important;
+}
+
+/* Markdown 预览样式 */
+.markdown-body {
+  @apply text-gray-700 dark:text-gray-100;
+}
+.markdown-body h1 { @apply text-2xl font-bold mb-5 pb-3 border-b border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white; }
+.markdown-body h2 { @apply text-xl font-semibold mb-4 mt-6 text-gray-900 dark:text-white; }
+.markdown-body h3 { @apply text-base font-medium mb-3 mt-5 text-gray-900 dark:text-white; }
+.markdown-body p { @apply mb-4 leading-8; }
+.markdown-body pre { @apply rounded-xl p-5 mb-5 overflow-x-auto bg-gray-900 dark:bg-gray-950; }
+.markdown-body code { @apply font-mono text-sm; }
+.markdown-body p code { @apply bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-gray-800 dark:text-gray-100 text-xs; }
+.markdown-body blockquote { @apply border-l-4 border-primary-500 pl-5 py-3 my-5 bg-primary-50/50 dark:bg-primary-900/10 rounded-r-lg text-gray-600 dark:text-gray-200; }
+.markdown-body ul { @apply list-disc list-inside mb-4 pl-2; }
+.markdown-body ol { @apply list-decimal list-inside mb-4 pl-2; }
+.markdown-body li { @apply mb-2 text-gray-700 dark:text-gray-100; }
+.markdown-body a { @apply text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 transition-colors; }
+.markdown-body strong { @apply font-semibold text-gray-900 dark:text-white; }
+.markdown-body em { @apply italic; }
+.markdown-body hr { @apply my-8 border-t border-gray-200 dark:border-gray-600; }
+.markdown-body table { @apply w-full mb-6 border-collapse; }
+.markdown-body th { @apply px-4 py-3 bg-gray-50 dark:bg-gray-800 font-medium text-left border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white; }
+.markdown-body td { @apply px-4 py-3 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-100; }
+
+/* 视图切换 */
+.view-section {
+  @apply absolute inset-0;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.view-section.hidden-view {
+  @apply opacity-0 pointer-events-none;
+  transform: translateX(-10px);
+}
+.view-section.active-view {
+  @apply opacity-100;
+  transform: translateX(0);
+}
+
+/* Toast 通知 */
+.toast {
+  @apply px-5 py-3 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-soft-lg flex items-center gap-3 text-sm font-medium;
+}
