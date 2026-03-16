@@ -7,33 +7,42 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            primary: {
+              50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
+              400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
+              800: '#075985', 900: '#0c4a6e',
+            },
+            accent: {
+              50: '#fdf4ff', 100: '#fae8ff', 200: '#f5d0fe', 300: '#f0abfc',
+              400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf',
+              800: '#86198f', 900: '#701a75',
+            }
+          },
+          boxShadow: {
+            'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+            'soft-lg': '0 10px 40px -10px rgba(0, 0, 0, 0.1), 0 20px 25px -5px rgba(0, 0, 0, 0.05)',
+          },
           animation: {
-            'fade-in': 'fadeIn 0.3s ease-out',
-            'slide-in': 'slideIn 0.3s ease-out',
-            'glow': 'glow 2s ease-in-out infinite alternate'
+            'fade-in': 'fadeIn 0.25s ease-out',
+            'slide-up': 'slideUp 0.3s ease-out',
           },
           keyframes: {
-            fadeIn: {
-              '0%': { opacity: '0', transform: 'translateY(-10px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' }
-            },
-            slideIn: {
-              '0%': { transform: 'translateX(-20px)', opacity: '0' },
-              '100%': { transform: 'translateX(0)', opacity: '1' }
-            },
-            glow: {
-              '0%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
-              '100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8)' }
-            }
+            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
           }
         }
       }
@@ -41,293 +50,163 @@
   </script>
   <style>
     ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-track { @apply bg-gray-100 dark:bg-gray-800; }
-    ::-webkit-scrollbar-thumb { @apply bg-gradient-to-b from-gray-400 to-gray-500 dark:from-gray-600 dark:to-gray-700 rounded-full; }
-    ::-webkit-scrollbar-thumb:hover { @apply bg-gradient-to-b from-gray-500 to-gray-600 dark:from-gray-500 dark:to-gray-600; }
-    
+    ::-webkit-scrollbar-track { @apply bg-transparent; }
+    ::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-600 rounded-full; border: 2px solid transparent; background-clip: content-box; }
+    ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400 dark:bg-gray-500; }
     [v-cloak] { display: none; }
+    * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    html, body, #app { height: 100%; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
     
-    /* 编辑器容器 */
-    .editor-container {
-      @apply flex flex-col h-full rounded-2xl overflow-hidden shadow-2xl;
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-      border: 1px solid rgba(148, 163, 184, 0.1);
-    }
-    
-    .editor-header {
-      @apply flex items-center justify-between px-5 py-4;
-      background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    /* 头部样式 */
+    .header {
+      @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
     }
     
-    .editor-title {
-      @apply text-white font-bold flex items-center gap-3 text-lg;
+    /* 主容器 */
+    .main-container {
+      background: linear-gradient(180deg, rgba(249, 250, 251, 0.8) 0%, rgba(243, 244, 246, 0.8) 100%);
     }
-    
-    .editor-title input {
-      @apply bg-transparent border-none focus:outline-none text-white font-bold;
-      background: transparent;
-    }
-    
-    .editor-content {
-      @apply flex-1 flex flex-col overflow-hidden;
-    }
-    
-    .editor-tabs {
-      @apply flex border-b border-gray-700;
-      background: rgba(15, 23, 42, 0.5);
-    }
-    
-    .editor-tab {
-      @apply px-5 py-3 text-sm font-medium cursor-pointer transition-all duration-200 flex items-center gap-2;
-    }
-    
-    .editor-tab.active {
-      @apply bg-gray-700/50 text-white;
-      border-bottom: 2px solid #3b82f6;
-      background: linear-gradient(180deg, rgba(59, 130, 246, 0.2) 0%, transparent 100%);
-    }
-    
-    .editor-tab.inactive {
-      @apply text-gray-400 hover:text-white;
-    }
-    
-    .editor-tab.inactive:hover {
-      background: rgba(59, 130, 246, 0.1);
-    }
-    
-    .editor-textarea {
-      @apply flex-1 w-full p-5 bg-transparent text-gray-100 font-mono text-sm resize-none focus:outline-none leading-relaxed;
-      min-height: 450px;
-      line-height: 1.8;
-    }
-    
-    .editor-textarea::placeholder {
-      @apply text-gray-500;
-    }
-    
-    .editor-preview {
-      @apply flex-1 p-6 overflow-y-auto;
-      min-height: 450px;
-      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    }
-    
-    .dark .editor-preview {
-      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    }
-    
-    /* Markdown 预览样式优化 */
-    .editor-preview h1 { 
-      @apply text-3xl font-bold mb-6 pb-3 border-b-2 border-blue-500 text-gray-900 dark:text-white;
-    }
-    .editor-preview h2 { 
-      @apply text-2xl font-semibold mb-4 mt-6 text-gray-800 dark:text-gray-100;
-    }
-    .editor-preview h3 { 
-      @apply text-xl font-medium mb-3 mt-4 text-gray-800 dark:text-gray-200;
-    }
-    .editor-preview h4 { 
-      @apply text-lg font-medium mb-2 mt-3 text-gray-800 dark:text-gray-300;
-    }
-    .editor-preview p { 
-      @apply mb-4 leading-relaxed text-gray-700 dark:text-gray-300;
-    }
-    .editor-preview pre { 
-      @apply rounded-xl p-5 mb-4 overflow-x-auto shadow-lg;
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-      border: 1px solid rgba(148, 163, 184, 0.1);
-    }
-    .editor-preview pre code { 
-      @apply bg-transparent p-0 text-sm font-mono;
-    }
-    .editor-preview code { 
-      @apply px-2 py-1 rounded text-sm font-mono;
-      @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300;
-    }
-    .editor-preview pre code { 
-      @apply bg-transparent p-0 text-gray-100;
-    }
-    .editor-preview blockquote { 
-      @apply border-l-4 border-blue-500 pl-5 py-3 my-4 rounded-r-lg;
-      @apply bg-blue-50 dark:bg-blue-900/20;
-      @apply text-gray-600 dark:text-gray-400 italic;
-    }
-    .editor-preview ul { 
-      @apply list-disc list-inside mb-4 pl-4;
-      @apply text-gray-700 dark:text-gray-300;
-    }
-    .editor-preview ol { 
-      @apply list-decimal list-inside mb-4 pl-4;
-      @apply text-gray-700 dark:text-gray-300;
-    }
-    .editor-preview li {
-      @apply mb-2;
-    }
-    .editor-preview a { 
-      @apply text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 underline decoration-blue-500/50 hover:decoration-blue-500;
-    }
-    .editor-preview strong { 
-      @apply font-bold text-gray-900 dark:text-white;
-    }
-    .editor-preview em { 
-      @apply italic text-gray-700 dark:text-gray-300;
-    }
-    .editor-preview hr {
-      @apply my-6 border-t-2 border-gray-200 dark:border-gray-700;
-    }
-    .editor-preview table {
-      @apply w-full mb-4 border-collapse;
-    }
-    .editor-preview th {
-      @apply px-4 py-3 bg-gray-100 dark:bg-gray-800 font-semibold text-left border border-gray-200 dark:border-gray-700;
-      @apply text-gray-900 dark:text-white;
-    }
-    .editor-preview td {
-      @apply px-4 py-3 border border-gray-200 dark:border-gray-700;
-      @apply text-gray-700 dark:text-gray-300;
-    }
-    .editor-preview img {
-      @apply rounded-lg shadow-md max-w-full;
-    }
-    
-    /* 对比项样式 */
-    .contrast-item {
-      @apply p-4 rounded-xl cursor-pointer transition-all duration-200 border-2;
-    }
-    .contrast-item:hover {
-      @apply transform scale-105 shadow-lg;
-      border-color: rgba(59, 130, 246, 0.3);
-    }
-    .contrast-item.active {
-      @apply border-blue-500;
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
-    }
-    .contrast-item.inactive {
-      @apply border-transparent;
-      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    }
-    .dark .contrast-item.inactive {
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    }
-    
-    /* 对比表格样式 */
-    .contrast-table {
-      @apply w-full text-sm border-collapse rounded-xl overflow-hidden shadow-xl;
-    }
-    .contrast-table th {
-      @apply px-6 py-4 text-left font-bold;
-    }
-    .contrast-table th.left {
-      background: linear-gradient(135deg, rgba(147, 51, 234, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-      border-bottom: 3px solid #9333ea;
-    }
-    .contrast-table th.right {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.1) 100%);
-      border-bottom: 3px solid #3b82f6;
-    }
-    .contrast-table td {
-      @apply px-6 py-5 align-top;
-      background: rgba(255, 255, 255, 0.5);
-    }
-    .dark .contrast-table td {
-      background: rgba(30, 41, 59, 0.5);
-    }
-    .contrast-table td.left {
-      border-right: 2px solid rgba(148, 163, 184, 0.2);
-    }
-    
-    /* 按钮样式 */
-    .btn-primary {
-      @apply px-5 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-2;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      @apply text-white shadow-lg hover:shadow-xl hover:scale-105;
-    }
-    
-    .btn-success {
-      @apply px-5 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-2;
-      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-      @apply text-white shadow-lg hover:shadow-xl hover:scale-105;
-    }
-    
-    .btn-danger {
-      @apply px-5 py-2.5 rounded-xl font-medium transition-all duration-200;
-      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-      @apply text-white shadow-lg hover:shadow-xl hover:scale-105;
-    }
-    
-    .btn-secondary {
-      @apply px-5 py-2.5 rounded-xl font-medium transition-all duration-200;
-      @apply bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700;
-    }
-    
-    /* 输入框样式 */
-    .input-primary {
-      @apply px-4 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl;
-      @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
-      @apply text-gray-900 dark:text-white;
+    .dark .main-container {
+      background: linear-gradient(180deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.8) 100%);
     }
     
     /* 卡片样式 */
-    .card-primary {
-      @apply bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl;
-      border: 1px solid rgba(148, 163, 184, 0.1);
+    .card {
+      @apply bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-soft;
+      backdrop-filter: blur(8px);
     }
     
-    /* 特性卡片 */
-    .feature-card {
-      @apply p-5 rounded-2xl transition-all duration-200 hover:scale-105 hover:shadow-xl;
+    /* 按钮样式 */
+    .btn {
+      @apply px-4 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2;
     }
-    .feature-card.purple {
-      @apply bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30;
+    .btn-primary {
+      @apply bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-500/25 hover:shadow-xl hover:-translate-y-0.5 focus:ring-primary-500;
     }
-    .feature-card.blue {
-      @apply bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30;
+    .btn-success {
+      @apply bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:-translate-y-0.5 focus:ring-emerald-500;
     }
-    .feature-card.green {
-      @apply bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30;
+    .btn-secondary {
+      @apply bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700;
+    }
+    .btn-ghost {
+      @apply text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50;
+    }
+    .btn-danger {
+      @apply text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10;
+    }
+    
+    /* 输入框 */
+    .input {
+      @apply px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-gray-900 dark:text-white text-sm transition-all duration-200;
+    }
+    
+    /* 对比列表项 */
+    .contrast-item {
+      @apply px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-200 flex items-center gap-3;
+    }
+    .contrast-item:hover { @apply bg-gray-100/80 dark:bg-gray-700/50; }
+    .contrast-item.active {
+      @apply bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 text-primary-700 dark:text-primary-300 font-medium shadow-sm;
+    }
+    .contrast-item.inactive { @apply text-gray-600 dark:text-gray-400; }
+    
+    /* Monaco 编辑器容器 */
+    .monaco-container {
+      @apply flex-1 overflow-hidden;
+      min-height: 400px;
+      min-width: 300px;
+    }
+    .monaco-container .monaco-editor {
+      padding: 0 !important;
+    }
+    
+    /* Markdown 预览样式 */
+    .markdown-body {
+      @apply text-gray-700 dark:text-gray-300;
+    }
+    .markdown-body h1 { @apply text-2xl font-bold mb-5 pb-3 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white; }
+    .markdown-body h2 { @apply text-xl font-semibold mb-4 mt-6 text-gray-900 dark:text-white; }
+    .markdown-body h3 { @apply text-base font-medium mb-3 mt-5 text-gray-900 dark:text-white; }
+    .markdown-body p { @apply mb-4 leading-8; }
+    .markdown-body pre { @apply rounded-xl p-5 mb-5 overflow-x-auto bg-gray-900 dark:bg-gray-950; }
+    .markdown-body code { @apply font-mono text-sm; }
+    .markdown-body p code { @apply bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-gray-800 dark:text-gray-200 text-xs; }
+    .markdown-body blockquote { @apply border-l-4 border-primary-500 pl-5 py-3 my-5 bg-primary-50/50 dark:bg-primary-900/10 rounded-r-lg text-gray-600 dark:text-gray-400; }
+    .markdown-body ul { @apply list-disc list-inside mb-4 pl-2; }
+    .markdown-body ol { @apply list-decimal list-inside mb-4 pl-2; }
+    .markdown-body li { @apply mb-2 text-gray-700 dark:text-gray-300; }
+    .markdown-body a { @apply text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors; }
+    .markdown-body strong { @apply font-semibold text-gray-900 dark:text-white; }
+    .markdown-body em { @apply italic; }
+    .markdown-body hr { @apply my-8 border-t border-gray-200 dark:border-gray-700; }
+    .markdown-body table { @apply w-full mb-6 border-collapse; }
+    .markdown-body th { @apply px-4 py-3 bg-gray-50 dark:bg-gray-800 font-medium text-left border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white; }
+    .markdown-body td { @apply px-4 py-3 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300; }
+    
+    /* 视图切换 */
+    .view-section {
+      @apply absolute inset-0 transition-opacity duration-250;
+    }
+    .view-section.hidden-view {
+      @apply opacity-0 pointer-events-none;
+    }
+    .view-section.active-view {
+      @apply opacity-100;
+    }
+    
+    /* Toast 通知 */
+    .toast {
+      @apply px-5 py-3 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-soft-lg flex items-center gap-3 text-sm font-medium;
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-purple-100 via-blue-100 to-green-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen transition-colors duration-500">
-  <div id="app" v-cloak class="min-h-screen flex flex-col">
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-500">
+  <div id="app" v-cloak class="h-full flex flex-col">
     <!-- 头部 -->
-    <header class="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+    <header class="header flex-shrink-0">
       <div class="container mx-auto px-6 py-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
-            <div class="flex items-center gap-3">
-              <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-3xl shadow-xl animate-pulse">
-                📝
-              </div>
-              <div>
-                <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Markdown 对比编辑器</h1>
-                <p class="text-xs text-gray-500 dark:text-gray-400">左右对比 · 实时预览 · 一键渲染</p>
-              </div>
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-2xl shadow-lg shadow-primary-500/25">
+              📝
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-gray-900 dark:text-white">Markdown 对比编辑器</h1>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">左右分栏 · 实时预览 · 高效对比</p>
             </div>
           </div>
-          <div class="flex items-center gap-3">
-            <!-- 新建按钮 -->
-            <button
-              @click="createNew"
-              class="btn-primary"
-            >
-              <span>➕</span>
-              <span class="hidden sm:inline">新建对比</span>
+          <div class="flex items-center gap-2.5">
+            <!-- 列表页按钮 -->
+            <button v-if="currentView === 'list'" @click="createNew" class="btn btn-primary">
+              <span class="text-lg">➕</span>
+              <span class="hidden sm:inline font-medium">新建对比</span>
             </button>
-            <!-- 保存按钮 -->
-            <button
-              @click="saveCurrent"
-              class="btn-success"
-              :disabled="!currentContrast"
-            >
-              <span>💾</span>
-              <span class="hidden sm:inline">保存</span>
-            </button>
-            <!-- 主题切换 -->
-            <button
-              @click="toggleDarkMode"
-              class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all flex items-center justify-center text-xl shadow-md hover:shadow-lg"
-            >
+            <!-- 编辑页按钮 -->
+            <template v-if="currentView === 'editor'">
+              <button @click="goBack" class="btn btn-secondary">
+                <span>←</span>
+                <span class="hidden sm:inline">返回</span>
+              </button>
+              <button @click="saveCurrent" class="btn btn-success" :disabled="!currentContrast">
+                <span>💾</span>
+                <span class="hidden sm:inline font-medium">保存</span>
+              </button>
+              <button @click="showPreview" class="btn btn-primary">
+                <span>👁️</span>
+                <span class="hidden sm:inline font-medium">预览</span>
+              </button>
+            </template>
+            <!-- 预览页按钮 -->
+            <template v-if="currentView === 'preview'">
+              <button @click="goBack" class="btn btn-secondary">
+                <span>←</span>
+                <span>返回编辑</span>
+              </button>
+            </template>
+            <button @click="toggleDarkMode" class="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-110">
               {{ isDark ? '☀️' : '🌙' }}
             </button>
           </div>
@@ -336,328 +215,337 @@
     </header>
 
     <!-- 主体内容 -->
-    <main class="flex-1 container mx-auto px-6 py-6">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- 左侧：对比列表 -->
-        <aside class="lg:col-span-2 space-y-4">
-          <div class="card-primary">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-              <span>📚</span> 对比列表
-            </h3>
-            <div class="space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto">
-              <div
-                v-for="item in contrasts"
-                :key="item.id"
-                @click="selectContrast(item)"
-                :class="[
-                  'contrast-item',
-                  currentContrast?.id === item.id ? 'active' : 'inactive'
-                ]"
-              >
-                <div class="flex items-center gap-3">
-                  <span class="text-2xl">{{ item.icon }}</span>
-                  <div class="flex-1 min-w-0">
-                    <h4 class="font-medium text-gray-900 dark:text-white text-sm truncate">{{ item.name }}</h4>
+    <main class="flex-1 main-container overflow-hidden relative">
+      <div class="container mx-auto px-6 py-6 h-full">
+        
+        <!-- 视图 1: 对比列表 -->
+        <div v-if="currentView === 'list'" class="view-section active-view h-full">
+          <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
+            <!-- 左侧：对比列表 -->
+            <div class="lg:col-span-2 flex flex-col">
+              <div class="card flex-1 flex flex-col overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-700/50 flex-shrink-0">
+                  <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white">📚 对比列表</h2>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-full">{{ contrasts.length }} 个</span>
+                  </div>
+                  <input v-model="searchQuery" type="text" placeholder="🔍 搜索对比..." class="input w-full" />
+                </div>
+                <div class="p-3 space-y-1 overflow-y-auto flex-1">
+                  <div v-for="item in filteredContrasts" :key="item.id"
+                       @click="selectContrast(item)"
+                       :class="['contrast-item', selectedId === item.id ? 'active' : 'inactive']">
+                    <span class="text-2xl">{{ item.icon }}</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium truncate">{{ item.name }}</div>
+                      <div class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ item.left?.title || '左' }} vs {{ item.right?.title || '右' }}</div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <button @click.stop="editContrast(item)" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="编辑">
+                        ✏️
+                      </button>
+                      <button @click.stop="deleteContrast(item)" class="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition-colors" title="删除">
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="filteredContrasts.length === 0" class="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <div class="text-4xl mb-3">🔍</div>
+                    <div>暂无对比</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 右侧：空状态 -->
+            <div class="lg:col-span-2 flex flex-col">
+              <div class="card flex-1 flex items-center justify-center">
+                <div class="text-center max-w-md mx-auto px-6">
+                  <div class="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-primary-100 to-accent-100 dark:from-primary-900/30 dark:to-accent-900/30 flex items-center justify-center text-5xl">
+                    📝
+                  </div>
+                  <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">开始创建对比</h2>
+                  <p class="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                    点击"新建对比"或从左侧列表选择一个对比项开始编辑
+                  </p>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="card p-5">
+                      <div class="text-3xl mb-3">✏️</div>
+                      <div class="font-semibold text-gray-900 dark:text-white mb-1">左右编辑</div>
+                      <div class="text-xs text-gray-500 dark:text-gray-400">Monaco 编辑器</div>
+                    </div>
+                    <div class="card p-5">
+                      <div class="text-3xl mb-3">👁️</div>
+                      <div class="font-semibold text-gray-900 dark:text-white mb-1">实时预览</div>
+                      <div class="text-xs text-gray-500 dark:text-gray-400">Markdown 渲染</div>
+                    </div>
+                    <div class="card p-5">
+                      <div class="text-3xl mb-3">🆚</div>
+                      <div class="font-semibold text-gray-900 dark:text-white mb-1">对比展示</div>
+                      <div class="text-xs text-gray-500 dark:text-gray-400">并排对比</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </aside>
-
-        <!-- 右侧：编辑器 -->
-        <section class="lg:col-span-10">
-          <div v-if="!currentContrast" class="card-primary text-center py-16">
-            <div class="text-7xl mb-6 animate-bounce">👈</div>
-            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-3">开始创建对比</h2>
-            <p class="text-gray-500 dark:text-gray-400 mb-8 text-lg">点击"新建对比"或从列表选择一个对比项</p>
-            <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-              <div class="feature-card purple">
-                <div class="text-4xl mb-3">✏️</div>
-                <div class="font-bold text-purple-700 dark:text-purple-400 mb-1">左右编辑</div>
-                <div class="text-sm text-purple-600 dark:text-purple-500">同时编辑两边内容</div>
-              </div>
-              <div class="feature-card blue">
-                <div class="text-4xl mb-3">👁️</div>
-                <div class="font-bold text-blue-700 dark:text-blue-400 mb-1">实时预览</div>
-                <div class="text-sm text-blue-600 dark:text-blue-500">Markdown 渲染预览</div>
-              </div>
-              <div class="feature-card green">
-                <div class="text-4xl mb-3">🆚</div>
-                <div class="font-bold text-green-700 dark:text-green-400 mb-1">对比展示</div>
-                <div class="text-sm text-green-600 dark:text-green-500">并排对比差异</div>
+        </div>
+        
+        <!-- 视图 2: 内容编辑 -->
+        <div v-if="currentView === 'editor'" class="view-section hidden-view h-full flex flex-col">
+          <div class="flex flex-col gap-3 h-full flex-1">
+            <!-- 标题栏 -->
+            <div class="card px-5 py-3 flex-shrink-0">
+              <div class="flex items-center gap-3 flex-wrap">
+                <input v-model="currentContrast.name" type="text" placeholder="对比标题..." class="flex-1 min-w-[200px] input font-medium" />
+                <input v-model="currentContrast.icon" type="text" placeholder="图标" class="w-16 input text-center text-xl" maxlength="2" />
+                <div class="flex-1"></div>
+                <button @click="deleteCurrent" class="btn btn-danger">🗑️ 删除</button>
               </div>
             </div>
-          </div>
-
-          <div v-else class="space-y-6 animate-fade-in">
-            <!-- 标题编辑 -->
-            <div class="card-primary">
-              <div class="flex items-center gap-4 flex-wrap">
-                <input
-                  v-model="currentContrast.name"
-                  type="text"
-                  placeholder="对比标题..."
-                  class="flex-1 min-w-[200px] input-primary"
-                />
-                <input
-                  v-model="currentContrast.icon"
-                  type="text"
-                  placeholder="图标"
-                  class="w-20 input-primary text-center text-2xl"
-                  maxlength="2"
-                />
-                <button
-                  @click="deleteCurrent"
-                  class="btn-danger"
-                >
-                  🗑️ 删除
-                </button>
-              </div>
-            </div>
-
+            
             <!-- 左右编辑器 -->
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 flex-1 min-h-0">
               <!-- 左侧编辑器 -->
-              <div class="editor-container" style="min-height: 550px;">
-                <div class="editor-header">
-                  <div class="editor-title">
-                    <span class="text-3xl">🟣</span>
-                    <input
-                      v-model="currentContrast.left.title"
-                      type="text"
-                      placeholder="左侧标题..."
-                      class="flex-1 bg-transparent border-none focus:outline-none text-white font-bold text-lg"
-                    />
+              <div class="card overflow-hidden flex flex-col min-w-[300px]">
+                <div class="px-5 py-2.5 border-b border-gray-100 dark:border-gray-700/50 flex-shrink-0">
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-sm">🟣</span>
+                    <input v-model="currentContrast.left.title" type="text" placeholder="左侧标题..." class="font-medium flex-1 bg-transparent border-none focus:outline-none text-sm" />
                   </div>
-                  <button
-                    @click="clearLeft"
-                    class="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-gray-700"
-                  >
-                    <span>🗑️</span>
-                    <span>清空</span>
-                  </button>
                 </div>
-                <div class="editor-content">
-                  <div class="editor-tabs">
-                    <div
-                      @click="leftViewMode = 'edit'"
-                      :class="leftViewMode === 'edit' ? 'editor-tab active' : 'editor-tab inactive'"
-                    >
-                      <span>✏️</span>
-                      <span>编辑</span>
-                    </div>
-                    <div
-                      @click="leftViewMode = 'preview'"
-                      :class="leftViewMode === 'preview' ? 'editor-tab active' : 'editor-tab inactive'"
-                    >
-                      <span>👁️</span>
-                      <span>预览</span>
-                    </div>
-                  </div>
-                  <textarea
-                    v-show="leftViewMode === 'edit'"
-                    v-model="currentContrast.left.markdown"
-                    @input="debouncedRender"
-                    placeholder="输入 Markdown 内容...&#10;&#10;支持语法：&#10;# 标题&#10;**粗体** *斜体*&#10;```javascript 代码块 ```&#10;- 列表项&#10;> 引用"
-                    class="editor-textarea"
-                  ></textarea>
-                  <div
-                    v-show="leftViewMode === 'preview'"
-                    class="editor-preview"
-                    v-html="leftHtml"
-                  ></div>
-                </div>
+                <div ref="leftEditorContainer" class="monaco-container"></div>
               </div>
-
+              
               <!-- 右侧编辑器 -->
-              <div class="editor-container" style="min-height: 550px;">
-                <div class="editor-header">
-                  <div class="editor-title">
-                    <span class="text-3xl">🔵</span>
-                    <input
-                      v-model="currentContrast.right.title"
-                      type="text"
-                      placeholder="右侧标题..."
-                      class="flex-1 bg-transparent border-none focus:outline-none text-white font-bold text-lg"
-                    />
+              <div class="card overflow-hidden flex flex-col min-w-[300px]">
+                <div class="px-5 py-2.5 border-b border-gray-100 dark:border-gray-700/50 flex-shrink-0">
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-sm">🔵</span>
+                    <input v-model="currentContrast.right.title" type="text" placeholder="右侧标题..." class="font-medium flex-1 bg-transparent border-none focus:outline-none text-sm" />
                   </div>
-                  <button
-                    @click="clearRight"
-                    class="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-gray-700"
-                  >
-                    <span>🗑️</span>
-                    <span>清空</span>
-                  </button>
                 </div>
-                <div class="editor-content">
-                  <div class="editor-tabs">
-                    <div
-                      @click="rightViewMode = 'edit'"
-                      :class="rightViewMode === 'edit' ? 'editor-tab active' : 'editor-tab inactive'"
-                    >
-                      <span>✏️</span>
-                      <span>编辑</span>
-                    </div>
-                    <div
-                      @click="rightViewMode = 'preview'"
-                      :class="rightViewMode === 'preview' ? 'editor-tab active' : 'editor-tab inactive'"
-                    >
-                      <span>👁️</span>
-                      <span>预览</span>
-                    </div>
-                  </div>
-                  <textarea
-                    v-show="rightViewMode === 'edit'"
-                    v-model="currentContrast.right.markdown"
-                    @input="debouncedRender"
-                    placeholder="输入 Markdown 内容...&#10;&#10;支持语法：&#10;# 标题&#10;**粗体** *斜体*&#10;```python 代码块 ```&#10;- 列表项&#10;> 引用"
-                    class="editor-textarea"
-                  ></textarea>
-                  <div
-                    v-show="rightViewMode === 'preview'"
-                    class="editor-preview"
-                    v-html="rightHtml"
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 对比视图 -->
-            <div class="card-primary">
-              <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <span class="text-2xl">🆚</span>
-                  对比视图
-                </h3>
-                <button
-                  @click="renderBoth"
-                  class="btn-primary"
-                >
-                  <span>🔄</span>
-                  <span>渲染对比</span>
-                </button>
-              </div>
-              <div class="overflow-x-auto rounded-xl">
-                <table class="contrast-table">
-                  <thead>
-                    <tr>
-                      <th class="left" width="50%">
-                        <span class="flex items-center gap-3">
-                          <span class="w-4 h-4 rounded-full bg-purple-500 shadow-lg shadow-purple-500/50"></span>
-                          {{ currentContrast.left.title || '左侧' }}
-                        </span>
-                      </th>
-                      <th class="right" width="50%">
-                        <span class="flex items-center gap-3">
-                          <span class="w-4 h-4 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50"></span>
-                          {{ currentContrast.right.title || '右侧' }}
-                        </span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td class="left" v-html="leftHtml"></td>
-                      <td v-html="rightHtml"></td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div ref="rightEditorContainer" class="monaco-container"></div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+        
+        <!-- 视图 3: 预览 -->
+        <div v-if="currentView === 'preview'" class="view-section hidden-view h-full overflow-y-auto">
+          <div class="card p-6">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <span>🆚</span>
+                对比预览 - {{ currentContrast?.name || '未命名' }}
+              </h3>
+              <button @click="renderPreview" class="btn btn-primary">
+                <span>🔄</span>
+                <span>刷新预览</span>
+              </button>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+              <table class="w-full text-sm border-collapse">
+                <thead>
+                  <tr>
+                    <th width="50%" class="px-6 py-4 text-left font-semibold text-xs uppercase tracking-wider bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-b-2 border-purple-500">
+                      <span class="flex items-center gap-3">
+                        <span class="w-3 h-3 rounded-full bg-purple-500 shadow-lg shadow-purple-500/50"></span>
+                        {{ currentContrast?.left?.title || '左侧' }}
+                      </span>
+                    </th>
+                    <th width="50%" class="px-6 py-4 text-left font-semibold text-xs uppercase tracking-wider bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-b-2 border-blue-500">
+                      <span class="flex items-center gap-3">
+                        <span class="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50"></span>
+                        {{ currentContrast?.right?.title || '右侧' }}
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="px-6 py-5 align-top border-r border-gray-100 dark:border-gray-700 markdown-body" v-html="leftPreviewHtml"></td>
+                    <td class="px-6 py-5 align-top markdown-body" v-html="rightPreviewHtml"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
       </div>
     </main>
 
-    <!-- 保存提示 -->
-    <div v-if="saveMessage" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
-      <div class="px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-800 dark:from-white dark:to-gray-100 text-white dark:text-gray-900 rounded-2xl shadow-2xl flex items-center gap-3 animate-slide-in border border-gray-700 dark:border-gray-300">
-        <span class="text-2xl">{{ saveMessage.success ? '✅' : '❌' }}</span>
-        <span class="font-semibold text-lg">{{ saveMessage.text }}</span>
+    <!-- Toast 通知 -->
+    <div v-if="saveMessage" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
+      <div class="toast">
+        <span class="text-xl">{{ saveMessage.success ? '✅' : '❌' }}</span>
+        <span>{{ saveMessage.text }}</span>
       </div>
     </div>
 
     <!-- 页脚 -->
-    <footer class="py-8 text-center text-sm text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
-      <p class="flex items-center justify-center gap-2">
-        <span>📝</span>
-        <span>Markdown 对比编辑器 · 共 {{ contrasts.length }} 个对比</span>
-      </p>
-      <p class="mt-3 text-xs flex items-center justify-center gap-4">
-        <span class="flex items-center gap-1">
-          <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl/Cmd + S</kbd>
+    <footer class="py-4 text-center text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm flex-shrink-0">
+      <div class="flex items-center justify-center gap-6">
+        <span class="font-medium">Markdown 对比编辑器</span>
+        <span class="text-gray-300 dark:text-gray-600">•</span>
+        <span>{{ contrasts.length }} 个对比</span>
+        <span class="text-gray-300 dark:text-gray-600">•</span>
+        <span class="flex items-center gap-1.5">
+          <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md text-xs font-mono">⌘ S</kbd>
           <span>保存</span>
         </span>
-        <span class="flex items-center gap-1">
-          <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs">Tab</kbd>
-          <span>切换视图</span>
-        </span>
-      </p>
+      </div>
     </footer>
   </div>
 
   <script>
-    const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
+    const { createApp, ref, computed, onMounted, onUnmounted, nextTick } = Vue;
 
     createApp({
       setup() {
         const isDark = ref(false);
+        const currentView = ref('list'); // 'list', 'editor', 'preview'
         const contrasts = ref([]);
+        const selectedId = ref(null);
         const currentContrast = ref(null);
-        const leftViewMode = ref('edit');
-        const rightViewMode = ref('edit');
-        const leftHtml = ref('');
-        const rightHtml = ref('');
+        const searchQuery = ref('');
         const saveMessage = ref(null);
-        const renderTimeout = ref(null);
+        const leftEditorContainer = ref(null);
+        const rightEditorContainer = ref(null);
+        const leftEditor = ref(null);
+        const rightEditor = ref(null);
+        const leftPreviewHtml = ref('');
+        const rightPreviewHtml = ref('');
+        const isEditorInitialized = ref(false);
+
+        // 过滤对比列表
+        const filteredContrasts = computed(() => {
+          if (!searchQuery.value.trim()) return contrasts.value;
+          const query = searchQuery.value.toLowerCase();
+          return contrasts.value.filter(item =>
+            item.name.toLowerCase().includes(query) ||
+            item.left.title.toLowerCase().includes(query) ||
+            item.right.title.toLowerCase().includes(query)
+          );
+        });
 
         // 加载数据
         const loadData = async () => {
           try {
             const res = await fetch('/api/markdown-contrast/list');
             const data = await res.json();
-            if (data.success) {
-              contrasts.value = data.data;
-              if (contrasts.value.length > 0) {
-                selectContrast(contrasts.value[0]);
-              }
-            }
+            if (data.success) contrasts.value = data.data;
           } catch (error) {
-            console.error('加载数据失败:', error);
+            console.error('加载失败:', error);
           }
         };
 
-        // 方法
+        // 初始化 Monaco 编辑器
+        const initMonaco = () => {
+          if (!leftEditorContainer.value || !rightEditorContainer.value) return;
+          
+          require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+          require(['vs/editor/editor.main'], () => {
+            const theme = isDark.value ? 'vs-dark' : 'vs';
+            const commonOptions = {
+              theme,
+              language: 'markdown',
+              automaticLayout: true,
+              minimap: { enabled: false },
+              fontSize: 14,
+              lineHeight: 24,
+              padding: { top: 16, bottom: 16 },
+              wordWrap: 'on',
+              renderWhitespace: 'selection',
+              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              fontLigatures: true,
+            };
+
+            leftEditor.value = monaco.editor.create(leftEditorContainer.value, {
+              ...commonOptions,
+              value: currentContrast.value?.left?.markdown || '',
+            });
+
+            rightEditor.value = monaco.editor.create(rightEditorContainer.value, {
+              ...commonOptions,
+              value: currentContrast.value?.right?.markdown || '',
+            });
+
+            // 监听内容变化
+            leftEditor.value.onDidChangeModelContent(() => {
+              if (currentContrast.value) currentContrast.value.left.markdown = leftEditor.value.getValue();
+            });
+            rightEditor.value.onDidChangeModelContent(() => {
+              if (currentContrast.value) currentContrast.value.right.markdown = rightEditor.value.getValue();
+            });
+
+            isEditorInitialized.value = true;
+          });
+        };
+
+        // 更新编辑器内容
+        const updateEditorContent = () => {
+          if (!isEditorInitialized.value || !currentContrast.value) return;
+          if (leftEditor.value) leftEditor.value.setValue(currentContrast.value.left.markdown);
+          if (rightEditor.value) rightEditor.value.setValue(currentContrast.value.right.markdown);
+        };
+
+        // 更新编辑器主题
+        const updateEditorTheme = () => {
+          if (!isEditorInitialized.value) return;
+          const theme = isDark.value ? 'vs-dark' : 'vs';
+          monaco.editor.setTheme(theme);
+        };
+
+        // 视图切换
+        const goBack = () => { currentView.value = 'list'; };
+        const showPreview = () => { renderPreview(); currentView.value = 'preview'; };
+
+        // 渲染预览
+        const renderPreview = () => {
+          if (!currentContrast.value) return;
+          leftPreviewHtml.value = renderMarkdown(currentContrast.value.left.markdown);
+          rightPreviewHtml.value = renderMarkdown(currentContrast.value.right.markdown);
+        };
+
+        // Markdown 渲染
+        const renderMarkdown = (markdown) => {
+          if (window.marked) {
+            return window.marked.parse(markdown || '');
+          }
+          return markdown?.replace(/\n/g, '<br>') || '';
+        };
+
+        // 初始化深色模式
         const initDarkMode = () => {
           const saved = localStorage.getItem('darkMode');
           isDark.value = saved === 'true' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          if (isDark.value) {
-            document.documentElement.classList.add('dark');
-            document.documentElement.classList.remove('light');
-          } else {
-            document.documentElement.classList.add('light');
-            document.documentElement.classList.remove('dark');
-          }
+          document.documentElement.classList.toggle('dark', isDark.value);
+          document.documentElement.classList.toggle('light', !isDark.value);
         };
 
         const toggleDarkMode = () => {
           isDark.value = !isDark.value;
-          if (isDark.value) {
-            document.documentElement.classList.add('dark');
-            document.documentElement.classList.remove('light');
-          } else {
-            document.documentElement.classList.add('light');
-            document.documentElement.classList.remove('dark');
-          }
+          document.documentElement.classList.toggle('dark', isDark.value);
+          document.documentElement.classList.toggle('light', !isDark.value);
           localStorage.setItem('darkMode', isDark.value);
+          updateEditorTheme();
         };
 
-        const selectContrast = (item) => {
+        // 操作
+        const selectContrast = (item) => { selectedId.value = item.id; editContrast(item); };
+        
+        const editContrast = (item) => {
           currentContrast.value = JSON.parse(JSON.stringify(item));
-          leftViewMode.value = 'edit';
-          rightViewMode.value = 'edit';
-          renderBoth();
+          selectedId.value = item.id;
+          currentView.value = 'editor';
+          nextTick(() => {
+            if (leftEditor.value) leftEditor.value.dispose();
+            if (rightEditor.value) rightEditor.value.dispose();
+            isEditorInitialized.value = false;
+            initMonaco();
+          });
         };
 
         const createNew = () => {
@@ -665,43 +553,33 @@
             id: `contrast-${Date.now()}`,
             name: '新对比',
             icon: '📝',
-            left: {
-              title: '左侧',
-              markdown: '# 左侧内容\n\n在这里输入 Markdown...\n\n```javascript\n// 示例代码\nconsole.log("Hello");\n```\n\n## 功能特点\n- 特点 1\n- 特点 2'
-            },
-            right: {
-              title: '右侧',
-              markdown: '# 右侧内容\n\n在这里输入 Markdown...\n\n```python\n# 示例代码\nprint("Hello")\n```\n\n## 功能特点\n- 特点 1\n- 特点 2'
-            }
+            left: { title: '左侧', markdown: '# 左侧内容\n\n在这里输入 Markdown...' },
+            right: { title: '右侧', markdown: '# 右侧内容\n\n在这里输入 Markdown...' }
           };
           contrasts.value.unshift(newContrast);
-          selectContrast(newContrast);
-        };
-
-        const clearLeft = () => {
-          if (currentContrast.value) {
-            currentContrast.value.left.markdown = '';
-            leftHtml.value = '';
-          }
-        };
-
-        const clearRight = () => {
-          if (currentContrast.value) {
-            currentContrast.value.right.markdown = '';
-            rightHtml.value = '';
-          }
+          editContrast(newContrast);
         };
 
         const deleteCurrent = () => {
           if (!currentContrast.value) return;
-          
-          const id = currentContrast.value.id;
-          fetch(`/api/markdown-contrast/${id}`, { method: 'DELETE' })
+          fetch(`/api/markdown-contrast/${currentContrast.value.id}`, { method: 'DELETE' })
             .then(res => res.json())
             .then(data => {
               if (data.success) {
-                contrasts.value = contrasts.value.filter(c => c.id !== id);
+                contrasts.value = contrasts.value.filter(c => c.id !== currentContrast.value.id);
                 currentContrast.value = null;
+                currentView.value = 'list';
+                showMessage({ success: true, text: '已删除' });
+              }
+            });
+        };
+
+        const deleteContrast = (item) => {
+          fetch(`/api/markdown-contrast/${item.id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                contrasts.value = contrasts.value.filter(c => c.id !== item.id);
                 showMessage({ success: true, text: '已删除' });
               }
             });
@@ -709,7 +587,6 @@
 
         const saveCurrent = async () => {
           if (!currentContrast.value) return;
-          
           try {
             const res = await fetch('/api/markdown-contrast/save', {
               method: 'POST',
@@ -719,56 +596,23 @@
             const data = await res.json();
             if (data.success) {
               const index = contrasts.value.findIndex(c => c.id === currentContrast.value.id);
-              if (index >= 0) {
-                contrasts.value[index] = JSON.parse(JSON.stringify(currentContrast.value));
-              }
+              if (index >= 0) contrasts.value[index] = JSON.parse(JSON.stringify(currentContrast.value));
               showMessage({ success: true, text: '保存成功' });
-            } else {
-              showMessage({ success: false, text: data.error || '保存失败' });
             }
           } catch (error) {
-            showMessage({ success: false, text: '保存失败：' + error.message });
+            showMessage({ success: false, text: '保存失败' });
           }
-        };
-
-        const renderMarkdown = (markdown) => {
-          if (window.marked) {
-            const rendered = window.marked.parse(markdown || '');
-            // 代码高亮
-            setTimeout(() => {
-              if (window.Prism) {
-                Prism.highlightAll();
-              }
-            }, 100);
-            return rendered;
-          }
-          return markdown?.replace(/\n/g, '<br>') || '';
-        };
-
-        const renderBoth = () => {
-          if (!currentContrast.value) return;
-          leftHtml.value = renderMarkdown(currentContrast.value.left.markdown);
-          rightHtml.value = renderMarkdown(currentContrast.value.right.markdown);
-        };
-
-        const debouncedRender = () => {
-          clearTimeout(renderTimeout.value);
-          renderTimeout.value = setTimeout(() => {
-            renderBoth();
-          }, 300);
         };
 
         const showMessage = (msg) => {
           saveMessage.value = msg;
-          setTimeout(() => {
-            saveMessage.value = null;
-          }, 2000);
+          setTimeout(() => { saveMessage.value = null; }, 2000);
         };
 
         const handleKeydown = (e) => {
           if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
-            saveCurrent();
+            if (currentView.value === 'editor') saveCurrent();
           }
         };
 
@@ -780,27 +624,15 @@
 
         onUnmounted(() => {
           document.removeEventListener('keydown', handleKeydown);
-          clearTimeout(renderTimeout.value);
+          if (leftEditor.value) leftEditor.value.dispose();
+          if (rightEditor.value) rightEditor.value.dispose();
         });
 
         return {
-          isDark,
-          contrasts,
-          currentContrast,
-          leftViewMode,
-          rightViewMode,
-          leftHtml,
-          rightHtml,
-          saveMessage,
-          toggleDarkMode,
-          selectContrast,
-          createNew,
-          clearLeft,
-          clearRight,
-          deleteCurrent,
-          saveCurrent,
-          renderBoth,
-          debouncedRender
+          isDark, currentView, contrasts, selectedId, currentContrast, searchQuery, saveMessage,
+          leftEditorContainer, rightEditorContainer, leftPreviewHtml, rightPreviewHtml, filteredContrasts,
+          toggleDarkMode, selectContrast, editContrast, createNew, deleteCurrent, deleteContrast, saveCurrent,
+          goBack, showPreview, renderPreview
         };
       }
     }).mount('#app');
