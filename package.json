@@ -23,7 +23,9 @@
     "x-static": "bin/static.js",
     "x-file-viewer": "bin/static.js",
     "x-http-sniffer": "bin/http-sniffer.js",
-    "x-wifi": "bin/wifi.js"
+    "x-wifi": "bin/wifi.js",
+    "x-kill-port": "bin/kill-port.js",
+    "x-who-port": "bin/who-port.js"
   },
   "scripts": {
     "clear": "npm unlink",

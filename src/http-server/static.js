@@ -298,6 +298,10 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(markdownEditorDir, 'index.html'));
   });
 
+  // 挂载 Next.js 静态资源
+  const nextDir = path.join(ROOT_DIR, 'public/page/_next');
+  app.use('/_next', express.static(nextDir));
+
   // 挂载 Markdown 对比编辑器 API 路由
   app.use('/api/markdown-contrast', markdownContrastApiRouter);
 

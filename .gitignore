@@ -40,3 +40,7 @@ public/*.docx
 git-log.html
 .http-sniffer/
 __pycache__
+
+page/
+
+next-app/dist
