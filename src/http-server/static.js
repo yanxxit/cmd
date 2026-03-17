@@ -15,6 +15,7 @@ import httpbinApiRouter from './httpbin-api.js';
 import mockApiRouter from './mock-api.js';
 import pgliteExportApiRouter from './pglite-export-api.js';
 import xlsxParserRouter from './xlsx-parser.js';
+import alasqlParserRouter from './alasql-parser.js';
 import aiChatApiRouter from './ai-chat-api.js';
 import appsApiRouter from './apps-api.js';
 import contrastApiRouter from './contrast-api.js';
@@ -77,6 +78,9 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 挂载 XLSX 解析 API 路由（必须在通用 /api 之前）
   app.use('/api/xlsx', xlsxParserRouter);
+
+  // 挂载 AlaSQL 解析 API 路由（必须在通用 /api 之前）
+  app.use('/api/alasql', alasqlParserRouter);
 
   // 挂载认证 API 路由
   app.use('/api/auth', authApiRouter);
@@ -181,6 +185,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/xlsx-parser', express.static(xlsxParserDir));
   app.get('/xlsx-parser', (req, res) => {
     res.sendFile(path.join(xlsxParserDir, 'index.html'));
+  });
+
+  // AlaSQL 数据工作台前端页面
+  const alasqlParserDir = path.join(ROOT_DIR, 'public/alasql-parser');
+  app.use('/alasql-parser', express.static(alasqlParserDir));
+  app.get('/alasql-parser', (req, res) => {
+    res.sendFile(path.join(alasqlParserDir, 'index.html'));
   });
 
   // 登录页面

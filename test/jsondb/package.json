@@ -1,0 +1,37 @@
+{
+  "name": "jsondb",
+  "version": "0.1.0",
+  "description": "基于 Node.js 的轻量级 JSON 数据库，支持 MongoDB 风格语法",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/ test/",
+    "lint:fix": "eslint src/ test/ --fix",
+    "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\"",
+    "example": "node examples/basic.js"
+  },
+  "keywords": [
+    "json",
+    "database",
+    "mongodb",
+    "nosql",
+    "lightweight",
+    "embedded"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "vitest": "^1.3.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
