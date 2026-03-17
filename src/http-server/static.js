@@ -169,6 +169,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(csvToJsonDir, 'index.html'));
   });
 
+  // 粘贴解析工具页面
+  const pasteParserDir = path.join(ROOT_DIR, 'public/paste-parser');
+  app.use('/paste-parser', express.static(pasteParserDir));
+  app.get('/paste-parser', (req, res) => {
+    res.sendFile(path.join(pasteParserDir, 'index.html'));
+  });
+
   // XLSX 转 JSON 前端页面
   const xlsxParserDir = path.join(ROOT_DIR, 'public/xlsx-parser');
   app.use('/xlsx-parser', express.static(xlsxParserDir));

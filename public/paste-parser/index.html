@@ -1,0 +1,2201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>粘贴解析工具 - 增强版</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .main-card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .paste-area {
+      border: 3px dashed #667eea;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #f8f9ff;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .paste-area:hover,
+    .paste-area.dragover {
+      background: #eef2ff;
+      border-color: #764ba2;
+      transform: scale(1.02);
+    }
+
+    .paste-area.focused {
+      border-color: #764ba2;
+      background: #eef2ff;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+    }
+
+    .paste-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+
+    .paste-text {
+      font-size: 1.2rem;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .paste-hint {
+      color: #666;
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+
+    .paste-types {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .paste-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: white;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: #667eea;
+      border: 2px solid #667eea;
+      transition: all 0.3s ease;
+    }
+
+    .paste-type-badge.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .supported-formats {
+      margin-top: 15px;
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    #hiddenInput {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .result-section {
+      display: none;
+    }
+
+    .result-section.show {
+      display: block;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #f0f0f0;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .result-title {
+      font-size: 1.5rem;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .paste-type-indicator {
+      font-size: 0.9rem;
+      padding: 6px 12px;
+      background: #667eea;
+      color: white;
+      border-radius: 20px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid #667eea;
+      color: #667eea;
+    }
+
+    .btn-outline:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      border: 2px solid #dc3545;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    /* 表格结果样式 */
+    .table-container {
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+
+    .table-container table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    .table-container th,
+    .table-container td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    .table-container th {
+      background: #f8f9ff;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .table-container tr:hover {
+      background: #f8f9ff;
+    }
+
+    /* 文本/代码结果样式 */
+    .text-output {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      max-height: 600px;
+      overflow-y: auto;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #d4d4d4;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    /* 语法高亮 */
+    .syntax-json .json-key { color: #9cdcfe; }
+    .syntax-json .json-string { color: #ce9178; }
+    .syntax-json .json-number { color: #b5cea8; }
+    .syntax-json .json-boolean { color: #569cd6; }
+    .syntax-json .json-null { color: #569cd6; }
+
+    .syntax-xml .xml-tag { color: #569cd6; }
+    .syntax-xml .xml-attr { color: #9cdcfe; }
+    .syntax-xml .xml-string { color: #ce9178; }
+    .syntax-xml .xml-comment { color: #6a9955; }
+
+    .syntax-markdown { color: #d4d4d4; }
+    .syntax-markdown .md-header { color: #569cd6; font-weight: bold; }
+    .syntax-markdown .md-bold { color: #569cd6; font-weight: bold; }
+    .syntax-markdown .md-italic { color: #ce9178; font-style: italic; }
+    .syntax-markdown .md-code { color: #b5cea8; background: #3c3c3c; padding: 2px 6px; border-radius: 3px; }
+    .syntax-markdown .md-link { color: #9cdcfe; text-decoration: underline; }
+
+    /* 富文本结果样式 */
+    .rich-text-output {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      max-height: 500px;
+      overflow-y: auto;
+      background: #fafafa;
+    }
+
+    .rich-text-output img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* 图片结果样式 */
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .image-card {
+      background: #f8f9ff;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .image-card img {
+      width: 100%;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .image-info {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .image-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .image-actions .btn {
+      flex: 1;
+      text-align: center;
+    }
+
+    /* 统计信息 */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-item {
+      background: #f8f9ff;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .stat-label {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+
+    /* HTML 预览 */
+    .html-preview {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      background: white;
+      margin-bottom: 20px;
+    }
+
+    .html-preview h3 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    /* 选项卡 */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: #f8f9ff;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: #666;
+      transition: all 0.3s ease;
+    }
+
+    .tab:hover {
+      background: #eef2ff;
+    }
+
+    .tab.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* 错误信息 */
+    .error-message {
+      background: #fee;
+      color: #c33;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    /* 返回链接 */
+    .back-link {
+      display: inline-block;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* 隐藏的可编辑区域 */
+    #hiddenEditable {
+      position: absolute;
+      opacity: 0;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+
+    /* 格式详情面板 */
+    .format-info {
+      background: #f0f7ff;
+      border: 1px solid #b3d9ff;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .format-info-title {
+      font-weight: 600;
+      color: #0066cc;
+      margin-bottom: 10px;
+    }
+
+    .format-info-content {
+      font-size: 0.9rem;
+      color: #555;
+    }
+
+    /* JWT 解码结果 */
+    .jwt-parts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .jwt-part {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 15px;
+    }
+
+    .jwt-part-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #3c3c3c;
+    }
+
+    .jwt-part-title {
+      color: #9cdcfe;
+      font-weight: 600;
+    }
+
+    .jwt-part-content {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #d4d4d4;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    /* URL 解析结果 */
+    .url-parts {
+      background: #f8f9ff;
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .url-part-item {
+      display: flex;
+      padding: 10px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .url-part-item:last-child {
+      border-bottom: none;
+    }
+
+    .url-part-label {
+      font-weight: 600;
+      color: #667eea;
+      min-width: 100px;
+    }
+
+    .url-part-value {
+      color: #333;
+      word-break: break-all;
+    }
+
+    /* 文件列表 */
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 15px;
+      background: #f8f9ff;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .file-icon {
+      font-size: 2rem;
+    }
+
+    .file-details {
+      flex: 1;
+    }
+
+    .file-name {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .file-meta {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* 颜色预览 */
+    .color-preview {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+      background: #f8f9ff;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .color-box {
+      width: 100px;
+      height: 100px;
+      border-radius: 8px;
+      border: 2px solid #ddd;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .color-info {
+      flex: 1;
+    }
+
+    .color-value {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 1.2rem;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .color-formats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .color-format {
+      padding: 6px 12px;
+      background: white;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #666;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/file-viewer" class="back-link">← 返回文件查看器</a>
+
+    <div class="header">
+      <h1>📋 粘贴解析工具</h1>
+      <p>支持表格、文本、代码、图片、文件等多种格式的粘贴与解析</p>
+    </div>
+
+    <div class="main-card">
+      <div class="paste-area" id="pasteArea" tabindex="0">
+        <div class="paste-icon">📋</div>
+        <div class="paste-text">点击此处后按 Ctrl+V / Cmd+V 粘贴</div>
+        <div class="paste-hint">或直接从其他应用拖拽内容到此处</div>
+        
+        <div class="paste-types">
+          <span class="paste-type-badge" id="badge-table">📊 表格</span>
+          <span class="paste-type-badge" id="badge-json">🔷 JSON</span>
+          <span class="paste-type-badge" id="badge-xml">📝 XML</span>
+          <span class="paste-type-badge" id="badge-markdown">📑 Markdown</span>
+          <span class="paste-type-badge" id="badge-code">💻 代码</span>
+          <span class="paste-type-badge" id="badge-text">📄 文本</span>
+          <span class="paste-type-badge" id="badge-rich">🎨 富文本</span>
+          <span class="paste-type-badge" id="badge-image">🖼️ 图片</span>
+          <span class="paste-type-badge" id="badge-file">📁 文件</span>
+          <span class="paste-type-badge" id="badge-url">🔗 URL</span>
+          <span class="paste-type-badge" id="badge-jwt">🔐 JWT</span>
+          <span class="paste-type-badge" id="badge-base64">📦 Base64</span>
+          <span class="paste-type-badge" id="badge-color">🎨 颜色</span>
+        </div>
+
+        <div class="supported-formats">
+          支持：Excel/Google Sheets 表格 · JSON/XML 数据 · Markdown 文档 · 
+          编程语言代码 · 图片截图 · 文件列表 · URL 链接 · JWT Token · Base64 编码 · 颜色代码
+        </div>
+      </div>
+
+      <div class="error-message" id="errorMessage"></div>
+    </div>
+
+    <div class="result-section" id="resultSection">
+      <div class="main-card">
+        <div class="result-header">
+          <div class="result-title">
+            📄 解析结果
+            <span class="paste-type-indicator" id="pasteTypeIndicator">表格</span>
+          </div>
+          <div class="actions">
+            <button class="btn btn-outline" id="copyResultBtn">复制结果</button>
+            <button class="btn btn-danger" id="clearBtn">清空</button>
+          </div>
+        </div>
+
+        <!-- 表格结果 -->
+        <div class="tab-content active" id="tableResult">
+          <!-- 表格选项 -->
+          <div class="format-info" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div class="format-info-title" style="margin-bottom: 0;">表格选项</div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="useFirstRowAsHeader" checked style="width: 18px; height: 18px; cursor: pointer;">
+                <span>第一行作为表头</span>
+              </label>
+              <button class="btn btn-outline" id="reparseTableBtn" style="padding: 6px 12px; font-size: 0.85rem;">重新解析</button>
+            </div>
+          </div>
+          
+          <div class="stats" id="tableStats"></div>
+          <div class="table-container">
+            <table id="resultTable"></table>
+          </div>
+          <div class="actions">
+            <button class="btn" id="exportCsvBtn">导出 CSV</button>
+            <button class="btn btn-outline" id="exportJsonBtn">导出 JSON</button>
+            <button class="btn btn-outline" id="copyTableHtmlBtn">复制 HTML</button>
+          </div>
+        </div>
+
+        <!-- JSON 结果 -->
+        <div class="tab-content" id="jsonResult">
+          <div class="stats" id="jsonStats"></div>
+          <div class="format-info" id="jsonInfo" style="display:none;"></div>
+          <div class="text-output syntax-json" id="jsonContent"></div>
+          <div class="actions">
+            <button class="btn" id="copyJsonBtn">复制 JSON</button>
+            <button class="btn btn-outline" id="formatJsonBtn">格式化</button>
+            <button class="btn btn-outline" id="minifyJsonBtn">压缩</button>
+          </div>
+        </div>
+
+        <!-- XML 结果 -->
+        <div class="tab-content" id="xmlResult">
+          <div class="stats" id="xmlStats"></div>
+          <div class="text-output syntax-xml" id="xmlContent"></div>
+          <div class="actions">
+            <button class="btn" id="copyXmlBtn">复制 XML</button>
+            <button class="btn btn-outline" id="xmlToJsonBtn">转 JSON</button>
+            <button class="btn btn-outline" id="formatXmlBtn">格式化</button>
+          </div>
+        </div>
+
+        <!-- Markdown 结果 -->
+        <div class="tab-content" id="markdownResult">
+          <div class="tabs">
+            <button class="tab active" data-target="mdPreview">预览</button>
+            <button class="tab" data-target="mdSource">源码</button>
+          </div>
+          <div class="html-preview" id="mdPreview"></div>
+          <div class="text-output" id="mdSource" style="display: none;"></div>
+          <div class="actions">
+            <button class="btn" id="copyMarkdownBtn">复制 Markdown</button>
+            <button class="btn btn-outline" id="copyMdHtmlBtn">复制 HTML</button>
+          </div>
+        </div>
+
+        <!-- 代码结果 -->
+        <div class="tab-content" id="codeResult">
+          <div class="stats" id="codeStats"></div>
+          <div class="format-info" id="codeInfo">
+            <div class="format-info-title">检测到的语言</div>
+            <div class="format-info-content" id="codeLang"></div>
+          </div>
+          <div class="text-output" id="codeContent"></div>
+          <div class="actions">
+            <button class="btn" id="copyCodeBtn">复制代码</button>
+            <button class="btn btn-outline" id="countLinesBtn">统计行数</button>
+          </div>
+        </div>
+
+        <!-- 文本结果 -->
+        <div class="tab-content" id="textResult">
+          <div class="stats" id="textStats"></div>
+          <div class="format-info" id="textFormatInfo" style="display:none;"></div>
+          <div class="text-output" id="textContent"></div>
+          <div class="actions">
+            <button class="btn" id="copyTextBtn">复制文本</button>
+          </div>
+        </div>
+
+        <!-- 富文本结果 -->
+        <div class="tab-content" id="richResult">
+          <div class="tabs">
+            <button class="tab active" data-target="richPreview">预览</button>
+            <button class="tab" data-target="richHtml">HTML 源码</button>
+          </div>
+          <div class="html-preview" id="richPreview"></div>
+          <div class="text-output" id="richHtml" style="display: none;"></div>
+          <div class="actions">
+            <button class="btn" id="copyRichTextBtn">复制富文本</button>
+            <button class="btn btn-outline" id="copyRichHtmlBtn">复制 HTML</button>
+          </div>
+        </div>
+
+        <!-- 图片结果 -->
+        <div class="tab-content" id="imageResult">
+          <div class="stats" id="imageStats"></div>
+          <div class="image-grid" id="imageGrid"></div>
+        </div>
+
+        <!-- 文件结果 -->
+        <div class="tab-content" id="fileResult">
+          <div class="stats" id="fileStats"></div>
+          <div class="file-list" id="fileList"></div>
+        </div>
+
+        <!-- URL 结果 -->
+        <div class="tab-content" id="urlResult">
+          <div class="stats" id="urlStats"></div>
+          <div class="url-parts" id="urlParts"></div>
+          <div class="actions">
+            <button class="btn" id="copyUrlBtn">复制 URL</button>
+            <button class="btn btn-outline" id="openUrlBtn" onclick="openCurrentUrl()">在新窗口打开</button>
+          </div>
+        </div>
+
+        <!-- JWT 结果 -->
+        <div class="tab-content" id="jwtResult">
+          <div class="stats" id="jwtStats"></div>
+          <div class="format-info" id="jwtInfo" style="display:none;"></div>
+          <div class="jwt-parts" id="jwtParts"></div>
+          <div class="actions">
+            <button class="btn" id="copyJwtBtn">复制 JWT</button>
+            <button class="btn btn-outline" id="decodeJwtBtn">重新解码</button>
+          </div>
+        </div>
+
+        <!-- Base64 结果 -->
+        <div class="tab-content" id="base64Result">
+          <div class="tabs">
+            <button class="tab active" data-target="base64Encode">Base64</button>
+            <button class="tab" data-target="base64Decode">解码结果</button>
+          </div>
+          <div class="text-output" id="base64Encode"></div>
+          <div class="text-output" id="base64Decode" style="display: none;"></div>
+          <div class="actions">
+            <button class="btn" id="copyBase64Btn">复制 Base64</button>
+            <button class="btn btn-outline" id="decodeBase64Btn">解码</button>
+          </div>
+        </div>
+
+        <!-- 颜色结果 -->
+        <div class="tab-content" id="colorResult">
+          <div class="color-preview" id="colorPreview"></div>
+          <div class="text-output" id="colorCode"></div>
+          <div class="actions">
+            <button class="btn" id="copyColorBtn">复制颜色值</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 隐藏的可编辑区域用于捕获粘贴 -->
+  <div id="hiddenEditable" contenteditable="true"></div>
+  <input type="file" id="hiddenInput" multiple>
+
+  <script>
+    // DOM 元素
+    const pasteArea = document.getElementById('pasteArea');
+    const hiddenInput = document.getElementById('hiddenInput');
+    const hiddenEditable = document.getElementById('hiddenEditable');
+    const errorMessage = document.getElementById('errorMessage');
+    const resultSection = document.getElementById('resultSection');
+    const pasteTypeIndicator = document.getElementById('pasteTypeIndicator');
+
+    // 徽章
+    const badges = {
+      table: document.getElementById('badge-table'),
+      json: document.getElementById('badge-json'),
+      xml: document.getElementById('badge-xml'),
+      markdown: document.getElementById('badge-markdown'),
+      code: document.getElementById('badge-code'),
+      text: document.getElementById('badge-text'),
+      rich: document.getElementById('badge-rich'),
+      image: document.getElementById('badge-image'),
+      file: document.getElementById('badge-file'),
+      url: document.getElementById('badge-url'),
+      jwt: document.getElementById('badge-jwt'),
+      base64: document.getElementById('badge-base64'),
+      color: document.getElementById('badge-color')
+    };
+
+    // 结果容器
+    const results = {
+      table: document.getElementById('tableResult'),
+      json: document.getElementById('jsonResult'),
+      xml: document.getElementById('xmlResult'),
+      markdown: document.getElementById('markdownResult'),
+      code: document.getElementById('codeResult'),
+      text: document.getElementById('textResult'),
+      rich: document.getElementById('richResult'),
+      image: document.getElementById('imageResult'),
+      file: document.getElementById('fileResult'),
+      url: document.getElementById('urlResult'),
+      jwt: document.getElementById('jwtResult'),
+      base64: document.getElementById('base64Result'),
+      color: document.getElementById('colorResult')
+    };
+
+    // 当前数据
+    let currentData = null;
+    let currentType = null;
+    let images = [];
+    let files = [];
+    let rawHtml = null; // 保存原始 HTML 用于重新解析
+    let rawText = null; // 保存原始文本用于重新解析
+
+    // 聚焦粘贴区域
+    pasteArea.addEventListener('click', () => {
+      pasteArea.focus();
+      highlightBadge(null);
+    });
+
+    pasteArea.addEventListener('focus', () => {
+      pasteArea.classList.add('focused');
+    });
+
+    pasteArea.addEventListener('blur', () => {
+      pasteArea.classList.remove('focused');
+    });
+
+    // 粘贴事件
+    pasteArea.addEventListener('paste', handlePaste);
+
+    // 拖拽事件
+    pasteArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      pasteArea.classList.add('dragover');
+    });
+
+    pasteArea.addEventListener('dragleave', () => {
+      pasteArea.classList.remove('dragover');
+    });
+
+    pasteArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      pasteArea.classList.remove('dragover');
+      handleDrop(e);
+    });
+
+    // 文件选择
+    hiddenInput.addEventListener('change', (e) => {
+      const fileList = Array.from(e.target.files);
+      if (fileList.length > 0) {
+        handleFiles(fileList);
+      }
+    });
+
+    // 清空按钮
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      resultSection.classList.remove('show');
+      currentData = null;
+      currentType = null;
+      images = [];
+      files = [];
+      rawHtml = null;
+      rawText = null;
+      highlightBadge(null);
+      pasteArea.focus();
+    });
+
+    // 复制结果按钮
+    document.getElementById('copyResultBtn').addEventListener('click', () => {
+      copyCurrentResult();
+    });
+
+    // 重新解析表格按钮
+    document.getElementById('reparseTableBtn')?.addEventListener('click', () => {
+      if (currentData && currentData.table) {
+        const useFirstRowAsHeader = document.getElementById('useFirstRowAsHeader').checked;
+        
+        if (rawHtml) {
+          parseTableHTML(rawHtml, useFirstRowAsHeader);
+        } else if (rawText) {
+          parseTableText(rawText, useFirstRowAsHeader);
+        }
+      }
+    });
+
+    // 监听表格选项变化，自动重新解析
+    document.getElementById('useFirstRowAsHeader')?.addEventListener('change', () => {
+      if (rawHtml || rawText) {
+        const useFirstRowAsHeader = document.getElementById('useFirstRowAsHeader').checked;
+        
+        if (rawHtml) {
+          parseTableHTML(rawHtml, useFirstRowAsHeader);
+        } else if (rawText) {
+          parseTableText(rawText, useFirstRowAsHeader);
+        }
+      }
+    });
+
+    // 导出 CSV 按钮
+    document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
+      if (currentData && currentData.table) {
+        exportToCSV(currentData.table);
+      }
+    });
+
+    // 导出 JSON 按钮
+    document.getElementById('exportJsonBtn')?.addEventListener('click', () => {
+      if (currentData && currentData.table) {
+        exportToJSON(currentData.table);
+      }
+    });
+
+    // 复制 HTML 按钮
+    document.getElementById('copyTableHtmlBtn')?.addEventListener('click', () => {
+      if (currentData && currentData.table) {
+        const html = tableToHTML(currentData.table);
+        copyToClipboard(html, 'HTML 表格');
+      }
+    });
+
+    // 选项卡切换
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const parent = tab.closest('.tab-content');
+        const target = tab.dataset.target;
+        parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        parent.querySelectorAll('[id^="' + target + '"]').forEach(c => {
+          if (c.id.startsWith(target)) {
+            c.style.display = c.id === target ? 'block' : 'none';
+          }
+        });
+        tab.classList.add('active');
+      });
+    });
+
+    // 处理粘贴
+    function handlePaste(e) {
+      e.preventDefault();
+      
+      const clipboardData = e.clipboardData;
+      
+      // 【重要】优先检查 HTML 内容（表格、富文本）
+      // 这样可以确保从 Excel/Google Sheets 复制时，优先解析表格而不是图片
+      const html = clipboardData.getData('text/html');
+      if (html) {
+        if (isTableHTML(html)) {
+          parseTableHTML(html);
+          return;
+        } else {
+          parseRichText(html);
+          return;
+        }
+      }
+
+      // 检查普通文本（包括 CSV、制表符分隔的表格数据）
+      const text = clipboardData.getData('text/plain');
+      if (text) {
+        // 先检查是否是表格文本（制表符分隔、CSV 等）
+        if (isTableText(text)) {
+          parseTableText(text);
+          return;
+        }
+        // 否则继续常规检测
+        detectAndParse(text);
+        return;
+      }
+      
+      // 最后才处理图片文件
+      // 只有当没有 HTML 和文本内容时，才处理图片
+      const files = clipboardData.files;
+      if (files.length > 0) {
+        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+        const otherFiles = Array.from(files).filter(f => !f.type.startsWith('image/'));
+        
+        if (imageFiles.length > 0) {
+          handleImages(imageFiles);
+          if (otherFiles.length > 0) {
+            handleFiles(otherFiles);
+          }
+          return;
+        }
+        
+        if (otherFiles.length > 0) {
+          handleFiles(otherFiles);
+          return;
+        }
+      }
+      
+      showError('未检测到可解析的内容');
+    }
+
+    // 处理拖拽
+    function handleDrop(e) {
+      e.preventDefault();
+      pasteArea.classList.remove('dragover');
+      
+      // 【重要】优先检查 HTML 内容（表格、富文本）
+      const html = e.dataTransfer.getData('text/html');
+      if (html) {
+        if (isTableHTML(html)) {
+          parseTableHTML(html);
+          return;
+        } else {
+          parseRichText(html);
+          return;
+        }
+      }
+
+      // 检查普通文本
+      const text = e.dataTransfer.getData('text/plain');
+      if (text) {
+        if (isTableText(text)) {
+          parseTableText(text);
+          return;
+        }
+        detectAndParse(text);
+        return;
+      }
+      
+      // 最后处理文件
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+        const otherFiles = Array.from(files).filter(f => !f.type.startsWith('image/'));
+        
+        if (imageFiles.length > 0) {
+          handleImages(imageFiles);
+          if (otherFiles.length > 0) {
+            handleFiles(otherFiles);
+          }
+          return;
+        }
+        
+        if (otherFiles.length > 0) {
+          handleFiles(otherFiles);
+          return;
+        }
+      }
+      
+      showError('未检测到可解析的内容');
+    }
+
+    // 检测并解析文本类型
+    function detectAndParse(text) {
+      const trimmed = text.trim();
+      
+      // 1. 检测 JWT
+      if (isJWT(trimmed)) {
+        parseJWT(trimmed);
+        return;
+      }
+
+      // 2. 检测 Base64
+      if (isBase64(trimmed)) {
+        parseBase64(trimmed);
+        return;
+      }
+
+      // 3. 检测颜色代码
+      if (isColorCode(trimmed)) {
+        parseColor(trimmed);
+        return;
+      }
+
+      // 4. 检测 URL
+      if (isURL(trimmed)) {
+        parseURL(trimmed);
+        return;
+      }
+
+      // 5. 检测 JSON
+      if (isJSON(trimmed)) {
+        parseJSON(trimmed);
+        return;
+      }
+
+      // 6. 检测 XML
+      if (isXML(trimmed)) {
+        parseXML(trimmed);
+        return;
+      }
+
+      // 7. 检测 Markdown
+      if (isMarkdown(trimmed)) {
+        parseMarkdown(trimmed);
+        return;
+      }
+
+      // 8. 检测代码
+      const lang = detectLanguage(trimmed);
+      if (lang) {
+        parseCode(trimmed, lang);
+        return;
+      }
+
+      // 9. 检测表格（CSV/制表符分隔）
+      if (isTableText(trimmed)) {
+        parseTableText(trimmed);
+        return;
+      }
+
+      // 10. 默认为普通文本
+      parsePlainText(trimmed);
+    }
+
+    // ===== 检测函数 =====
+
+    function isJWT(text) {
+      // JWT 格式：xxxxx.xxxxx.xxxxx
+      const jwtRegex = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/;
+      return jwtRegex.test(text) && text.split('.').length === 3;
+    }
+
+    function isBase64(text) {
+      const base64Regex = /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/;
+      return base64Regex.test(text) && text.length > 20;
+    }
+
+    function isColorCode(text) {
+      const colorPatterns = [
+        /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/,
+        /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/,
+        /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[\d.]+\s*\)$/,
+        /^hsl\(\s*\d+\s*,\s*[\d.]+%\s*,\s*[\d.]+%\s*\)$/,
+        /^hsla\(\s*\d+\s*,\s*[\d.]+%\s*,\s*[\d.]+%\s*,\s*[\d.]+\s*\)$/
+      ];
+      return colorPatterns.some(p => p.test(text));
+    }
+
+    function isURL(text) {
+      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+      return urlPattern.test(text) || text.startsWith('http://') || text.startsWith('https://');
+    }
+
+    function isJSON(text) {
+      try {
+        const parsed = JSON.parse(text);
+        return typeof parsed === 'object' && parsed !== null;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function isXML(text) {
+      return text.trim().startsWith('<') && text.includes('</');
+    }
+
+    function isMarkdown(text) {
+      const mdPatterns = [
+        /^#{1,6}\s+/m,           // 标题
+        /^\s*[-*+]\s+/m,         // 列表
+        /^\s*\d+\.\s+/m,         // 有序列表
+        /^\[.+\]\(.+\)/m,        // 链接
+        /^!\[.+\]\(.+\)/m,       // 图片
+        /^```[\s\S]*```/m,       // 代码块
+        /^\|.*\|.*\|/m,          // 表格
+        /^>\s+/m                 // 引用
+      ];
+      return mdPatterns.some(p => p.test(text));
+    }
+
+    /**
+     * 检测文本是否是表格格式
+     * 支持制表符分隔、CSV、管道符分隔等格式
+     */
+    function isTableText(text) {
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) return false;
+
+      // 检测制表符分隔（Excel 复制的文本格式）
+      const hasTabs = text.includes('\t');
+      if (hasTabs) {
+        // 检查每行是否有相似数量的制表符分隔的列
+        const tabCounts = lines.map(l => (l.match(/\t/g) || []).length);
+        const avgTabs = tabCounts.reduce((a, b) => a + b, 0) / tabCounts.length;
+        // 如果平均每行有至少 1 个制表符，认为是表格
+        if (avgTabs >= 1) return true;
+      }
+
+      // 检测 CSV 格式（逗号分隔）
+      const hasCommas = text.includes(',');
+      if (hasCommas) {
+        const commaCounts = lines.map(l => (l.match(/,/g) || []).length);
+        const avgCommas = commaCounts.reduce((a, b) => a + b, 0) / commaCounts.length;
+        if (avgCommas >= 1) return true;
+      }
+
+      // 检测管道符分隔的表格
+      const hasPipes = text.includes('|');
+      if (hasPipes) {
+        const pipeCounts = lines.map(l => (l.match(/\|/g) || []).length);
+        const avgPipes = pipeCounts.reduce((a, b) => a + b, 0) / pipeCounts.length;
+        if (avgPipes >= 2) return true;
+      }
+
+      // 检测固定宽度的文本表格（每行长度相似且包含空格分隔）
+      if (lines.length >= 3) {
+        const lengths = lines.map(l => l.length);
+        const avgLength = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+        const variance = lengths.reduce((sum, l) => sum + Math.abs(l - avgLength), 0) / lengths.length;
+        // 如果行长度变化不大（方差小于 20%）且至少有 3 列
+        if (variance < avgLength * 0.2 && lines[0].split(/\s{2,}/).length >= 3) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function detectLanguage(text) {
+      const lines = text.split('\n');
+      const firstLine = lines[0].trim();
+      
+      // Shebang
+      if (firstLine.startsWith('#!')) {
+        if (firstLine.includes('python')) return 'python';
+        if (firstLine.includes('node')) return 'javascript';
+        if (firstLine.includes('bash')) return 'bash';
+      }
+
+      // 检测常见语言特征
+      const textLower = text.toLowerCase();
+      
+      if (text.includes('function ') && text.includes('=>')) return 'javascript';
+      if (text.includes('import ') && text.includes('from ')) return 'javascript';
+      if (text.includes('def ') && text.includes(':')) return 'python';
+      if (text.includes('fn ') && text.includes('{')) return 'rust';
+      if (text.includes('func ') && text.includes('(')) return 'go';
+      if (text.includes('public class ') || text.includes('public static void')) return 'java';
+      if (text.includes('#include')) return 'cpp';
+      if (text.includes('SELECT ') && text.includes('FROM ')) return 'sql';
+      if (text.includes('<!DOCTYPE html>') || text.includes('<html')) return 'html';
+      if (text.includes('{') && text.includes('}') && text.includes(':')) return 'css';
+
+      return null;
+    }
+
+    // ===== 解析函数 =====
+
+    /**
+     * 检测 HTML 是否是表格
+     * 支持识别 Excel、Google Sheets、Numbers 等应用的表格格式
+     */
+    function isTableHTML(html) {
+      if (!html || typeof html !== 'string') return false;
+      
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const table = doc.querySelector('table');
+      
+      if (table) return true;
+      
+      // 检测 Excel/Google Sheets 的特殊格式
+      // Excel 通常包含 class="xl" 或 style 中包含 "mso" 
+      const hasExcelClass = html.match(/class=["'][^"']*xl[^"']*["']/i);
+      const hasMsoStyle = html.match(/mso-/i);
+      const hasGoogleSheets = html.match(/google-sheets|spreadsheet/i);
+      
+      // 检测是否有 tr/td 标签（即使没有 table 包裹）
+      const hasRowStructure = html.match(/<\s*(tr|div)[^>]*class=["'][^"']*(row|xl|data)[^"']*["']/i);
+      const hasCellStructure = html.match(/<\s*(td|div)[^>]*class=["'][^"']*(cell|xl|data)[^"']*["']/i);
+      
+      if ((hasExcelClass || hasMsoStyle || hasGoogleSheets) && (hasRowStructure || hasCellStructure)) {
+        return true;
+      }
+      
+      return false;
+    }
+
+    /**
+     * 解析 HTML 表格
+     * 支持标准 table 标签和 Excel/Google Sheets 的特殊格式
+     * 默认使用第一行作为表头
+     */
+    function parseTableHTML(html, useFirstRowAsHeader = true) {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        let table = doc.querySelector('table');
+        
+        // 保存原始 HTML 用于重新解析
+        rawHtml = html;
+        rawText = null;
+        
+        // 如果没有找到 table 标签，尝试从 Excel/Google Sheets 格式构建
+        if (!table) {
+          table = buildTableFromExcelFormat(html, doc);
+          if (!table) {
+            showError('未找到表格元素');
+            return;
+          }
+        }
+
+        const rows = Array.from(table.querySelectorAll('tr'));
+        const tableData = { headers: [], rows: [], hasHeader: false };
+
+        rows.forEach((row, index) => {
+          const cells = Array.from(row.querySelectorAll('th, td'));
+          const rowData = cells.map(cell => {
+            // 处理 Excel 的特殊格式，移除多余的空格和换行
+            let text = cell.textContent;
+            // 替换多个连续空格为单个空格
+            text = text.replace(/\s+/g, ' ');
+            return text.trim();
+          });
+          
+          if (rowData.length > 0) {
+            // 根据选项决定是否使用第一行作为表头
+            if (index === 0 && useFirstRowAsHeader) {
+              tableData.headers = rowData;
+              tableData.hasHeader = true;
+            } else {
+              tableData.rows.push(rowData);
+            }
+          }
+        });
+
+        // 如果没有表头，自动生成
+        if (!tableData.hasHeader && tableData.rows.length > 0) {
+          const colCount = Math.max(...tableData.rows.map(r => r.length));
+          tableData.headers = Array.from({ length: colCount }, (_, i) => `列${i + 1}`);
+        }
+
+        // 确保所有行都有相同的列数
+        const maxCols = Math.max(tableData.headers.length, ...tableData.rows.map(r => r.length));
+        tableData.rows = tableData.rows.map(row => {
+          const padded = [...row];
+          while (padded.length < maxCols) padded.push('');
+          return padded;
+        });
+
+        currentData = { table: tableData };
+        currentType = 'table';
+
+        showTableResult(tableData);
+        hideError();
+      } catch (err) {
+        showError('解析表格失败：' + err.message);
+      }
+    }
+
+    /**
+     * 从 Excel/Google Sheets 格式构建表格
+     * 处理没有标准 table 标签的情况
+     */
+    function buildTableFromExcelFormat(html, doc) {
+      // 尝试查找包含数据的 div 或 span
+      const rows = doc.querySelectorAll('[class*="row"], [class*="xl"], tr');
+      
+      if (rows.length === 0) return null;
+      
+      // 创建一个虚拟 table
+      const table = doc.createElement('table');
+      
+      rows.forEach(row => {
+        const tr = doc.createElement('tr');
+        
+        // 查找单元格
+        let cells = row.querySelectorAll('[class*="cell"], [class*="xl"], td, th');
+        if (cells.length === 0) {
+          // 如果当前元素本身就是单元格
+          if (row.tagName === 'DIV' || row.tagName === 'SPAN') {
+            const td = doc.createElement('td');
+            td.textContent = row.textContent.trim();
+            tr.appendChild(td);
+          }
+        } else {
+          cells.forEach(cell => {
+            const td = doc.createElement('td');
+            td.textContent = cell.textContent.trim();
+            tr.appendChild(td);
+          });
+        }
+        
+        if (tr.children.length > 0) {
+          table.appendChild(tr);
+        }
+      });
+      
+      return table.children.length > 0 ? table : null;
+    }
+
+    /**
+     * 解析表格文本（制表符分隔、CSV 等）
+     * 默认使用第一行作为表头
+     */
+    function parseTableText(text, useFirstRowAsHeader = true) {
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      const delimiter = text.includes('\t') ? '\t' : text.includes('|') ? '|' : ',';
+      
+      // 保存原始文本用于重新解析
+      rawText = text;
+      rawHtml = null;
+
+      const tableData = { headers: [], rows: [], hasHeader: false };
+
+      lines.forEach((line, index) => {
+        let cells = line.split(delimiter).map(c => c.trim());
+        if (delimiter === '|') {
+          cells = cells.filter(c => c !== '');
+        }
+        // 根据选项决定是否使用第一行作为表头
+        if (index === 0 && useFirstRowAsHeader) {
+          tableData.headers = cells;
+          tableData.hasHeader = true;
+        } else {
+          tableData.rows.push(cells);
+        }
+      });
+
+      // 如果没有表头，自动生成
+      if (!tableData.hasHeader && tableData.rows.length > 0) {
+        const colCount = Math.max(...tableData.rows.map(r => r.length));
+        tableData.headers = Array.from({ length: colCount }, (_, i) => `列${i + 1}`);
+      }
+
+      if (tableData.rows.length > 0 || tableData.headers.length > 0) {
+        currentData = { table: tableData };
+        currentType = 'table';
+        showTableResult(tableData);
+        hideError();
+      } else {
+        parsePlainText(text);
+      }
+    }
+
+    function parseJSON(text) {
+      try {
+        const parsed = JSON.parse(text);
+        currentData = { json: parsed, raw: text };
+        currentType = 'json';
+        
+        showJSONResult(parsed, text);
+        hideError();
+      } catch (err) {
+        showError('解析 JSON 失败：' + err.message);
+      }
+    }
+
+    function parseXML(text) {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/xml');
+        
+        if (doc.querySelector('parsererror')) {
+          throw new Error('XML 解析错误');
+        }
+
+        currentData = { xml: text };
+        currentType = 'xml';
+        
+        showXMLResult(text);
+        hideError();
+      } catch (err) {
+        showError('解析 XML 失败：' + err.message);
+      }
+    }
+
+    function parseMarkdown(text) {
+      currentData = { markdown: text };
+      currentType = 'markdown';
+      
+      showMarkdownResult(text);
+      hideError();
+    }
+
+    function parseCode(text, lang) {
+      currentData = { code: text, language: lang };
+      currentType = 'code';
+      
+      showCodeResult(text, lang);
+      hideError();
+    }
+
+    function parsePlainText(text) {
+      currentData = { text: text };
+      currentType = 'text';
+      
+      showTextResult(text);
+      hideError();
+    }
+
+    function parseRichText(html) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const text = doc.body.textContent || '';
+      
+      currentData = { rich: { html, text } };
+      currentType = 'rich';
+      
+      showRichResult(html, text);
+      hideError();
+    }
+
+    function parseURL(text) {
+      try {
+        let urlStr = text;
+        if (!urlStr.startsWith('http://') && !urlStr.startsWith('https://')) {
+          urlStr = 'https://' + urlStr;
+        }
+        const url = new URL(urlStr);
+        
+        currentData = { url: url, raw: text };
+        currentType = 'url';
+        
+        showURLResult(url);
+        hideError();
+      } catch (err) {
+        parsePlainText(text);
+      }
+    }
+
+    function parseJWT(text) {
+      try {
+        const parts = text.split('.');
+        if (parts.length !== 3) throw new Error('无效的 JWT 格式');
+        
+        const decode = (str) => {
+          try {
+            return JSON.parse(atob(str.replace(/-/g, '+').replace(/_/g, '/')));
+          } catch (e) {
+            return atob(str.replace(/-/g, '+').replace(/_/g, '/'));
+          }
+        };
+
+        const header = decode(parts[0]);
+        const payload = decode(parts[1]);
+        const signature = parts[2];
+
+        currentData = { 
+          jwt: { header, payload, signature },
+          raw: text
+        };
+        currentType = 'jwt';
+        
+        showJWTResult(header, payload, signature, text);
+        hideError();
+      } catch (err) {
+        showError('解码 JWT 失败：' + err.message);
+      }
+    }
+
+    function parseBase64(text) {
+      try {
+        const decoded = atob(text);
+        currentData = { base64: text, decoded };
+        currentType = 'base64';
+        
+        showBase64Result(text, decoded);
+        hideError();
+      } catch (err) {
+        showError('解码 Base64 失败：' + err.message);
+      }
+    }
+
+    function parseColor(text) {
+      currentData = { color: text };
+      currentType = 'color';
+      
+      showColorResult(text);
+      hideError();
+    }
+
+    function handleImages(imageFiles) {
+      images = [];
+      
+      const promises = imageFiles.map(file => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            images.push({
+              file: file,
+              dataUrl: e.target.result,
+              name: file.name,
+              size: file.size,
+              type: file.type
+            });
+            resolve();
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(promises).then(() => {
+        currentData = { images };
+        currentType = 'image';
+        showImageResult(images);
+        hideError();
+      });
+    }
+
+    function handleFiles(fileList) {
+      files = fileList.map(file => ({
+        name: file.name,
+        size: file.size,
+        type: file.type || 'unknown'
+      }));
+      
+      currentData = { files };
+      currentType = 'file';
+      
+      showFileResult(files);
+      hideError();
+    }
+
+    // ===== 显示结果函数 =====
+
+    function showTableResult(data) {
+      pasteTypeIndicator.textContent = '📊 表格';
+      highlightBadge('table');
+      
+      const colCount = Math.max(data.headers.length, ...data.rows.map(r => r.length));
+      document.getElementById('tableStats').innerHTML = `
+        <div class="stat-item"><div class="stat-value">${data.rows.length}</div><div class="stat-label">数据行数</div></div>
+        <div class="stat-item"><div class="stat-value">${colCount}</div><div class="stat-label">列数</div></div>
+        <div class="stat-item"><div class="stat-value">${data.headers.length}</div><div class="stat-label">表头</div></div>
+      `;
+
+      const table = document.getElementById('resultTable');
+      let html = '<thead><tr>';
+      data.headers.forEach(h => html += `<th>${escapeHtml(h)}</th>`);
+      html += '</tr></thead><tbody>';
+      
+      data.rows.forEach(row => {
+        html += '<tr>';
+        for (let i = 0; i < data.headers.length; i++) {
+          html += `<td>${escapeHtml(row[i] || '')}</td>`;
+        }
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      table.innerHTML = html;
+
+      showResultTab('table');
+      resultSection.classList.add('show');
+    }
+
+    function showJSONResult(parsed, raw) {
+      pasteTypeIndicator.textContent = '🔷 JSON';
+      highlightBadge('json');
+      
+      const keys = Object.keys(parsed);
+      document.getElementById('jsonStats').innerHTML = `
+        <div class="stat-item"><div class="stat-value">${keys.length}</div><div class="stat-label">顶层键</div></div>
+        <div class="stat-item"><div class="stat-value">${raw.length}</div><div class="stat-label">字符数</div></div>
+        <div class="stat-item"><div class="stat-value">${JSON.stringify(parsed).length}</div><div class="stat-label">压缩后</div></div>
+      `;
+
+      document.getElementById('jsonContent').innerHTML = syntaxHighlightJSON(JSON.stringify(parsed, null, 2));
+      showResultTab('json');
+      resultSection.classList.add('show');
+    }
+
+    function showXMLResult(text) {
+      pasteTypeIndicator.textContent = '📝 XML';
+      highlightBadge('xml');
+      
+      const lines = text.split('\n').length;
+      document.getElementById('xmlStats').innerHTML = `
+        <div class="stat-item"><div class="stat-value">${lines}</div><div class="stat-label">行数</div></div>
+        <div class="stat-item"><div class="stat-value">${text.length}</div><div class="stat-label">字符数</div></div>
+      `;
+
+      document.getElementById('xmlContent').textContent = text;
+      showResultTab('xml');
+      resultSection.classList.add('show');
+    }
+
+    function showMarkdownResult(text) {
+      pasteTypeIndicator.textContent = '📑 Markdown';
+      highlightBadge('markdown');
+      
+      const lines = text.split('\n').length;
+      document.getElementById('textStats').innerHTML = `
+        <div class="stat-item"><div class="stat-value">${lines}</div><div class="stat-label">行数</div></div>
+        <div class="stat-item"><div class="stat-value">${text.length}</div><div class="stat-label">字符数</div></div>
+      `;
+
+      const html = markdownToHTML(text);
+      document.getElementById('mdPreview').innerHTML = html;
+      document.getElementById('mdSource').textContent = text;
+      
+      showResultTab('markdown');
+      resultSection.classList.add('show');
+    }
+
+    function showCodeResult(text, lang) {
+      pasteTypeIndicator.textContent = '💻 ' + lang.toUpperCase();
+      highlightBadge('code');
+      
+      const lines = text.split('\n').length;
+      document.getElementById('codeStats').innerHTML = `
+        <div class="stat-item"><div class="stat-value">${lines}</div><div class="stat-label">行数</div></div>
+        <div class="stat-item"><div class="stat-value">${text.length}</div><div class="stat-label">字符数</div></div>
+      `;
+
+      document.getElementById('codeLang').textContent = lang;
+      document.getElementById('codeContent').textContent = text;
+      
+      showResultTab('code');
+      resultSection.classList.add('show');
+    }
+
+    function showTextResult(text) {
+      pasteTypeIndicator.textContent = '📄 文本';
+      highlightBadge('text');
+      
+      const lines = text.split(/\r?\n/).length;
+      const words = text.split(/\s+/).filter(w => w).length;
+      
+      document.getElementById('textStats').innerHTML = `
+        <div class="stat-item"><div class="stat-value">${lines}</div><div class="stat-label">行数</div></div>
+        <div class="stat-item"><div class="stat-value">${words}</div><div class="stat-label">单词数</div></div>
+        <div class="stat-item"><div class="stat-value">${text.length}</div><div class="stat-label">字符数</div></div>
+      `;
+
+      document.getElementById('textContent').textContent = text;
+      showResultTab('text');
+      resultSection.classList.add('show');
+    }
+
+    function showRichResult(html, text) {
+      pasteTypeIndicator.textContent = '🎨 富文本';
+      highlightBadge('rich');
+      
+      document.getElementById('richPreview').innerHTML = html;
+      document.getElementById('richHtml').textContent = html;
+      
+      showResultTab('rich');
+      resultSection.classList.add('show');
+    }
+
+    function showImageResult(images) {
+      pasteTypeIndicator.textContent = '🖼️ 图片';
+      highlightBadge('image');
+      
+      const totalSize = images.reduce((sum, img) => sum + img.size, 0);
+      
+      document.getElementById('imageStats').innerHTML = `
+        <div class="stat-item"><div class="stat-value">${images.length}</div><div class="stat-label">图片数量</div></div>
+        <div class="stat-item"><div class="stat-value">${(totalSize / 1024).toFixed(1)} KB</div><div class="stat-label">总大小</div></div>
+      `;
+
+      const grid = document.getElementById('imageGrid');
+      grid.innerHTML = images.map((img, index) => `
+        <div class="image-card">
+          <img src="${img.dataUrl}" alt="${img.name}">
+          <div class="image-info">
+            <div>${escapeHtml(img.name)}</div>
+            <div>${(img.size / 1024).toFixed(1)} KB</div>
+          </div>
+          <div class="image-actions">
+            <button class="btn" onclick="downloadImage(${index})">下载</button>
+            <button class="btn btn-outline" onclick="copyImage(${index})">复制</button>
+          </div>
+        </div>
+      `).join('');
+
+      showResultTab('image');
+      resultSection.classList.add('show');
+    }
+
+    function showFileResult(files) {
+      pasteTypeIndicator.textContent = '📁 文件';
+      highlightBadge('file');
+      
+      const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+      
+      document.getElementById('fileStats').innerHTML = `
+        <div class="stat-item"><div class="stat-value">${files.length}</div><div class="stat-label">文件数量</div></div>
+        <div class="stat-item"><div class="stat-value">${(totalSize / 1024).toFixed(1)} KB</div><div class="stat-label">总大小</div></div>
+      `;
+
+      const list = document.getElementById('fileList');
+      list.innerHTML = files.map((file, index) => `
+        <div class="file-item">
+          <div class="file-icon">📄</div>
+          <div class="file-details">
+            <div class="file-name">${escapeHtml(file.name)}</div>
+            <div class="file-meta">${(file.size / 1024).toFixed(1)} KB · ${file.type || '未知类型'}</div>
+          </div>
+        </div>
+      `).join('');
+
+      showResultTab('file');
+      resultSection.classList.add('show');
+    }
+
+    function showURLResult(url) {
+      pasteTypeIndicator.textContent = '🔗 URL';
+      highlightBadge('url');
+      
+      document.getElementById('urlStats').innerHTML = `
+        <div class="stat-item"><div class="stat-value">${url.href.length}</div><div class="stat-label">字符数</div></div>
+      `;
+
+      document.getElementById('urlParts').innerHTML = `
+        <div class="url-part-item">
+          <div class="url-part-label">协议</div>
+          <div class="url-part-value">${url.protocol}</div>
+        </div>
+        <div class="url-part-item">
+          <div class="url-part-label">主机</div>
+          <div class="url-part-value">${url.host}</div>
+        </div>
+        <div class="url-part-item">
+          <div class="url-part-label">路径</div>
+          <div class="url-part-value">${url.pathname}</div>
+        </div>
+        <div class="url-part-item">
+          <div class="url-part-label">参数</div>
+          <div class="url-part-value">${url.search || '(无)'}</div>
+        </div>
+        <div class="url-part-item">
+          <div class="url-part-label">哈希</div>
+          <div class="url-part-value">${url.hash || '(无)'}</div>
+        </div>
+        <div class="url-part-item">
+          <div class="url-part-label">完整 URL</div>
+          <div class="url-part-value">${url.href}</div>
+        </div>
+      `;
+
+      showResultTab('url');
+      resultSection.classList.add('show');
+    }
+
+    function showJWTResult(header, payload, signature, raw) {
+      pasteTypeIndicator.textContent = '🔐 JWT';
+      highlightBadge('jwt');
+      
+      document.getElementById('jwtStats').innerHTML = `
+        <div class="stat-item"><div class="stat-value">${Object.keys(header).length}</div><div class="stat-label">Header 字段</div></div>
+        <div class="stat-item"><div class="stat-value">${Object.keys(payload).length}</div><div class="stat-label">Payload 字段</div></div>
+        <div class="stat-item"><div class="stat-value">${raw.length}</div><div class="stat-label">总长度</div></div>
+      `;
+
+      document.getElementById('jwtParts').innerHTML = `
+        <div class="jwt-part">
+          <div class="jwt-part-header">
+            <span class="jwt-part-title">Header</span>
+          </div>
+          <div class="jwt-part-content">${JSON.stringify(header, null, 2)}</div>
+        </div>
+        <div class="jwt-part">
+          <div class="jwt-part-header">
+            <span class="jwt-part-title">Payload</span>
+          </div>
+          <div class="jwt-part-content">${JSON.stringify(payload, null, 2)}</div>
+        </div>
+        <div class="jwt-part">
+          <div class="jwt-part-header">
+            <span class="jwt-part-title">Signature</span>
+          </div>
+          <div class="jwt-part-content">${signature}</div>
+        </div>
+      `;
+
+      showResultTab('jwt');
+      resultSection.classList.add('show');
+    }
+
+    function showBase64Result(encoded, decoded) {
+      pasteTypeIndicator.textContent = '📦 Base64';
+      highlightBadge('base64');
+      
+      document.getElementById('base64Encode').textContent = encoded;
+      document.getElementById('base64Decode').textContent = decoded;
+      
+      showResultTab('base64');
+      resultSection.classList.add('show');
+    }
+
+    function showColorResult(color) {
+      pasteTypeIndicator.textContent = '🎨 颜色';
+      highlightBadge('color');
+      
+      const preview = document.getElementById('colorPreview');
+      preview.innerHTML = `
+        <div class="color-box" style="background-color: ${color}"></div>
+        <div class="color-info">
+          <div class="color-value">${color}</div>
+          <div class="color-formats">
+            <span class="color-format">${color}</span>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('colorCode').textContent = color;
+      
+      showResultTab('color');
+      resultSection.classList.add('show');
+    }
+
+    // ===== 辅助函数 =====
+
+    /**
+     * 表格数据导出为 CSV 文件
+     */
+    function exportToCSV(tableData) {
+      const { headers, rows } = tableData;
+      
+      // 构建 CSV 内容
+      let csv = headers.map(h => escapeCSV(h)).join(',') + '\n';
+      
+      rows.forEach(row => {
+        csv += row.map(cell => escapeCSV(cell)).join(',') + '\n';
+      });
+
+      // 添加 BOM 头，确保 Excel 正确识别 UTF-8 编码
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      downloadBlob(blob, 'table_export.csv');
+    }
+
+    /**
+     * CSV 字段转义
+     * 处理逗号、引号、换行符等特殊字符
+     */
+    function escapeCSV(text) {
+      if (text === null || text === undefined) return '';
+      const str = String(text);
+      // 如果包含逗号、引号、换行符，需要用引号包裹并转义内部引号
+      if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    }
+
+    /**
+     * 表格数据导出为 JSON 文件
+     */
+    function exportToJSON(tableData) {
+      const { headers, rows } = tableData;
+      
+      // 转换为对象数组
+      const jsonData = rows.map(row => {
+        const obj = {};
+        headers.forEach((header, i) => {
+          obj[header] = row[i] !== undefined ? row[i] : '';
+        });
+        return obj;
+      });
+
+      const jsonStr = JSON.stringify(jsonData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+      downloadBlob(blob, 'table_export.json');
+    }
+
+    /**
+     * 下载 Blob 对象
+     */
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    /**
+     * 表格数据转换为 HTML 字符串
+     */
+    function tableToHTML(tableData) {
+      const { headers, rows } = tableData;
+      
+      let html = '<table>\n<thead>\n<tr>';
+      headers.forEach(h => {
+        html += `<th>${escapeHtml(h)}</th>`;
+      });
+      html += '</tr>\n</thead>\n<tbody>\n';
+      
+      rows.forEach(row => {
+        html += '<tr>';
+        for (let i = 0; i < headers.length; i++) {
+          html += `<td>${escapeHtml(row[i] || '')}</td>`;
+        }
+        html += '</tr>\n';
+      });
+      html += '</tbody>\n</table>';
+      
+      return html;
+    }
+
+    function showResultTab(type) {
+      Object.values(results).forEach(r => r.classList.remove('active'));
+      if (results[type]) results[type].classList.add('active');
+    }
+
+    function highlightBadge(type) {
+      Object.values(badges).forEach(b => b.classList.remove('active'));
+      if (badges[type]) badges[type].classList.add('active');
+    }
+
+    function syntaxHighlightJSON(json) {
+      return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+        let cls = 'json-number';
+        if (/^"/.test(match)) {
+          cls = /:$/.test(match) ? 'json-key' : 'json-string';
+        } else if (/true|false/.test(match)) {
+          cls = 'json-boolean';
+        } else if (/null/.test(match)) {
+          cls = 'json-null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      });
+    }
+
+    function markdownToHTML(md) {
+      let html = md;
+      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+      html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+      html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+      html = html.replace(/`(.*?)`/gim, '<code>$1</code>');
+      html = html.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank">$1</a>');
+      html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+      html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
+      html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
+      return html;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showError(msg) {
+      errorMessage.textContent = msg;
+      errorMessage.classList.add('show');
+    }
+
+    function hideError() {
+      errorMessage.classList.remove('show');
+    }
+
+    function copyCurrentResult() {
+      if (!currentData) return;
+
+      if (currentData.json) {
+        copyToClipboard(JSON.stringify(currentData.json, null, 2), 'JSON');
+      } else if (currentData.xml) {
+        copyToClipboard(currentData.xml, 'XML');
+      } else if (currentData.markdown) {
+        copyToClipboard(currentData.markdown, 'Markdown');
+      } else if (currentData.code) {
+        copyToClipboard(currentData.code, '代码');
+      } else if (currentData.text) {
+        copyToClipboard(currentData.text, '文本');
+      } else if (currentData.url) {
+        copyToClipboard(currentData.url.href, 'URL');
+      } else if (currentData.jwt) {
+        copyToClipboard(currentData.raw, 'JWT');
+      } else if (currentData.base64) {
+        copyToClipboard(currentData.base64, 'Base64');
+      } else if (currentData.color) {
+        copyToClipboard(currentData.color, '颜色');
+      }
+    }
+
+    function copyToClipboard(text, label) {
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyResultBtn');
+        const originalText = btn.textContent;
+        btn.textContent = '✓ 已复制';
+        setTimeout(() => btn.textContent = originalText, 2000);
+      }).catch(err => {
+        showError('复制失败：' + err.message);
+      });
+    }
+
+    // 全局函数
+    window.downloadImage = function(index) {
+      const img = images[index];
+      const a = document.createElement('a');
+      a.href = img.dataUrl;
+      a.download = img.name || 'image.png';
+      a.click();
+    };
+
+    window.copyImage = async function(index) {
+      const img = images[index];
+      try {
+        const response = await fetch(img.dataUrl);
+        const blob = await response.blob();
+        await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+      } catch (err) {
+        showError('复制图片失败：' + err.message);
+      }
+    };
+
+    window.openCurrentUrl = function() {
+      if (currentData && currentData.url) {
+        window.open(currentData.url.href, '_blank');
+      }
+    };
+
+    // 导出表格为 CSV
+    window.exportTableCSV = function() {
+      if (currentData && currentData.table) {
+        exportToCSV(currentData.table);
+      }
+    };
+
+    // 导出表格为 JSON
+    window.exportTableJSON = function() {
+      if (currentData && currentData.table) {
+        exportToJSON(currentData.table);
+      }
+    };
+
+    // 复制表格 HTML
+    window.copyTableHTML = function() {
+      if (currentData && currentData.table) {
+        const html = tableToHTML(currentData.table);
+        copyToClipboard(html, 'HTML 表格');
+      }
+    };
+
+    // 页面加载后聚焦
+    window.addEventListener('load', () => {
+      pasteArea.focus();
+    });
+  </script>
+</body>
+</html>
