@@ -8,7 +8,8 @@
     ".": "./src/index.js"
   },
   "bin": {
-    "jsondb-export": "./bin/cli-export.js"
+    "jsondb-export": "./bin/cli-export.js",
+    "jsondb-import": "./bin/cli-import.js"
   },
   "scripts": {
     "test": "vitest run",

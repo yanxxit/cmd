@@ -50,6 +50,14 @@ export {
   arrayOperators
 } from './Operators.js';
 
+// 导出 Schema 验证
+export {
+  Schema,
+  createSchema,
+  createValidator,
+  validators
+} from './Schema.js';
+
 /**
  * 默认导出
  */

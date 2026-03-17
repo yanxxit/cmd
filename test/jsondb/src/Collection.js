@@ -2,6 +2,7 @@
  * 集合类 - 管理文档集合
  * 支持 async/await 异步操作
  * 支持 JSONB 二进制存储模式
+ * 支持 Schema 验证
  */
 
 import { readFile, writeFile } from 'fs/promises';
@@ -10,7 +11,7 @@ import { join } from 'path';
 import { generateId, deepClone, getNestedValue } from './Utils.js';
 import { Cursor } from './Cursor.js';
 import { matchQuery, applyUpdate } from './Operators.js';
-import { CollectionNotFoundError, DocumentNotFoundError } from './errors.js';
+import { CollectionNotFoundError, DocumentNotFoundError, ValidationError } from './errors.js';
 
 /**
  * Collection 类
@@ -28,6 +29,47 @@ export class Collection {
     this._data = null;
     this._lock = null; // 简单的锁机制
     this.jsonb = db.options.jsonb; // 继承数据库的 JSONB 选项
+    this._schema = null; // Schema 验证
+    this._validateOnInsert = true; // 插入时验证
+    this._validateOnUpdate = false; // 更新时验证
+  }
+  
+  /**
+   * 设置 Schema
+   * @param {Schema} schema - Schema 实例
+   * @param {Object} options - 选项
+   * @returns {Collection}
+   */
+  setSchema(schema, options = {}) {
+    this._schema = schema;
+    this._validateOnInsert = options.validateOnInsert !== false;
+    this._validateOnUpdate = options.validateOnUpdate || false;
+    return this;
+  }
+  
+  /**
+   * 获取 Schema
+   * @returns {Schema|null}
+   */
+  getSchema() {
+    return this._schema;
+  }
+  
+  /**
+   * 验证文档
+   * @private
+   * @param {Object} doc - 文档
+   * @throws {ValidationError}
+   */
+  _validate(doc) {
+    if (!this._schema) {
+      return;
+    }
+    
+    const result = this._schema.validate(doc);
+    if (!result.valid) {
+      throw new ValidationError(`验证失败：${result.errors.map(e => `${e.field}: ${e.message}`).join(', ')}`);
+    }
   }
   
   /**
@@ -188,6 +230,11 @@ export class Collection {
   async insertOne(doc) {
     await this._load();
     
+    // Schema 验证
+    if (this._validateOnInsert) {
+      this._validate(doc);
+    }
+    
     // 创建文档副本并添加 _id
     const newDoc = {
       ...deepClone(doc),
@@ -212,6 +259,13 @@ export class Collection {
     }
     
     await this._load();
+    
+    // Schema 验证
+    if (this._validateOnInsert) {
+      for (const doc of docs) {
+        this._validate(doc);
+      }
+    }
     
     const insertedDocs = docs.map(doc => ({
       ...deepClone(doc),
@@ -655,9 +709,40 @@ export class Collection {
     }
     this._data._meta.indexes.push(index);
     
+    // 构建索引数据
+    await this._buildIndex(index);
+    
     await this._save();
     
     return index;
+  }
+  
+  /**
+   * 构建索引数据
+   * @private
+   * @param {Object} index - 索引对象
+   */
+  async _buildIndex(index) {
+    const indexKeys = Object.keys(index.key);
+    const indexData = {};
+    
+    for (const doc of this._data._documents) {
+      for (const key of indexKeys) {
+        const value = getNestedValue(doc, key);
+        if (value !== undefined) {
+          const keyStr = String(value);
+          if (!indexData[keyStr]) {
+            indexData[keyStr] = [];
+          }
+          indexData[keyStr].push(doc._id);
+        }
+      }
+    }
+    
+    if (!this._data._indexes) {
+      this._data._indexes = {};
+    }
+    this._data._indexes[index.name] = indexData;
   }
   
   /**

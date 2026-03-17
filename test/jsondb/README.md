@@ -118,7 +118,7 @@ npm test
 
 ## 命令行工具
 
-### 导出命令
+### 导出工具
 
 ```bash
 # 导出单个文件（支持 JSON/JSONB）
@@ -131,21 +131,36 @@ node bin/cli-export.js db <数据库目录> <集合名> <输出文件> [选项]
 node bin/cli-export.js list <数据库目录>
 ```
 
+### 导入工具
+
+```bash
+# 从 CSV/XLSX/JSON 导入数据
+node bin/cli-import.js import <输入文件> <数据库目录> <集合名> [选项]
+
+# 转换文件格式（JSON ↔ JSONB）
+node bin/cli-import.js convert <输入文件> <输出文件> [选项]
+```
+
 ### 选项
 
 | 选项 | 说明 | 默认值 |
 |------|------|--------|
-| `-f, --format <format>` | 输出格式 (json, csv, xlsx) | json |
+| `-f, --format <format>` | 输入/输出格式 (json, csv, xlsx) | auto |
 | `-p, --pretty` | 格式化 JSON 输出 | false |
 | `-d, --delimiter <char>` | CSV 分隔符 | , |
 | `--no-header` | 不包含 CSV 表头 | false |
 | `--no-flatten` | 不扁平化嵌套对象 | false |
+| `--jsonb` | 使用 JSONB 二进制格式存储 | false |
+| `--to-jsonb` | 转换为 JSONB 格式 | false |
+| `--to-json` | 转换为 JSON 格式 | false |
 
 ### 使用示例
 
 ```bash
+# ============ 导出 ============
+
 # 导出 JSONB 文件为 JSON
-node bin/cli-export.js export data/users.jsonb output/users.json --pretty
+node bin/cli-export.js export data/users.json output/users.json --pretty
 
 # 导出为 CSV
 node bin/cli-export.js export data/users.json output/users.csv --format csv
@@ -155,6 +170,23 @@ node bin/cli-export.js export data/users.json output/users.xlsx --format xlsx
 
 # 从数据库导出集合
 node bin/cli-export.js db ./data/mydb users output/users.json --pretty
+
+# ============ 导入 ============
+
+# 从 CSV 导入（自动检测格式）
+node bin/cli-import.js import users.csv ./data/mydb users
+
+# 从 CSV 导入到 JSONB 格式
+node bin/cli-import.js import users.csv ./data/mydb users --jsonb
+
+# 从 XLSX 导入
+node bin/cli-import.js import users.xlsx ./data/mydb users --format xlsx
+
+# 转换 JSONB 为 JSON
+node bin/cli-import.js convert data/users.json output/users.json --to-json --pretty
+
+# 转换 JSON 为 JSONB
+node bin/cli-import.js convert data/users.json output/users.jsonb --to-jsonb
 ```
 
 ## 功能需求
