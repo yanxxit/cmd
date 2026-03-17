@@ -1,8 +1,11 @@
 /**
  * 集合类 - 管理文档集合
+ * 支持 async/await 异步操作
+ * 支持 JSONB 二进制存储模式
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFile, writeFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { generateId, deepClone, getNestedValue } from './Utils.js';
 import { Cursor } from './Cursor.js';
@@ -23,40 +26,56 @@ export class Collection {
     this.name = name;
     this._filePath = join(db.dbPath, `${name}.json`);
     this._data = null;
+    this._lock = null; // 简单的锁机制
+    this.jsonb = db.options.jsonb; // 继承数据库的 JSONB 选项
   }
   
   /**
    * 加载集合数据
    * @private
    */
-  _load() {
+  async _load() {
     if (this._data !== null) {
       return;
     }
     
-    if (!existsSync(this._filePath)) {
-      // 如果集合文件不存在，自动创建
-      this._data = {
-        _meta: { name: this.name, count: 0, indexes: [] },
-        _documents: [],
-        _indexes: {}
-      };
-      this._save();
-      return;
-    }
+    // 等待锁
+    await this._acquireLock();
     
-    const content = readFileSync(this._filePath, 'utf-8');
-    this._data = JSON.parse(content);
-    
-    // 确保数据结构完整
-    if (!this._data._meta) {
-      this._data._meta = { name: this.name, count: 0, indexes: [] };
-    }
-    if (!this._data._documents) {
-      this._data._documents = [];
-    }
-    if (!this._data._indexes) {
-      this._data._indexes = {};
+    try {
+      if (!existsSync(this._filePath)) {
+        // 如果集合文件不存在，自动创建
+        this._data = {
+          _meta: { name: this.name, count: 0, indexes: [] },
+          _documents: [],
+          _indexes: {}
+        };
+        await this._save();
+        return;
+      }
+      
+      // JSONB 模式：读取二进制文件
+      if (this.jsonb) {
+        const buffer = await readFile(this._filePath);
+        this._data = this._decodeJsonb(buffer);
+      } else {
+        // 普通模式：读取文本文件
+        const content = await readFile(this._filePath, 'utf-8');
+        this._data = JSON.parse(content);
+      }
+      
+      // 确保数据结构完整
+      if (!this._data._meta) {
+        this._data._meta = { name: this.name, count: 0, indexes: [] };
+      }
+      if (!this._data._documents) {
+        this._data._documents = [];
+      }
+      if (!this._data._indexes) {
+        this._data._indexes = {};
+      }
+    } finally {
+      this._releaseLock();
     }
   }
   
@@ -64,7 +83,7 @@ export class Collection {
    * 保存集合数据
    * @private
    */
-  _save() {
+  async _save() {
     if (this._data === null) {
       return;
     }
@@ -72,8 +91,83 @@ export class Collection {
     // 更新元数据
     this._data._meta.count = this._data._documents.length;
     
-    const content = JSON.stringify(this._data, null, 2);
-    writeFileSync(this._filePath, content, 'utf-8');
+    // JSONB 模式：写入二进制文件
+    if (this.jsonb) {
+      const buffer = this._encodeJsonb();
+      await writeFile(this._filePath, buffer);
+    } else {
+      // 普通模式：写入格式化的 JSON 文本
+      const content = JSON.stringify(this._data, null, 2);
+      await writeFile(this._filePath, content, 'utf-8');
+    }
+  }
+  
+  /**
+   * JSONB 编码 - 将数据编码为二进制 Buffer
+   * 格式：[4 字节长度][JSON 数据的 UTF-8 字节]
+   * @private
+   * @returns {Buffer} 编码后的 Buffer
+   */
+  _encodeJsonb() {
+    const json = JSON.stringify(this._data);
+    const jsonBuffer = Buffer.from(json, 'utf-8');
+    
+    // 创建包含长度前缀的 Buffer
+    // 4 字节 (uint32) 长度 + JSON 数据
+    const lengthBuffer = Buffer.alloc(4);
+    lengthBuffer.writeUInt32BE(jsonBuffer.length, 0);
+    
+    return Buffer.concat([lengthBuffer, jsonBuffer]);
+  }
+  
+  /**
+   * JSONB 解码 - 将二进制 Buffer 解码为数据
+   * @private
+   * @param {Buffer} buffer - 编码后的 Buffer
+   * @returns {Object} 解码后的数据
+   */
+  _decodeJsonb(buffer) {
+    try {
+      // 读取长度前缀
+      const length = buffer.readUInt32BE(0);
+      
+      // 验证长度
+      if (length !== buffer.length - 4) {
+        throw new Error('JSONB 长度不匹配');
+      }
+      
+      // 读取 JSON 数据
+      const jsonBuffer = buffer.subarray(4);
+      const json = jsonBuffer.toString('utf-8');
+      return JSON.parse(json);
+    } catch (e) {
+      // 如果不是有效的 JSONB 格式，尝试直接 JSON 解析（向后兼容）
+      try {
+        const json = buffer.toString('utf-8');
+        return JSON.parse(json);
+      } catch (e2) {
+        throw new Error(`无法解析数据：${e.message}`);
+      }
+    }
+  }
+  
+  /**
+   * 获取锁
+   * @private
+   */
+  async _acquireLock() {
+    while (this._lock) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    this._lock = true;
+  }
+  
+  /**
+   * 释放锁
+   * @private
+   */
+  _releaseLock() {
+    this._lock = null;
   }
   
   /**
@@ -81,18 +175,18 @@ export class Collection {
    * @private
    * @returns {Array} 文档数组
    */
-  _getDocuments() {
-    this._load();
+  async _getDocuments() {
+    await this._load();
     return this._data._documents;
   }
   
   /**
    * 插入单个文档
    * @param {Object} doc - 文档
-   * @returns {Object} 插入后的文档（包含 _id）
+   * @returns {Promise<Object>} 插入后的文档（包含 _id）
    */
-  insertOne(doc) {
-    this._load();
+  async insertOne(doc) {
+    await this._load();
     
     // 创建文档副本并添加 _id
     const newDoc = {
@@ -102,7 +196,7 @@ export class Collection {
     };
     
     this._data._documents.push(newDoc);
-    this._save();
+    await this._save();
     
     return deepClone(newDoc);
   }
@@ -110,14 +204,14 @@ export class Collection {
   /**
    * 插入多个文档
    * @param {Array<Object>} docs - 文档数组
-   * @returns {Object} 插入结果
+   * @returns {Promise<Object>} 插入结果
    */
-  insertMany(docs) {
+  async insertMany(docs) {
     if (!Array.isArray(docs)) {
       throw new Error('insertMany 需要数组参数');
     }
     
-    this._load();
+    await this._load();
     
     const insertedDocs = docs.map(doc => ({
       ...deepClone(doc),
@@ -126,7 +220,7 @@ export class Collection {
     }));
     
     this._data._documents.push(...insertedDocs);
-    this._save();
+    await this._save();
     
     return {
       acknowledged: true,
@@ -152,10 +246,10 @@ export class Collection {
    * 查询单个文档
    * @param {Object} query - 查询条件
    * @param {Object} options - 查询选项
-   * @returns {Object|null} 文档或 null
+   * @returns {Promise<Object|null>} 文档或 null
    */
-  findOne(query = {}, options = {}) {
-    return new Cursor(this, query, options).first();
+  async findOne(query = {}, options = {}) {
+    return await new Cursor(this, query, options).first();
   }
   
   /**
@@ -163,10 +257,10 @@ export class Collection {
    * @param {Object} query - 查询条件
    * @param {Object} update - 更新操作
    * @param {Object} options - 选项
-   * @returns {Object} 更新结果
+   * @returns {Promise<Object>} 更新结果
    */
-  updateOne(query, update, options = {}) {
-    this._load();
+  async updateOne(query, update, options = {}) {
+    await this._load();
     
     const docIndex = this._data._documents.findIndex(doc => matchQuery(doc, query));
     
@@ -179,7 +273,7 @@ export class Collection {
           ...deepClone(update)
         };
         this._data._documents.push(newDoc);
-        this._save();
+        await this._save();
         
         return {
           acknowledged: true,
@@ -201,7 +295,7 @@ export class Collection {
     updatedDoc.updatedAt = new Date().toISOString();
     this._data._documents[docIndex] = updatedDoc;
     
-    this._save();
+    await this._save();
     
     return {
       acknowledged: true,
@@ -215,10 +309,10 @@ export class Collection {
    * @param {Object} query - 查询条件
    * @param {Object} update - 更新操作
    * @param {Object} options - 选项
-   * @returns {Object} 更新结果
+   * @returns {Promise<Object>} 更新结果
    */
-  updateMany(query, update, options = {}) {
-    this._load();
+  async updateMany(query, update, options = {}) {
+    await this._load();
     
     let matchedCount = 0;
     let modifiedCount = 0;
@@ -246,7 +340,7 @@ export class Collection {
         ...deepClone(update)
       };
       this._data._documents.push(newDoc);
-      this._save();
+      await this._save();
       
       return {
         acknowledged: true,
@@ -256,7 +350,7 @@ export class Collection {
       };
     }
     
-    this._save();
+    await this._save();
     
     return {
       acknowledged: true,
@@ -270,10 +364,10 @@ export class Collection {
    * @param {Object} query - 查询条件
    * @param {Object} doc - 新文档
    * @param {Object} options - 选项
-   * @returns {Object} 替换结果
+   * @returns {Promise<Object>} 替换结果
    */
-  replaceOne(query, doc, options = {}) {
-    this._load();
+  async replaceOne(query, doc, options = {}) {
+    await this._load();
     
     const docIndex = this._data._documents.findIndex(doc => matchQuery(doc, query));
     
@@ -285,7 +379,7 @@ export class Collection {
           createdAt: new Date().toISOString()
         };
         this._data._documents.push(newDoc);
-        this._save();
+        await this._save();
         
         return {
           acknowledged: true,
@@ -311,7 +405,7 @@ export class Collection {
     };
     
     this._data._documents[docIndex] = newDoc;
-    this._save();
+    await this._save();
     
     return {
       acknowledged: true,
@@ -323,10 +417,10 @@ export class Collection {
   /**
    * 删除单个文档
    * @param {Object} query - 查询条件
-   * @returns {Object} 删除结果
+   * @returns {Promise<Object>} 删除结果
    */
-  deleteOne(query) {
-    this._load();
+  async deleteOne(query) {
+    await this._load();
     
     const docIndex = this._data._documents.findIndex(doc => matchQuery(doc, query));
     
@@ -338,7 +432,7 @@ export class Collection {
     }
     
     this._data._documents.splice(docIndex, 1);
-    this._save();
+    await this._save();
     
     return {
       acknowledged: true,
@@ -349,16 +443,16 @@ export class Collection {
   /**
    * 删除多个文档
    * @param {Object} query - 查询条件
-   * @returns {Object} 删除结果
+   * @returns {Promise<Object>} 删除结果
    */
-  deleteMany(query) {
-    this._load();
+  async deleteMany(query) {
+    await this._load();
     
     const initialCount = this._data._documents.length;
     this._data._documents = this._data._documents.filter(doc => !matchQuery(doc, query));
     const deletedCount = initialCount - this._data._documents.length;
     
-    this._save();
+    await this._save();
     
     return {
       acknowledged: true,
@@ -369,24 +463,24 @@ export class Collection {
   /**
    * 计数文档
    * @param {Object} query - 查询条件
-   * @returns {number} 文档数量
+   * @returns {Promise<number>} 文档数量
    */
-  countDocuments(query = {}) {
-    return this.find(query).count();
+  async countDocuments(query = {}) {
+    return await this.find(query).count();
   }
   
   /**
    * 获取不同值
    * @param {string} key - 字段名
    * @param {Object} query - 查询条件
-   * @returns {Array} 不同值数组
+   * @returns {Promise<Array>} 不同值数组
    */
-  distinct(key, query = {}) {
-    const docs = this.find(query).toArray();
+  async distinct(key, query = {}) {
+    const docs = await this.find(query).toArray();
     const values = new Set();
     
     for (const doc of docs) {
-      const value = this._getNestedValue(doc, key);
+      const value = getNestedValue(doc, key);
       if (value !== undefined) {
         values.add(value);
       }
@@ -398,10 +492,10 @@ export class Collection {
   /**
    * 聚合查询
    * @param {Array} pipeline - 聚合管道
-   * @returns {Array} 结果数组
+   * @returns {Promise<Array>} 结果数组
    */
-  aggregate(pipeline) {
-    this._load();
+  async aggregate(pipeline) {
+    await this._load();
     
     let results = this._data._documents.map(doc => deepClone(doc));
     
@@ -531,35 +625,13 @@ export class Collection {
   }
   
   /**
-   * 获取嵌套值
-   * @private
-   */
-  _getNestedValue(obj, path) {
-    if (!path || typeof path !== 'string') {
-      return obj;
-    }
-    
-    const keys = path.split('.');
-    let result = obj;
-    
-    for (const key of keys) {
-      if (result === null || result === undefined) {
-        return undefined;
-      }
-      result = result[key];
-    }
-    
-    return result;
-  }
-  
-  /**
    * 创建索引
    * @param {Object} keys - 索引键
    * @param {Object} options - 选项
-   * @returns {Object} 索引信息
+   * @returns {Promise<Object>} 索引信息
    */
-  createIndex(keys, options = {}) {
-    this._load();
+  async createIndex(keys, options = {}) {
+    await this._load();
     
     const indexName = Object.entries(keys)
       .map(([k, v]) => `${k}_${v}`)
@@ -583,7 +655,7 @@ export class Collection {
     }
     this._data._meta.indexes.push(index);
     
-    this._save();
+    await this._save();
     
     return index;
   }
@@ -591,10 +663,10 @@ export class Collection {
   /**
    * 删除索引
    * @param {string} name - 索引名称
-   * @returns {Object} 删除结果
+   * @returns {Promise<Object>} 删除结果
    */
-  dropIndex(name) {
-    this._load();
+  async dropIndex(name) {
+    await this._load();
     
     if (!this._data._meta.indexes) {
       return { acknowledged: false };
@@ -607,35 +679,40 @@ export class Collection {
       return { acknowledged: false };
     }
     
-    this._save();
+    await this._save();
     
     return { acknowledged: true };
   }
   
   /**
    * 列出所有索引
-   * @returns {Array} 索引数组
+   * @returns {Promise<Array>} 索引数组
    */
-  listIndexes() {
-    this._load();
+  async listIndexes() {
+    await this._load();
     return this._data._meta.indexes || [];
   }
   
   /**
    * 获取集合统计信息
-   * @returns {Object} 统计信息
+   * @returns {Promise<Object>} 统计信息
    */
-  stats() {
-    this._load();
+  async stats() {
+    await this._load();
+    
+    const size = this.jsonb 
+      ? this._encodeJsonb().length 
+      : JSON.stringify(this._data).length;
     
     return {
       ns: this.name,
       count: this._data._documents.length,
-      size: JSON.stringify(this._data).length,
+      size,
       avgObjSize: this._data._documents.length > 0
-        ? JSON.stringify(this._data).length / this._data._documents.length
+        ? size / this._data._documents.length
         : 0,
-      indexes: this._data._meta.indexes?.length || 0
+      indexes: this._data._meta.indexes?.length || 0,
+      jsonb: this.jsonb
     };
   }
 }

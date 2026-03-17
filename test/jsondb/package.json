@@ -7,6 +7,9 @@
   "exports": {
     ".": "./src/index.js"
   },
+  "bin": {
+    "jsondb-export": "./bin/cli-export.js"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
@@ -14,7 +17,10 @@
     "lint": "eslint src/ test/",
     "lint:fix": "eslint src/ test/ --fix",
     "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\"",
-    "example": "node examples/basic.js"
+    "example": "node examples/basic.js",
+    "example:advanced": "node examples/advanced.js",
+    "example:jsonb": "node examples/jsonb.js",
+    "link": "npm link"
   },
   "keywords": [
     "json",
@@ -22,14 +28,19 @@
     "mongodb",
     "nosql",
     "lightweight",
-    "embedded"
+    "embedded",
+    "jsonb"
   ],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
   "devDependencies": {
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
-    "vitest": "^1.3.1"
+    "vitest": "^1.3.1",
+    "xlsx": "^0.18.5"
   },
   "engines": {
     "node": ">=18"

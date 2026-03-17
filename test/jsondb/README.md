@@ -28,36 +28,81 @@ npm install
 ```javascript
 import { Database } from 'jsondb';
 
-// 连接数据库
-const db = new Database('./data/mydb');
-db.open();
+async function main() {
+  // 连接数据库（普通模式）
+  const db = new Database('./data/mydb');
+  await db.open();
 
-// 获取集合
-const users = db.collection('users');
+  // 连接数据库（JSONB 模式 - 更节省空间）
+  const jsonbDb = new Database('./data/mydb-jsonb', { jsonb: true });
+  await jsonbDb.open();
 
-// 插入文档
-const user = users.insertOne({
-  name: 'Alice',
-  age: 25,
-  email: 'alice@example.com'
-});
+  // 获取集合
+  const users = db.collection('users');
 
-// 查询
-const allUsers = users.find().toArray();
-const youngUsers = users.find({ age: { $lt: 30 } }).toArray();
+  // 插入文档
+  const user = await users.insertOne({
+    name: 'Alice',
+    age: 25,
+    email: 'alice@example.com'
+  });
 
-// 更新
-users.updateOne(
-  { name: 'Alice' },
-  { $set: { age: 26 } }
-);
+  // 查询
+  const allUsers = await users.find().toArray();
+  const youngUsers = await users.find({ age: { $lt: 30 } }).toArray();
 
-// 删除
-users.deleteOne({ name: 'Alice' });
+  // 更新
+  await users.updateOne(
+    { name: 'Alice' },
+    { $set: { age: 26 } }
+  );
 
-// 关闭连接
-db.close();
+  // 删除
+  await users.deleteOne({ name: 'Alice' });
+
+  // 使用 for await...of 遍历
+  for await (const user of users.find().limit(5)) {
+    console.log(user.name);
+  }
+
+  // 关闭连接
+  await db.close();
+}
+
+main().catch(console.error);
 ```
+
+### JSONB 模式
+
+JSONB（JSON Binary）模式使用二进制格式存储数据，适合对存储空间和 I/O 性能敏感的场景：
+
+```javascript
+// 启用 JSONB 模式
+const db = new Database('./data/mydb', { jsonb: true });
+
+// 查看统计信息
+const stats = await db.stats();
+console.log(stats.jsonb); // true
+```
+
+**JSONB 二进制格式：**
+```
+[4 字节长度 (uint32 BE)][UTF-8 JSON 数据...]
+```
+
+**JSONB 模式特点：**
+- ✅ 二进制存储，无格式化和空格
+- ✅ 4 字节长度前缀，快速验证完整性
+- ✅ 向后兼容普通 JSON 格式
+- ✅ 适合大规模数据存储
+- ✅ 更小的文件体积（约节省 30-40%）
+- ⚠️ 人类不可直接阅读（需要解码）
+
+**使用场景：**
+- 生产环境数据存储
+- 大规模数据集
+- 对存储空间敏感的应用
+- 需要快速加载的场景
 
 ### 运行示例
 
@@ -67,6 +112,49 @@ npm run example
 
 # 运行测试
 npm test
+```
+
+---
+
+## 命令行工具
+
+### 导出命令
+
+```bash
+# 导出单个文件（支持 JSON/JSONB）
+node bin/cli-export.js export <输入文件> <输出文件> [选项]
+
+# 从数据库导出集合
+node bin/cli-export.js db <数据库目录> <集合名> <输出文件> [选项]
+
+# 列出数据库中的所有集合
+node bin/cli-export.js list <数据库目录>
+```
+
+### 选项
+
+| 选项 | 说明 | 默认值 |
+|------|------|--------|
+| `-f, --format <format>` | 输出格式 (json, csv, xlsx) | json |
+| `-p, --pretty` | 格式化 JSON 输出 | false |
+| `-d, --delimiter <char>` | CSV 分隔符 | , |
+| `--no-header` | 不包含 CSV 表头 | false |
+| `--no-flatten` | 不扁平化嵌套对象 | false |
+
+### 使用示例
+
+```bash
+# 导出 JSONB 文件为 JSON
+node bin/cli-export.js export data/users.jsonb output/users.json --pretty
+
+# 导出为 CSV
+node bin/cli-export.js export data/users.json output/users.csv --format csv
+
+# 导出为 XLSX
+node bin/cli-export.js export data/users.json output/users.xlsx --format xlsx
+
+# 从数据库导出集合
+node bin/cli-export.js db ./data/mydb users output/users.json --pretty
 ```
 
 ## 功能需求
@@ -418,7 +506,80 @@ const found = await users.find({
 
 ## API 参考
 
-### 查询操作符
+### Database 类
+
+```javascript
+const db = new Database('./data/mydb');
+
+await db.open();              // 打开数据库
+await db.close();             // 关闭数据库
+await db.drop();              // 删除数据库
+
+db.collection(name);          // 获取集合（同步）
+await db.createCollection(name);  // 创建集合
+await db.dropCollection(name);    // 删除集合
+await db.listCollections();       // 列出所有集合
+await db.stats();                 // 获取统计信息
+```
+
+### Collection 类
+
+```javascript
+const collection = db.collection('users');
+
+// 插入
+await collection.insertOne(doc);
+await collection.insertMany([docs]);
+
+// 查询
+const cursor = collection.find(query);  // 返回 Cursor
+const doc = await collection.findOne(query);
+
+// 更新
+await collection.updateOne(query, update);
+await collection.updateMany(query, update);
+await collection.replaceOne(query, doc);
+
+// 删除
+await collection.deleteOne(query);
+await collection.deleteMany(query);
+
+// 统计
+await collection.countDocuments(query);
+await collection.distinct(key, query);
+await collection.aggregate(pipeline);
+
+// 索引
+await collection.createIndex(keys);
+await collection.dropIndex(name);
+await collection.listIndexes();
+await collection.stats();
+```
+
+### Cursor 类
+
+```javascript
+const cursor = collection.find(query)
+  .sort({ age: -1 })
+  .skip(10)
+  .limit(20)
+  .project({ name: 1, email: 1 });
+
+const results = await cursor.toArray();   // 获取所有结果
+const first = await cursor.first();       // 获取第一个
+const next = await cursor.next();         // 获取下一个
+const count = await cursor.count();       // 获取数量
+
+// 遍历
+await cursor.forEach(doc => {
+  console.log(doc);
+});
+
+// for await...of
+for await (const doc of cursor) {
+  console.log(doc.name);
+}
+```
 
 | 操作符 | 说明 | 示例 |
 |--------|------|------|

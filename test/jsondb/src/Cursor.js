@@ -1,5 +1,6 @@
 /**
  * 游标类 - 用于处理查询结果
+ * 支持 async/await 异步操作
  */
 
 import { matchQuery } from './Operators.js';
@@ -21,6 +22,7 @@ export class Cursor {
     this.options = { ...options };
     this._executed = false;
     this._results = null;
+    this._currentIndex = 0;
   }
   
   /**
@@ -66,15 +68,15 @@ export class Cursor {
   /**
    * 执行查询并获取结果
    * @private
-   * @returns {Array} 文档数组
+   * @returns {Promise<Array>} 文档数组
    */
-  _execute() {
+  async _execute() {
     if (this._executed) {
       return this._results;
     }
     
     // 获取所有文档
-    let results = this.collection._getDocuments();
+    let results = await this.collection._getDocuments();
     
     // 过滤
     results = results.filter(doc => matchQuery(doc, this.query));
@@ -111,13 +113,10 @@ export class Cursor {
   
   /**
    * 获取下一个文档
-   * @returns {Object|null} 文档或 null
+   * @returns {Promise<Object|null>} 文档或 null
    */
-  next() {
-    const results = this._execute();
-    if (!this._currentIndex) {
-      this._currentIndex = 0;
-    }
+  async next() {
+    const results = await this._execute();
     
     if (this._currentIndex < results.length) {
       return results[this._currentIndex++];
@@ -128,37 +127,55 @@ export class Cursor {
   
   /**
    * 转换为数组
-   * @returns {Array} 文档数组
+   * @returns {Promise<Array>} 文档数组
    */
-  toArray() {
-    return this._execute();
+  async toArray() {
+    return await this._execute();
   }
   
   /**
-   * 遍历每个文档
-   * @param {Function} callback - 回调函数
+   * 遍历每个文档（异步）
+   * @param {Function} callback - 异步回调函数
+   * @returns {Promise<void>}
    */
-  forEach(callback) {
-    const results = this._execute();
-    results.forEach((doc, index) => {
-      callback(doc, index);
-    });
+  async forEach(callback) {
+    const results = await this._execute();
+    for (let i = 0; i < results.length; i++) {
+      await callback(results[i], i);
+    }
   }
   
   /**
    * 获取第一个文档
-   * @returns {Object|null}
+   * @returns {Promise<Object|null>}
    */
-  first() {
-    const results = this._execute();
+  async first() {
+    const results = await this._execute();
     return results.length > 0 ? results[0] : null;
   }
   
   /**
    * 获取文档数量
-   * @returns {number}
+   * @returns {Promise<number>}
    */
-  count() {
-    return this._execute().length;
+  async count() {
+    const results = await this._execute();
+    return results.length;
+  }
+  
+  /**
+   * [Symbol.asyncIterator] 支持 for await...of 循环
+   * @returns {AsyncIterator}
+   */
+  [Symbol.asyncIterator]() {
+    return {
+      next: async () => {
+        const doc = await this.next();
+        return {
+          value: doc,
+          done: doc === null
+        };
+      }
+    };
   }
 }

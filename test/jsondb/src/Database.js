@@ -1,8 +1,10 @@
 /**
  * 数据库类 - 管理数据库和集合
+ * 支持 async/await 异步操作
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from 'fs';
+import { readFile, writeFile, access, mkdir, readdir, rm } from 'fs/promises';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { Collection } from './Collection.js';
 import { ensureDir } from './Utils.js';
@@ -15,32 +17,37 @@ import { DatabaseNotFoundError, CollectionExistsError } from './errors.js';
 export class Database {
   /**
    * @param {string} dbPath - 数据库路径
+   * @param {Object} options - 数据库选项
+   * @param {boolean} options.jsonb - 是否启用 JSONB 二进制存储（默认 false）
    */
-  constructor(dbPath) {
+  constructor(dbPath, options = {}) {
     this.dbPath = dbPath;
     this._metaFile = join(dbPath, '_meta.json');
     this._meta = null;
     this._collections = new Map();
+    this.options = {
+      jsonb: options.jsonb || false  // JSONB 二进制存储模式
+    };
   }
   
   /**
    * 打开数据库
-   * @returns {Database} 返回自身以支持链式调用
+   * @returns {Promise<Database>} 返回自身以支持链式调用
    */
-  open() {
+  async open() {
     // 如果数据库不存在，创建它
     if (!existsSync(this.dbPath)) {
-      mkdirSync(this.dbPath, { recursive: true });
+      await mkdir(this.dbPath, { recursive: true });
       this._meta = {
         name: this.dbNameFromPath,
         version: '1.0.0',
         createdAt: new Date().toISOString(),
         collections: []
       };
-      this._saveMeta();
+      await this._saveMeta();
     } else {
       // 加载元数据
-      this._loadMeta();
+      await this._loadMeta();
     }
     
     return this;
@@ -48,7 +55,6 @@ export class Database {
   
   /**
    * 从路径获取数据库名
-   * @private
    * @returns {string} 数据库名
    */
   get dbNameFromPath() {
@@ -59,12 +65,12 @@ export class Database {
    * 加载元数据
    * @private
    */
-  _loadMeta() {
+  async _loadMeta() {
     if (!existsSync(this._metaFile)) {
       throw new DatabaseNotFoundError(this.dbPath);
     }
     
-    const content = readFileSync(this._metaFile, 'utf-8');
+    const content = await readFile(this._metaFile, 'utf-8');
     this._meta = JSON.parse(content);
   }
   
@@ -72,16 +78,17 @@ export class Database {
    * 保存元数据
    * @private
    */
-  _saveMeta() {
+  async _saveMeta() {
     ensureDir(this._metaFile);
     const content = JSON.stringify(this._meta, null, 2);
-    writeFileSync(this._metaFile, content, 'utf-8');
+    await writeFile(this._metaFile, content, 'utf-8');
   }
   
   /**
    * 关闭数据库
+   * @returns {Promise<void>}
    */
-  close() {
+  async close() {
     // 保存所有集合数据
     for (const collection of this._collections.values()) {
       // Collection 会自动保存
@@ -113,9 +120,9 @@ export class Database {
    * 创建集合
    * @param {string} name - 集合名称
    * @param {Object} options - 选项
-   * @returns {Collection} 集合实例
+   * @returns {Promise<Collection>} 集合实例
    */
-  createCollection(name, options = {}) {
+  async createCollection(name, options = {}) {
     const collectionFile = join(this.dbPath, `${name}.json`);
     
     // 检查集合是否已存在
@@ -135,12 +142,12 @@ export class Database {
     };
     
     ensureDir(collectionFile);
-    writeFileSync(collectionFile, JSON.stringify(initialData, null, 2), 'utf-8');
+    await writeFile(collectionFile, JSON.stringify(initialData, null, 2), 'utf-8');
     
     // 更新元数据
     if (!this._meta.collections.includes(name)) {
       this._meta.collections.push(name);
-      this._saveMeta();
+      await this._saveMeta();
     }
     
     const collection = new Collection(this, name);
@@ -152,9 +159,9 @@ export class Database {
   /**
    * 删除集合
    * @param {string} name - 集合名称
-   * @returns {Object} 删除结果
+   * @returns {Promise<Object>} 删除结果
    */
-  dropCollection(name) {
+  async dropCollection(name) {
     const collectionFile = join(this.dbPath, `${name}.json`);
     
     if (!existsSync(collectionFile)) {
@@ -162,11 +169,11 @@ export class Database {
     }
     
     // 删除文件
-    rmSync(collectionFile);
+    await rm(collectionFile);
     
     // 更新元数据
     this._meta.collections = this._meta.collections.filter(c => c !== name);
-    this._saveMeta();
+    await this._saveMeta();
     
     // 清除缓存
     this._collections.delete(name);
@@ -176,11 +183,11 @@ export class Database {
   
   /**
    * 列出所有集合
-   * @returns {Array<string>} 集合名称数组
+   * @returns {Promise<Array<string>>} 集合名称数组
    */
-  listCollections() {
+  async listCollections() {
     // 从文件系统读取最新的集合列表
-    const files = readdirSync(this.dbPath);
+    const files = await readdir(this.dbPath);
     const collectionFiles = files
       .filter(file => file.endsWith('.json') && file !== '_meta.json')
       .map(file => file.replace('.json', ''));
@@ -190,16 +197,16 @@ export class Database {
   
   /**
    * 获取数据库统计信息
-   * @returns {Object} 统计信息
+   * @returns {Promise<Object>} 统计信息
    */
-  stats() {
-    const collections = this.listCollections();
+  async stats() {
+    const collections = await this.listCollections();
     let totalDocuments = 0;
     let totalSize = 0;
     
     for (const name of collections) {
       const collection = this.collection(name);
-      const stats = collection.stats();
+      const stats = await collection.stats();
       totalDocuments += stats.count;
       totalSize += stats.size;
     }
@@ -209,17 +216,18 @@ export class Database {
       collections: collections.length,
       totalDocuments,
       totalSize,
-      path: this.dbPath
+      path: this.dbPath,
+      jsonb: this.options.jsonb
     };
   }
   
   /**
    * 删除数据库
-   * @returns {Object} 删除结果
+   * @returns {Promise<Object>} 删除结果
    */
-  drop() {
+  async drop() {
     if (existsSync(this.dbPath)) {
-      rmSync(this.dbPath, { recursive: true, force: true });
+      await rm(this.dbPath, { recursive: true, force: true });
     }
     
     this._meta = null;
