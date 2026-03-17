@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔷 Flowchart 流程图编辑器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #667eea;
+      --primary-dark: #5a67d8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg-color: #f5f7fa;
+      --card-bg: #ffffff;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --border-color: #e5e7eb;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+      --shadow-lg: 0 12px 24px rgba(0,0,0,0.15);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    /* 头部 */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      font-size: 32px;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: white;
+      color: var(--primary);
+    }
+
+    .btn-primary:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .divider {
+      width: 1px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* 主体 */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 70vh;
+    }
+
+    /* 编辑器区域 */
+    .editor-pane {
+      border-right: 2px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pane-header {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pane-header span {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .pane-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-icon:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .editor-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    #editor {
+      width: 100%;
+      height: 100%;
+      min-height: 500px;
+      padding: 20px;
+      border: none;
+      resize: none;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background: #fafafa;
+    }
+
+    #editor:focus {
+      outline: none;
+      background: #fff;
+    }
+
+    .status-bar {
+      background: #f8f9fa;
+      padding: 10px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* 预览区域 */
+    .preview-pane {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-wrapper {
+      flex: 1;
+      padding: 20px;
+      overflow: auto;
+      background: #fafafa;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    #flowchart-output {
+      max-width: 100%;
+      overflow: auto;
+    }
+
+    #flowchart-output svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .error-container {
+      background: #fee;
+      border: 2px solid var(--danger);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px;
+      display: none;
+    }
+
+    .error-container.show {
+      display: block;
+    }
+
+    .error-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .error-message {
+      color: var(--danger);
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* 示例选择器 */
+    .example-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .example-btn {
+      padding: 8px 14px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 6px;
+      color: white;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .example-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* 缩放控制 */
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .zoom-level {
+      min-width: 50px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    /* 快速插入 */
+    .quick-insert {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      padding: 15px;
+      z-index: 100;
+    }
+
+    .quick-insert-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+
+    .quick-insert-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .insert-btn {
+      width: 40px;
+      height: 40px;
+      border: 2px solid var(--border-color);
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .insert-btn:hover {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: white;
+      transform: scale(1.1);
+    }
+
+    /* 响应式 */
+    @media (max-width: 1024px) {
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      .editor-pane {
+        border-right: none;
+        border-bottom: 2px solid var(--border-color);
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
+    /* 加载动画 */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 工具提示 */
+    .tooltip {
+      position: relative;
+    }
+
+    .tooltip::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .tooltip:hover::after {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <div class="header-left">
+        <span class="logo">🔷</span>
+        <span class="title">Flowchart 流程图编辑器</span>
+      </div>
+      <div class="header-actions">
+        <div class="example-selector">
+          <button class="example-btn" onclick="loadExample('basic')">📋 基础示例</button>
+          <button class="example-btn" onclick="loadExample('condition')">🔀 条件判断</button>
+          <button class="example-btn" onclick="loadExample('loop')">🔄 循环流程</button>
+          <button class="example-btn" onclick="loadExample('complex')">🔗 复杂流程</button>
+        </div>
+        <div class="divider"></div>
+        <button class="btn btn-secondary" onclick="insertSymbol()" title="插入符号">➕ 插入</button>
+        <button class="btn btn-secondary" onclick="formatCode()" title="格式化代码">✨ 格式化</button>
+        <button class="btn btn-secondary" onclick="clearEditor()" title="清空">🗑️ 清空</button>
+        <div class="divider"></div>
+        <button class="btn btn-primary" onclick="downloadSVG()" title="下载 SVG">📥 SVG</button>
+        <button class="btn btn-primary" onclick="downloadPNG()" title="下载 PNG">🖼️ PNG</button>
+      </div>
+    </header>
+
+    <!-- 主体 -->
+    <div class="main">
+      <!-- 左侧编辑器 -->
+      <div class="editor-pane">
+        <div class="pane-header">
+          <span>📝 代码编辑</span>
+          <div class="pane-actions">
+            <button class="btn-icon tooltip" data-tooltip="撤销" onclick="undo()">↩️</button>
+            <button class="btn-icon tooltip" data-tooltip="重做" onclick="redo()">↪️</button>
+          </div>
+        </div>
+        <div class="editor-wrapper">
+          <textarea 
+            id="editor" 
+            placeholder="在此输入流程图定义语法...
+
+st=>start: 开始
+op=>operation: 操作
+cond=>condition: 条件？
+e=>end: 结束
+
+st->op->cond->e"
+          ></textarea>
+        </div>
+        <div class="status-bar">
+          <span id="status-info">就绪</span>
+          <span id="char-count">0 字符</span>
+        </div>
+      </div>
+
+      <!-- 右侧预览 -->
+      <div class="preview-pane">
+        <div class="pane-header">
+          <span>👁️ 实时预览</span>
+          <div class="pane-actions">
+            <div class="zoom-controls">
+              <button class="btn-icon" onclick="zoomOut()">➖</button>
+              <span class="zoom-level" id="zoom-level">100%</span>
+              <button class="btn-icon" onclick="zoomIn()">➕</button>
+              <button class="btn-icon" onclick="resetZoom()">100%</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-wrapper" id="preview-wrapper">
+          <div id="flowchart-output"></div>
+        </div>
+        <div class="error-container" id="error-container">
+          <div class="error-icon">❌</div>
+          <div class="error-message" id="error-message"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 快速插入面板 -->
+  <div class="quick-insert">
+    <div class="quick-insert-title">快速插入符号</div>
+    <div class="quick-insert-grid">
+      <button class="insert-btn" onclick="insertType('start')" title="开始/结束">⭕</button>
+      <button class="insert-btn" onclick="insertType('operation')" title="操作">⬜</button>
+      <button class="insert-btn" onclick="insertType('inputoutput')" title="输入输出">▱</button>
+      <button class="insert-btn" onclick="insertType('condition')" title="条件判断">◇</button>
+      <button class="insert-btn" onclick="insertType('parallel')" title="并行">∥</button>
+      <button class="insert-btn" onclick="insertArrow('->')" title="箭头">→</button>
+      <button class="insert-btn" onclick="insertArrow('->yes')" title="是箭头">✓</button>
+      <button class="insert-btn" onclick="insertArrow('->no')" title="否箭头">✗</button>
+    </div>
+  </div>
+
+  <!-- 引入 Raphael.js (flowchart.js 依赖) -->
+  <script src="https://cdn.bootcdn.net/ajax/libs/raphael/2.3.0/raphael.min.js"></script>
+  <!-- 引入 flowchart.js -->
+  <script src="https://cdn.bootcdn.net/ajax/libs/flowchart/1.17.1/flowchart.min.js"></script>
+  <script>
+    // 状态管理
+    const state = {
+      diagram: null,
+      zoom: 100,
+      history: [],
+      historyIndex: -1,
+      debounceTimer: null
+    };
+
+    // DOM 元素
+    const editor = document.getElementById('editor');
+    const output = document.getElementById('flowchart-output');
+    const errorContainer = document.getElementById('error-container');
+    const errorMessage = document.getElementById('error-message');
+    const statusInfo = document.getElementById('status-info');
+    const charCount = document.getElementById('char-count');
+    const zoomLevel = document.getElementById('zoom-level');
+    const previewWrapper = document.getElementById('preview-wrapper');
+
+    // 测试 flowchart 是否加载成功
+    console.log('[Flowchart] flowchart object:', typeof flowchart);
+    console.log('[Flowchart] flowchart.parse:', typeof flowchart?.parse);
+    console.log('[Flowchart] Raphael:', typeof Raphael);
+
+    // 示例模板
+    const examples = {
+      basic: `st=>start: 开始
+op1=>operation: 第一步操作
+op2=>operation: 第二步操作
+e=>end: 结束
+
+st->op1->op2->e`,
+
+      condition: `st=>start: 开始
+input=>inputoutput: 输入数据
+cond=>condition: 数据有效？
+op1=>operation: 处理数据
+op2=>operation: 报错提示
+e=>end: 结束
+
+st->input->cond
+cond(yes)->op1->e
+cond(no)->op2->e`,
+
+      loop: `st=>start: 开始
+init=>operation: 初始化 i=0
+cond=>condition: i < 10?
+op=>operation: 执行操作
+inc=>operation: i++
+e=>end: 结束
+
+st->init->cond
+cond(yes)->op->inc->cond
+cond(no)->e`,
+
+      complex: `st=>start: 用户登录
+login=>operation: 输入账号密码
+valid=>condition: 验证通过？
+admin=>condition: 是管理员？
+dashboard=>operation: 进入管理后台
+userPage=>operation: 进入用户页面
+retry=>operation: 重新登录
+error=>operation: 显示错误信息
+e=>end: 结束
+
+st->login->valid
+valid(yes)->admin
+valid(no)->error->retry->login
+admin(yes)->dashboard->e
+admin(no)->userPage->e`
+    };
+
+    // 初始化
+    function init() {
+      // 加载默认示例
+      editor.value = examples.basic;
+      render();
+
+      // 监听输入
+      editor.addEventListener('input', handleInput);
+
+      // 监听键盘事件
+      editor.addEventListener('keydown', handleKeydown);
+
+      // 更新字符计数
+      updateCharCount();
+    }
+
+    // 处理输入
+    function handleInput() {
+      updateCharCount();
+      saveToHistory();
+
+      // 防抖渲染
+      clearTimeout(state.debounceTimer);
+      state.debounceTimer = setTimeout(render, 300);
+    }
+
+    // 处理键盘事件
+    function handleKeydown(e) {
+      // Tab 键缩进
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+        editor.selectionStart = editor.selectionEnd = start + 2;
+        handleInput();
+      }
+
+      // Ctrl+S 保存
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        downloadSVG();
+      }
+
+      // Ctrl+Z 撤销
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        undo();
+      }
+
+      // Ctrl+Y 重做
+      if (e.ctrlKey && e.key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    }
+
+    // 渲染流程图
+    function render() {
+      const code = editor.value.trim();
+
+      if (!code) {
+        output.innerHTML = '<div class="loading"><div class="spinner"></div>等待输入...</div>';
+        hideError();
+        return;
+      }
+
+      try {
+        // 清空输出区域
+        output.innerHTML = '';
+        
+        // 使用 flowchart.parse 解析代码
+        const diagram = flowchart.parse(code);
+        
+        // 创建 SVG 容器
+        const svgContainer = document.createElement('div');
+        svgContainer.id = 'flowchart-svg';
+        output.appendChild(svgContainer);
+        
+        // 使用 drawSVG 方法渲染
+        diagram.drawSVG('flowchart-svg', {
+          'line-width': 2,
+          'line-length': 50,
+          'text-margin': 10,
+          'font-size': 14,
+          'font': 'sans-serif',
+          'line-color': '#333',
+          'element-color': '#667eea',
+          'fill': '#fff',
+          'yes-text': '是',
+          'no-text': '否',
+          'arrow-end': 'block',
+          'symbols': {
+            'start': {
+              'element-color': '#10b981',
+              'fill': '#d1fae5'
+            },
+            'end': {
+              'element-color': '#ef4444',
+              'fill': '#fee2e2'
+            },
+            'condition': {
+              'element-color': '#f59e0b',
+              'fill': '#fef3c7'
+            }
+          }
+        });
+
+        state.diagram = diagram;
+        hideError();
+        updateStatus('✓ 渲染成功');
+      } catch (err) {
+        console.error('[Flowchart Error]:', err);
+        showError(err.message || '渲染失败，请检查语法');
+        updateStatus('❌ 语法错误');
+      }
+    }
+
+    // 显示错误
+    function showError(msg) {
+      errorMessage.textContent = msg;
+      errorContainer.classList.add('show');
+    }
+
+    // 隐藏错误
+    function hideError() {
+      errorContainer.classList.remove('show');
+    }
+
+    // 更新状态
+    function updateStatus(msg) {
+      statusInfo.textContent = msg;
+      setTimeout(() => {
+        statusInfo.textContent = '就绪';
+      }, 2000);
+    }
+
+    // 更新字符计数
+    function updateCharCount() {
+      charCount.textContent = `${editor.value.length} 字符`;
+    }
+
+    // 保存到历史
+    function saveToHistory() {
+      const value = editor.value;
+      // 移除当前索引之后的历史
+      state.history = state.history.slice(0, state.historyIndex + 1);
+      state.history.push(value);
+      state.historyIndex++;
+
+      // 限制历史记录长度
+      if (state.history.length > 50) {
+        state.history.shift();
+        state.historyIndex--;
+      }
+    }
+
+    // 撤销
+    function undo() {
+      if (state.historyIndex > 0) {
+        state.historyIndex--;
+        editor.value = state.history[state.historyIndex];
+        render();
+        updateCharCount();
+        updateStatus('↩️ 已撤销');
+      }
+    }
+
+    // 重做
+    function redo() {
+      if (state.historyIndex < state.history.length - 1) {
+        state.historyIndex++;
+        editor.value = state.history[state.historyIndex];
+        render();
+        updateCharCount();
+        updateStatus('↪️ 已重做');
+      }
+    }
+
+    // 加载示例
+    window.loadExample = function(type) {
+      if (examples[type]) {
+        editor.value = examples[type];
+        saveToHistory();
+        render();
+        updateStatus(`✓ 已加载${type}示例`);
+      }
+    };
+
+    // 插入符号
+    window.insertSymbol = function() {
+      const template = `
+// 在此定义您的符号
+// st=>start: 开始
+// op=>operation: 操作
+// cond=>condition: 条件？
+// io=>inputoutput: 输入输出
+// e=>end: 结束
+// par=>parallel: 并行
+
+// 连接符号
+// st->op->cond->e
+// cond(yes)->op
+// cond(no)->e
+`;
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.value = editor.value.substring(0, start) + template + editor.value.substring(end);
+      editor.selectionStart = editor.selectionEnd = start + template.length;
+      handleInput();
+    };
+
+    // 插入类型
+    window.insertType = function(type) {
+      const id = 'sym' + Date.now();
+      const labels = {
+        'start': '开始',
+        'operation': '操作',
+        'inputoutput': '输入输出',
+        'condition': '条件？',
+        'parallel': '并行'
+      };
+      const text = `${id.slice(0, 2)}=>${type}: ${labels[type]}\n`;
+      insertAtCursor(text);
+    };
+
+    // 插入箭头
+    window.insertArrow = function(arrow) {
+      insertAtCursor(arrow + ' ');
+    };
+
+    // 在光标位置插入文本
+    function insertAtCursor(text) {
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.value = editor.value.substring(0, start) + text + editor.value.substring(end);
+      editor.selectionStart = editor.selectionEnd = start + text.length;
+      handleInput();
+    }
+
+    // 格式化代码
+    window.formatCode = function() {
+      const lines = editor.value.split('\n');
+      const formatted = lines.map(line => line.trim()).filter(line => line).join('\n');
+      editor.value = formatted;
+      render();
+      updateStatus('✨ 已格式化');
+    };
+
+    // 清空编辑器
+    window.clearEditor = function() {
+      if (confirm('确定要清空编辑器吗？')) {
+        editor.value = '';
+        saveToHistory();
+        render();
+        updateStatus('🗑️ 已清空');
+      }
+    };
+
+    // 缩放控制
+    window.zoomIn = function() {
+      state.zoom = Math.min(state.zoom + 10, 200);
+      applyZoom();
+    };
+
+    window.zoomOut = function() {
+      state.zoom = Math.max(state.zoom - 10, 50);
+      applyZoom();
+    };
+
+    window.resetZoom = function() {
+      state.zoom = 100;
+      applyZoom();
+    };
+
+    function applyZoom() {
+      output.style.transform = `scale(${state.zoom / 100})`;
+      output.style.transformOrigin = 'top left';
+      zoomLevel.textContent = `${state.zoom}%`;
+    }
+
+    // 下载 SVG
+    window.downloadSVG = function() {
+      const svgContainer = document.getElementById('flowchart-svg');
+      const svg = svgContainer ? svgContainer.querySelector('svg') : null;
+      if (!svg) {
+        alert('没有可下载的 SVG，请先生成流程图');
+        return;
+      }
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([svgData], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `flowchart_${Date.now()}.svg`;
+      a.click();
+      URL.revokeObjectURL(url);
+      updateStatus('📥 SVG 已下载');
+    };
+
+    // 下载 PNG
+    window.downloadPNG = function() {
+      const svgContainer = document.getElementById('flowchart-svg');
+      const svg = svgContainer ? svgContainer.querySelector('svg') : null;
+      if (!svg) {
+        alert('没有可下载的图片，请先生成流程图');
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const svgData = new XMLSerializer().serializeToString(svg);
+
+      // 获取 SVG 尺寸
+      const svgRect = svg.getBoundingClientRect();
+      canvas.width = svgRect.width * 2;
+      canvas.height = svgRect.height * 2;
+      ctx.scale(2, 2);
+
+      const img = new Image();
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0);
+        const pngUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = `flowchart_${Date.now()}.png`;
+        a.click();
+        updateStatus('🖼️ PNG 已下载');
+      };
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    };
+
+    // 初始化
+    init();
+
+    // 初始化历史记录
+    saveToHistory();
+  </script>
+</body>
+</html>

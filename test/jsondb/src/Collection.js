@@ -3,6 +3,7 @@
  * 支持 async/await 异步操作
  * 支持 JSONB 二进制存储模式
  * 支持 Schema 验证
+ * 支持内存缓存优化
  */
 
 import { readFile, writeFile } from 'fs/promises';
@@ -32,6 +33,12 @@ export class Collection {
     this._schema = null; // Schema 验证
     this._validateOnInsert = true; // 插入时验证
     this._validateOnUpdate = false; // 更新时验证
+    
+    // 内存缓存优化
+    this._cache = null;
+    this._cacheTime = 0;
+    this._cacheTTL = db.options.cacheTTL || 5000; // 默认 5 秒缓存
+    this._dirty = false; // 数据是否被修改
   }
   
   /**
@@ -73,11 +80,18 @@ export class Collection {
   }
   
   /**
-   * 加载集合数据
+   * 加载集合数据（带缓存）
    * @private
    */
   async _load() {
     if (this._data !== null) {
+      return;
+    }
+    
+    // 检查内存缓存
+    const now = Date.now();
+    if (this._cache && (now - this._cacheTime) < this._cacheTTL) {
+      this._data = this._cache;
       return;
     }
     
@@ -116,13 +130,17 @@ export class Collection {
       if (!this._data._indexes) {
         this._data._indexes = {};
       }
+      
+      // 更新缓存
+      this._cache = this._data;
+      this._cacheTime = now;
     } finally {
       this._releaseLock();
     }
   }
   
   /**
-   * 保存集合数据
+   * 保存集合数据（带缓存失效）
    * @private
    */
   async _save() {
@@ -130,8 +148,15 @@ export class Collection {
       return;
     }
     
+    // 标记为脏数据
+    this._dirty = true;
+    
     // 更新元数据
     this._data._meta.count = this._data._documents.length;
+    
+    // 失效缓存
+    this._cache = null;
+    this._cacheTime = 0;
     
     // JSONB 模式：写入二进制文件
     if (this.jsonb) {

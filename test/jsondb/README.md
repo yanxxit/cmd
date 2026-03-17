@@ -110,9 +110,76 @@ console.log(stats.jsonb); // true
 # 运行基础示例
 npm run example
 
-# 运行测试
-npm test
+# 运行高级示例
+npm run example:advanced
+
+# 运行 JSONB 示例
+npm run example:jsonb
+
+# 运行性能测试
+npm run perf
+
+# 启动 Web 管理工具
+npm start
 ```
+
+---
+
+## Web 管理工具
+
+JSONDB 提供了一个功能完整的 Web 管理工具，可以通过浏览器管理数据库。
+
+### 启动 Web 管理工具
+
+```bash
+npm start
+```
+
+然后在浏览器中访问：http://127.0.0.1:3000
+
+### 功能特性
+
+- 📁 **打开数据库** - 选择包含 JSON/JSONB 文件的文件夹
+- 📊 **集合列表** - 显示所有集合及文档数量
+- 🔍 **查询执行** - 支持 MongoDB 风格查询语法
+- 📥 **数据导出** - 支持导出为 CSV 和 XLSX 格式
+- ➕ **插入文档** - 可视化插入新文档
+- 🔄 **实时刷新** - 刷新集合数据
+- 📄 **格式切换** - 支持 JSON 和 JSONB 格式
+- ⬆️ **上传文件** - 支持上传 JSON/JSONB 文件创建集合
+- 💾 **保存更改** - 下载修改的集合
+- ⬇️ **批量下载** - 下载所有集合（JSON/JSONB 格式）
+
+### 查询语法
+
+```javascript
+// 精确匹配
+{ "status": "active" }
+
+// 比较操作符
+{ "age": { "$gt": 25 } }
+{ "salary": { "$gte": 5000, "$lte": 10000 } }
+
+// 逻辑操作符
+{ "$and": [{ "age": { "$gt": 18 } }, { "status": "active" }] }
+{ "$or": [{ "role": "admin" }, { "role": "moderator" }] }
+
+// 数组操作符
+{ "tags": { "$in": ["javascript", "nodejs"] } }
+
+// 正则表达式
+{ "name": { "$regex": "^A" } }
+
+// 查询所有
+{}
+```
+
+### 使用截图
+
+1. 打开数据库文件夹
+2. 选择集合
+3. 执行查询
+4. 导出数据
 
 ---
 

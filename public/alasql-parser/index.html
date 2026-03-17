@@ -463,6 +463,239 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* 教程按钮样式 */
+    .btn-help {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .btn-help:hover {
+      box-shadow: 0 5px 20px rgba(245, 158, 11, 0.4);
+    }
+
+    /* 模态框样式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      max-width: 900px;
+      width: 90%;
+      max-height: 85vh;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-close {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .modal-close:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: rotate(90deg);
+    }
+
+    .modal-body {
+      padding: 25px;
+      overflow-y: auto;
+      max-height: calc(85vh - 70px);
+    }
+
+    .tutorial-section {
+      margin-bottom: 30px;
+    }
+
+    .tutorial-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .tutorial-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tutorial-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+    }
+
+    .syntax-card {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      border-left: 4px solid #667eea;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .syntax-card:hover {
+      background: #f0f3ff;
+      border-left-color: #764ba2;
+      transform: translateX(5px);
+    }
+
+    .syntax-name {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .syntax-code {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      margin-bottom: 8px;
+    }
+
+    .syntax-desc {
+      font-size: 0.85rem;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .syntax-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #667eea;
+      color: white;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      margin-left: auto;
+    }
+
+    .syntax-tag.basic { background: #10b981; }
+    .syntax-tag.intermediate { background: #f59e0b; }
+    .syntax-tag.advanced { background: #ef4444; }
+
+    .quick-start {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 25px;
+      border: 2px solid #0ea5e9;
+    }
+
+    .quick-start h3 {
+      font-size: 1.1rem;
+      color: #0369a1;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .quick-start p {
+      color: #0c4a6e;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .quick-start code {
+      background: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9rem;
+      color: #1e1e1e;
+      display: block;
+      margin-top: 10px;
+    }
+
+    .example-data {
+      background: #fef3c7;
+      border: 1px solid #fbbf24;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+
+    .example-data h4 {
+      font-size: 0.95rem;
+      color: #92400e;
+      margin-bottom: 10px;
+    }
+
+    .example-data pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+    }
   </style>
 </head>
 <body>
@@ -515,6 +748,7 @@ SELECT COUNT(*) AS total FROM ? GROUP BY status"
           <button class="btn" id="runBtn">▶ 执行查询</button>
           <button class="btn btn-outline" id="clearBtn">🗑 清空</button>
           <button class="btn btn-success" id="exportBtn">📥 导出结果</button>
+          <button class="btn btn-help" id="helpBtn">📚 语法教程</button>
         </div>
 
         <div class="success-message" id="successMessage"></div>
@@ -568,10 +802,296 @@ SELECT COUNT(*) AS total FROM ? GROUP BY status"
     </div>
   </div>
 
-  <!-- 引入 AlaSQL -->
-  <script src="https://cdn.jsdelivr.net/npm/alasql@4"></script>
+  <!-- 语法教程模态框 -->
+  <div class="modal-overlay" id="tutorialModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">📚 AlaSQL 语法教程</h2>
+        <button class="modal-close" id="modalClose" title="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <!-- 快速开始 -->
+        <div class="quick-start">
+          <h3>⚡ 快速开始</h3>
+          <p>1. 上传数据文件（Excel、CSV 或 JSON 格式）</p>
+          <p>2. 在 SQL 编辑器中输入查询语句</p>
+          <p>3. 使用 <code>?</code> 占位符代表当前数据源</p>
+          <p>4. 点击"执行查询"按钮查看结果</p>
+          <code>SELECT * FROM ? -- 查询所有数据</code>
+        </div>
 
-  <!-- <script src="/libs/alasql/alasql.min.js"></script> -->
+        <!-- 基础查询 -->
+        <div class="tutorial-section">
+          <h3 class="tutorial-title">🔰 基础查询</h3>
+          <div class="tutorial-grid">
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ?')">
+              <div class="syntax-name">
+                查询全部
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">SELECT * FROM ?</div>
+              <div class="syntax-desc">返回数据源中的所有记录</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT column1, column2 FROM ?')">
+              <div class="syntax-name">
+                选择列
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">SELECT name, age FROM ?</div>
+              <div class="syntax-desc">只返回指定的列，减少数据量</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT DISTINCT column FROM ?')">
+              <div class="syntax-name">
+                去重查询
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">SELECT DISTINCT department FROM ?</div>
+              <div class="syntax-desc">去除重复值，返回唯一结果</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ? LIMIT 10')">
+              <div class="syntax-name">
+                限制结果
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">SELECT * FROM ? LIMIT 10</div>
+              <div class="syntax-desc">只返回前 N 条记录</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 条件筛选 -->
+        <div class="tutorial-section">
+          <h3 class="tutorial-title">🎯 条件筛选 (WHERE)</h3>
+          <div class="tutorial-grid">
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ? WHERE age > 18')">
+              <div class="syntax-name">
+                比较条件
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">SELECT * FROM ? WHERE age > 18</div>
+              <div class="syntax-desc">筛选年龄大于 18 的记录，支持 =, !=, <, >, <=, >=</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ? WHERE status = \'active\' AND score >= 60')">
+              <div class="syntax-name">
+                逻辑与
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">WHERE status = 'active' AND score >= 60</div>
+              <div class="syntax-desc">同时满足多个条件</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ? WHERE status = \'active\' OR status = \'pending\'')">
+              <div class="syntax-name">
+                逻辑或
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">WHERE status = 'active' OR status = 'pending'</div>
+              <div class="syntax-desc">满足任一条件即可</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ? WHERE name LIKE \'%张%\'')">
+              <div class="syntax-name">
+                模糊匹配
+                <span class="syntax-tag intermediate">中级</span>
+              </div>
+              <div class="syntax-code">WHERE name LIKE '%张%'</div>
+              <div class="syntax-desc">%表示任意字符，_表示单个字符</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ? WHERE department IN (\'技术部\', \'销售部\')')">
+              <div class="syntax-name">
+                范围匹配
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">WHERE department IN ('技术部', '销售部')</div>
+              <div class="syntax-desc">匹配列表中的任意值</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ? WHERE age BETWEEN 20 AND 30')">
+              <div class="syntax-name">
+                区间匹配
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">WHERE age BETWEEN 20 AND 30</div>
+              <div class="syntax-desc">匹配 20 到 30 之间的值（包含边界）</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 排序和分页 -->
+        <div class="tutorial-section">
+          <h3 class="tutorial-title">📊 排序与分页</h3>
+          <div class="tutorial-grid">
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ? ORDER BY salary DESC')">
+              <div class="syntax-name">
+                降序排列
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">ORDER BY salary DESC</div>
+              <div class="syntax-desc">按工资降序排列（DESC 降序，ASC 升序）</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ? ORDER BY department ASC, salary DESC')">
+              <div class="syntax-name">
+                多列排序
+                <span class="syntax-tag intermediate">中级</span>
+              </div>
+              <div class="syntax-code">ORDER BY department ASC, salary DESC</div>
+              <div class="syntax-desc">先按部门升序，再按工资降序</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT * FROM ? ORDER BY created_at DESC LIMIT 10 OFFSET 0')">
+              <div class="syntax-name">
+                分页查询
+                <span class="syntax-tag intermediate">中级</span>
+              </div>
+              <div class="syntax-code">LIMIT 10 OFFSET 0</div>
+              <div class="syntax-desc">每页 10 条，取第 1 页（OFFSET 从 0 开始）</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 聚合函数 -->
+        <div class="tutorial-section">
+          <h3 class="tutorial-title">📈 聚合函数</h3>
+          <div class="tutorial-grid">
+            <div class="syntax-card" onclick="useSyntax('SELECT COUNT(*) AS total FROM ?')">
+              <div class="syntax-name">
+                计数
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">SELECT COUNT(*) AS total FROM ?</div>
+              <div class="syntax-desc">统计总记录数，AS 给列起别名</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT SUM(salary) AS totalSalary FROM ?')">
+              <div class="syntax-name">
+                求和
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">SELECT SUM(salary) AS totalSalary FROM ?</div>
+              <div class="syntax-desc">计算工资总和</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT AVG(age) AS avgAge FROM ?')">
+              <div class="syntax-name">
+                平均值
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">SELECT AVG(age) AS avgAge FROM ?</div>
+              <div class="syntax-desc">计算平均年龄</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT MAX(salary), MIN(salary) FROM ?')">
+              <div class="syntax-name">
+                最大最小值
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">SELECT MAX(salary), MIN(salary) FROM ?</div>
+              <div class="syntax-desc">获取最高和最低工资</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分组查询 -->
+        <div class="tutorial-section">
+          <h3 class="tutorial-title">🔢 分组统计 (GROUP BY)</h3>
+          <div class="tutorial-grid">
+            <div class="syntax-card" onclick="useSyntax('SELECT department, COUNT(*) AS count FROM ? GROUP BY department')">
+              <div class="syntax-name">
+                分组计数
+                <span class="syntax-tag intermediate">中级</span>
+              </div>
+              <div class="syntax-code">SELECT department, COUNT(*) AS count FROM ? GROUP BY department</div>
+              <div class="syntax-desc">统计各部门人数</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT department, AVG(salary) AS avgSalary FROM ? GROUP BY department')">
+              <div class="syntax-name">
+                分组聚合
+                <span class="syntax-tag intermediate">中级</span>
+              </div>
+              <div class="syntax-code">SELECT department, AVG(salary) AS avgSalary FROM ? GROUP BY department</div>
+              <div class="syntax-desc">计算各部门平均工资</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT department, COUNT(*) AS count FROM ? GROUP BY department HAVING COUNT(*) > 5')">
+              <div class="syntax-name">
+                分组筛选
+                <span class="syntax-tag advanced">高级</span>
+              </div>
+              <div class="syntax-code">GROUP BY department HAVING COUNT(*) > 5</div>
+              <div class="syntax-desc">HAVING 筛选分组后的结果，显示人数大于 5 的部门</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 数据处理 -->
+        <div class="tutorial-section">
+          <h3 class="tutorial-title">🔄 数据处理</h3>
+          <div class="tutorial-grid">
+            <div class="syntax-card" onclick="useSyntax('SELECT name, UPPER(name) AS upperName FROM ?')">
+              <div class="syntax-name">
+                字符串函数
+                <span class="syntax-tag intermediate">中级</span>
+              </div>
+              <div class="syntax-code">UPPER(name), LOWER(name), LENGTH(name)</div>
+              <div class="syntax-desc">转大写、转小写、计算长度</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT name, salary, salary * 12 AS annualSalary FROM ?')">
+              <div class="syntax-name">
+                计算列
+                <span class="syntax-tag basic">基础</span>
+              </div>
+              <div class="syntax-code">SELECT name, salary, salary * 12 AS annualSalary FROM ?</div>
+              <div class="syntax-desc">计算年薪（支持 + - * / 运算）</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT name, COALESCE(phone, \'未登记\') AS phone FROM ?')">
+              <div class="syntax-name">
+                空值处理
+                <span class="syntax-tag intermediate">中级</span>
+              </div>
+              <div class="syntax-code">COALESCE(phone, '未登记')</div>
+              <div class="syntax-desc">如果 phone 为 NULL，返回默认值</div>
+            </div>
+
+            <div class="syntax-card" onclick="useSyntax('SELECT name, CASE WHEN age < 18 THEN \'未成年\' WHEN age < 60 THEN \'成年\' ELSE \'退休\' END AS status FROM ?')">
+              <div class="syntax-name">
+                条件表达式
+                <span class="syntax-tag advanced">高级</span>
+              </div>
+              <div class="syntax-code">CASE WHEN age < 18 THEN '未成年' ELSE '成年' END</div>
+              <div class="syntax-desc">根据条件返回不同值</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 示例数据 -->
+        <div class="example-data">
+          <h4>📋 示例测试数据</h4>
+          <p style="color: #92400e; font-size: 0.85rem; margin-bottom: 8px;">你可以创建以下 JSON 文件来测试上述查询：</p>
+          <pre>[
+  {"id": 1, "name": "张三", "age": 28, "department": "技术部", "salary": 8000, "status": "active"},
+  {"id": 2, "name": "李四", "age": 35, "department": "销售部", "salary": 6000, "status": "active"},
+  {"id": 3, "name": "王五", "age": 24, "department": "技术部", "salary": 7000, "status": "active"},
+  {"id": 4, "name": "赵六", "age": 42, "department": "人事部", "salary": 5500, "status": "inactive"},
+  {"id": 5, "name": "钱七", "age": 31, "department": "销售部", "salary": 6500, "status": "active"}
+]</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 引入 AlaSQL -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/alasql@4"></script> -->
+
+  <script src="./alasql.js"></script>
   <script src="/libs/xlsx/dist/xlsx.full.min.js"></script>
   <script>
     // 状态管理
@@ -632,6 +1152,37 @@ SELECT COUNT(*) AS total FROM ? GROUP BY status"
     clearBtn.addEventListener('click', clearEditor);
     exportBtn.addEventListener('click', exportResult);
 
+    // 语法教程按钮事件
+    const helpBtn = document.getElementById('helpBtn');
+    const tutorialModal = document.getElementById('tutorialModal');
+    const modalClose = document.getElementById('modalClose');
+
+    helpBtn.addEventListener('click', () => {
+      tutorialModal.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    });
+
+    modalClose.addEventListener('click', () => {
+      tutorialModal.classList.remove('show');
+      document.body.style.overflow = '';
+    });
+
+    // 点击遮罩层关闭
+    tutorialModal.addEventListener('click', (e) => {
+      if (e.target === tutorialModal) {
+        tutorialModal.classList.remove('show');
+        document.body.style.overflow = '';
+      }
+    });
+
+    // ESC 键关闭模态框
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && tutorialModal.classList.contains('show')) {
+        tutorialModal.classList.remove('show');
+        document.body.style.overflow = '';
+      }
+    });
+
     toggleBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         toggleBtns.forEach(b => b.classList.remove('active'));
@@ -663,7 +1214,7 @@ SELECT COUNT(*) AS total FROM ? GROUP BY status"
       try {
         const data = await parseFile(file, ext);
         const sourceName = generateSourceName(file.name);
-        
+
         state.dataSources.push({
           name: sourceName,
           file: file.name,
@@ -683,6 +1234,15 @@ SELECT COUNT(*) AS total FROM ? GROUP BY status"
         showError('解析失败：' + err.message);
       }
     }
+
+    // 使用语法卡片中的 SQL（全局函数）
+    window.useSyntax = function(sql) {
+      sqlEditor.value = sql;
+      tutorialModal.classList.remove('show');
+      document.body.style.overflow = '';
+      sqlEditor.focus();
+      showSuccess('✓ 已填充 SQL 到编辑器，点击"执行查询"运行');
+    };
 
     // 解析文件
     async function parseFile(file, ext) {

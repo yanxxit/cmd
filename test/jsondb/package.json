@@ -21,6 +21,8 @@
     "example": "node examples/basic.js",
     "example:advanced": "node examples/advanced.js",
     "example:jsonb": "node examples/jsonb.js",
+    "perf": "node scripts/performance-sqlite.test.js",
+    "start": "node bin/server.js",
     "link": "npm link"
   },
   "keywords": [
@@ -35,6 +37,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "better-sqlite3": "^12.8.0",
     "commander": "^12.1.0"
   },
   "devDependencies": {

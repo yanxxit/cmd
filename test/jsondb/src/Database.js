@@ -19,6 +19,7 @@ export class Database {
    * @param {string} dbPath - 数据库路径
    * @param {Object} options - 数据库选项
    * @param {boolean} options.jsonb - 是否启用 JSONB 二进制存储（默认 false）
+   * @param {number} options.cacheTTL - 内存缓存过期时间（毫秒，默认 5000）
    */
   constructor(dbPath, options = {}) {
     this.dbPath = dbPath;
@@ -26,7 +27,8 @@ export class Database {
     this._meta = null;
     this._collections = new Map();
     this.options = {
-      jsonb: options.jsonb || false  // JSONB 二进制存储模式
+      jsonb: options.jsonb || false,  // JSONB 二进制存储模式
+      cacheTTL: options.cacheTTL || 5000  // 内存缓存 TTL
     };
   }
   

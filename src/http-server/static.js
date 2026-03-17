@@ -194,6 +194,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(alasqlParserDir, 'index.html'));
   });
 
+  // Flowchart 流程图编辑器前端页面
+  const flowchartEditorDir = path.join(ROOT_DIR, 'public/flowchart-editor');
+  app.use('/flowchart-editor', express.static(flowchartEditorDir));
+  app.get('/flowchart-editor', (req, res) => {
+    res.sendFile(path.join(flowchartEditorDir, 'index.html'));
+  });
+
   // 登录页面
   const loginDir = path.join(ROOT_DIR, 'public/login');
   app.use('/login', express.static(loginDir));
