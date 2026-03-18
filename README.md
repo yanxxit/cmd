@@ -86,6 +86,7 @@ node.js 开发常用的命令行工具，日常使用。
 - [ ] 添加一个聊天室功能，或者实现一个简单的 IM
 - [ ] 基于flowchart实现一个流程图编辑器，cdn 参考：https://www.bootcdn.cn/flowchart/，参考案例：https://flowchart.js.org/，并生成一份文档
 
+- [ ] daisyui + tailwindcss + alpine.js
 
 ## 使用
 

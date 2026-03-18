@@ -58,6 +58,31 @@ export {
   validators
 } from './Schema.js';
 
+// 导出批量操作
+export {
+  BulkOperation,
+  createBulkOp,
+  bulkInsert,
+  bulkUpdate,
+  bulkDelete
+} from './BulkOp.js';
+
+// 导出查询缓存
+export {
+  QueryCache,
+  globalQueryCache,
+  cacheQuery
+} from './QueryCache.js';
+
+// 导出事务
+export {
+  Transaction,
+  TransactionStatus,
+  OperationType,
+  createTransaction,
+  withTransaction
+} from './Transaction.js';
+
 /**
  * 默认导出
  */

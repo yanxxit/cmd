@@ -274,32 +274,47 @@ export class Collection {
   }
   
   /**
-   * 插入多个文档
+   * 插入多个文档（优化版 - 单次写入）
    * @param {Array<Object>} docs - 文档数组
+   * @param {Object} options - 选项
    * @returns {Promise<Object>} 插入结果
    */
-  async insertMany(docs) {
+  async insertMany(docs, options = {}) {
     if (!Array.isArray(docs)) {
       throw new Error('insertMany 需要数组参数');
     }
     
     await this._load();
     
-    // Schema 验证
+    // 批量验证
     if (this._validateOnInsert) {
       for (const doc of docs) {
         this._validate(doc);
       }
     }
     
+    // 批量创建文档（带 _id 和 createdAt）
+    const now = new Date().toISOString();
     const insertedDocs = docs.map(doc => ({
       ...deepClone(doc),
       _id: doc._id || generateId(),
-      createdAt: new Date().toISOString()
+      createdAt: doc.createdAt || now
     }));
     
+    // 单次批量添加
     this._data._documents.push(...insertedDocs);
+    
+    // 更新索引（如果有）
+    if (this._data._meta.indexes?.length > 0) {
+      await this._updateIndexes(insertedDocs, 'insert');
+    }
+    
+    // 单次保存
     await this._save();
+    
+    // 失效缓存
+    this._cache = null;
+    this._cacheTime = 0;
     
     return {
       acknowledged: true,

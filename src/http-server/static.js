@@ -201,6 +201,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(flowchartEditorDir, 'index.html'));
   });
 
+  // Reveal.js 演示文稿编辑器前端页面
+  const revealEditorDir = path.join(ROOT_DIR, 'public/reveal-editor');
+  app.use('/reveal-editor', express.static(revealEditorDir));
+  app.get('/reveal-editor', (req, res) => {
+    res.sendFile(path.join(revealEditorDir, 'index.html'));
+  });
+
   // 登录页面
   const loginDir = path.join(ROOT_DIR, 'public/login');
   app.use('/login', express.static(loginDir));

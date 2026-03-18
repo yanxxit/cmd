@@ -20,6 +20,8 @@ export class Database {
    * @param {Object} options - 数据库选项
    * @param {boolean} options.jsonb - 是否启用 JSONB 二进制存储（默认 false）
    * @param {number} options.cacheTTL - 内存缓存过期时间（毫秒，默认 5000）
+   * @param {boolean} options.enableQueryCache - 是否启用查询结果缓存（默认 true）
+   * @param {number} options.queryCacheTTL - 查询缓存过期时间（毫秒，默认 30000）
    */
   constructor(dbPath, options = {}) {
     this.dbPath = dbPath;
@@ -28,7 +30,9 @@ export class Database {
     this._collections = new Map();
     this.options = {
       jsonb: options.jsonb || false,  // JSONB 二进制存储模式
-      cacheTTL: options.cacheTTL || 5000  // 内存缓存 TTL
+      cacheTTL: options.cacheTTL || 5000,  // 内存缓存 TTL
+      enableQueryCache: options.enableQueryCache !== false,  // 查询结果缓存
+      queryCacheTTL: options.queryCacheTTL || 30000  // 查询缓存 TTL
     };
   }
   
