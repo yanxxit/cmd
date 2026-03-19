@@ -15,7 +15,7 @@ import httpbinApiRouter from './httpbin-api.js';
 import mockApiRouter from './mock-api.js';
 import pgliteExportApiRouter from './pglite-export-api.js';
 import xlsxParserRouter from './xlsx-parser.js';
-import alasqlParserRouter from './alasql-parser.js';
+// import alasqlParserRouter from './alasql-parser.js';
 import aiChatApiRouter from './ai-chat-api.js';
 import appsApiRouter from './apps-api.js';
 import contrastApiRouter from './contrast-api.js';
@@ -80,7 +80,7 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/api/xlsx', xlsxParserRouter);
 
   // 挂载 AlaSQL 解析 API 路由（必须在通用 /api 之前）
-  app.use('/api/alasql', alasqlParserRouter);
+  // app.use('/api/alasql', alasqlParserRouter);
 
   // 挂载认证 API 路由
   app.use('/api/auth', authApiRouter);
@@ -329,6 +329,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 挂载对比学习 API 路由
   app.use('/api/contrast', contrastApiRouter);
+
+  // 2048 游戏页面
+  const game2048Dir = path.join(ROOT_DIR, 'public/2048');
+  app.use('/2048', express.static(game2048Dir));
+  app.get('/2048', (req, res) => {
+    res.sendFile(path.join(game2048Dir, 'index.html'));
+  });
+
+  // Vim 学习游戏页面
+  const vimGameDir = path.join(ROOT_DIR, 'public/vim-game');
+  app.use('/vim-game', express.static(vimGameDir));
+  app.get('/vim-game', (req, res) => {
+    res.sendFile(path.join(vimGameDir, 'index.html'));
+  });
 
   // Markdown 对比编辑器页面
   const markdownEditorDir = path.join(ROOT_DIR, 'public/markdown-editor');
