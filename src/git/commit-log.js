@@ -54,18 +54,36 @@ function sanitizeHash(hash) {
  * @param {Object} options - 选项
  * @param {string} options.date - 日期字符串，如 '2024-01-01' 或 'yesterday'
  * @param {string} options.author - 作者过滤（可选）
+ * @param {boolean} options.noMerges - 是否排除 merge 提交
+ * @param {boolean} options.mine - 是否仅查看自己的提交（排除 merge 记录）
  * @returns {Array} - 提交列表
  */
 export function getCommitsByDate(options = {}) {
-  const { date = 'yesterday', author = '' } = options;
+  const { date = 'yesterday', author = '', noMerges = false, mine = false } = options;
   const { since, until } = parseDateRange(date);
 
   try {
     // 构建命令，支持作者过滤 - 使用 %B 获取完整的提交消息（标题 + 正文）
     let command = `git log --since="${since}" --until="${until}" --pretty=format:"%H|%an|%ae|%ad|%s|%B" --date=format:'%Y-%m-%d %H:%M:%S'`;
 
+    // 排除 merge 提交
+    if (noMerges || mine) {
+      command += ' --no-merges';
+    }
+
     if (author) {
       command += ` --author="${author}"`;
+    }
+
+    // mine 模式：使用当前 git 配置的用户名和邮箱
+    if (mine && !author) {
+      try {
+        const gitName = execSync('git config user.name', { encoding: 'utf-8' }).trim();
+        const gitEmail = execSync('git config user.email', { encoding: 'utf-8' }).trim();
+        command += ` --author="${gitName}" --author="${gitEmail}"`;
+      } catch (e) {
+        // 如果获取不到 git 配置，则不使用作者过滤
+      }
     }
 
     const commitLog = execSync(
@@ -185,9 +203,19 @@ export function getCommitDiff(hash, maxLines = 500) {
     const files = [];
     let currentFile = null;
     let currentContent = [];
+    let pendingOldPath = null;
 
-    for (const line of lines) {
-      // 检测新文件
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // 检测旧文件路径（--- a/ 行）
+      const oldFileMatch = line.match(/^--- a\/(.+)$/);
+      if (oldFileMatch) {
+        pendingOldPath = oldFileMatch[1];
+        continue;
+      }
+      
+      // 检测新文件路径（+++ b/ 行）
       const fileMatch = line.match(/^\+\+\+ b\/(.+)$/);
       if (fileMatch) {
         // 保存上一个文件
@@ -196,18 +224,14 @@ export function getCommitDiff(hash, maxLines = 500) {
           files.push(currentFile);
         }
 
+        const newPath = fileMatch[1];
         currentFile = {
-          path: fileMatch[1],
-          oldPath: null,
+          path: newPath,
+          oldPath: pendingOldPath !== newPath ? pendingOldPath : null,
           content: ''
         };
         currentContent = [];
-
-        // 检查是否有重命名
-        const oldFileMatch = lines[lines.indexOf(line) - 1]?.match(/^--- a\/(.+)$/);
-        if (oldFileMatch && oldFileMatch[1] !== fileMatch[1]) {
-          currentFile.oldPath = oldFileMatch[1];
-        }
+        pendingOldPath = null;
 
         continue;
       }
@@ -229,6 +253,7 @@ export function getCommitDiff(hash, maxLines = 500) {
 
     return files;
   } catch (error) {
+    console.error(`getCommitDiff 错误 (${hash}):`, error.message);
     return [];
   }
 }

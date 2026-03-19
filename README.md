@@ -84,7 +84,7 @@ node.js 开发常用的命令行工具，日常使用。
   - [x] 添加学习案例
   - [ ] 添加一个 web 管理工具，打开文件数据库，罗列出所有的表，选择表，执行查询语句，返回结果，支持导出csv 和 xlsx,支持 json 和 jsonb
 - [ ] 添加一个聊天室功能，或者实现一个简单的 IM
-- [ ] 基于flowchart实现一个流程图编辑器，cdn 参考：https://www.bootcdn.cn/flowchart/，参考案例：https://flowchart.js.org/，并生成一份文档
+- [x] 基于flowchart实现一个流程图编辑器，cdn 参考：https://www.bootcdn.cn/flowchart/，参考案例：https://flowchart.js.org/，并生成一份文档
 
 - [ ] daisyui + tailwindcss + alpine.js
 

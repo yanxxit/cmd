@@ -195,4 +195,5 @@ async function sparseClone(options) {
   console.log('\n\x1b[32m✅ 完成！指定内容已下载并移动到目标位置。\x1b[0m');
 }
 
+export { sparseClone };
 export default sparseClone;

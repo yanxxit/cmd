@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Git 日志可视化</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#667eea',
+            secondary: '#764ba2'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .diff-add { background-color: rgba(46, 160, 67, 0.2); color: #7ec699; }
+    .diff-delete { background-color: rgba(218, 54, 51, 0.2); color: #f97583; }
+    .diff-normal { color: #d4d4d4; }
+    .markdown-body pre { background: #1e1e1e; padding: 16px; border-radius: 8px; overflow-x: auto; }
+    .markdown-body code { font-family: 'Courier New', monospace; }
+    
+    [v-cloak] { display: none; }
+    
+    .commit-card {
+      transition: all 0.2s ease;
+    }
+    .commit-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .file-item {
+      transition: all 0.2s ease;
+    }
+    .file-item:hover {
+      background-color: #f3f4f6;
+      transform: translateX(4px);
+    }
+    
+    .modal-enter-active,
+    .modal-leave-active {
+      transition: opacity 0.3s ease;
+    }
+    .modal-enter-from,
+    .modal-leave-to {
+      opacity: 0;
+    }
+    
+    .slide-enter-active,
+    .slide-leave-active {
+      transition: transform 0.3s ease;
+    }
+    .slide-enter-from {
+      transform: translateX(100%);
+    }
+    .slide-leave-to {
+      transform: translateX(-100%);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-purple-600 via-blue-500 to-indigo-600 min-h-screen">
+  <div id="app" v-cloak class="min-h-screen">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white/10 backdrop-blur-md border-b border-white/20">
+      <div class="max-w-7xl mx-auto px-4 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <span class="text-3xl">📊</span>
+            <div>
+              <h1 class="text-2xl font-bold text-white">Git 日志可视化</h1>
+              <p class="text-white/70 text-sm" v-if="repoInfo">{{ repoInfo.repoName }} - {{ repoInfo.currentBranch }}</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button @click="loadCommits" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition flex items-center space-x-2">
+              <span>🔄</span>
+              <span>刷新</span>
+            </button>
+            <button @click="showSettings = !showSettings" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition">
+              ⚙️ 设置
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 设置面板 -->
+    <div v-if="showSettings" class="bg-white shadow-lg max-w-7xl mx-auto mt-4 mx-4 rounded-lg p-4">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">筛选设置</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">日期</label>
+          <select v-model="filters.date" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent">
+            <option value="today">今天</option>
+            <option value="yesterday">昨天</option>
+            <option value="7days">最近 7 天</option>
+            <option value="30days">最近 30 天</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">作者</label>
+          <input type="text" v-model="filters.author" placeholder="输入作者姓名或邮箱" 
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent">
+        </div>
+        <div class="flex items-center space-x-4">
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" v-model="filters.mine" class="w-4 h-4 text-primary rounded focus:ring-primary">
+            <span class="text-gray-700">仅我的提交</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" v-model="filters.noMerges" class="w-4 h-4 text-primary rounded focus:ring-primary">
+            <span class="text-gray-700">排除 Merge</span>
+          </label>
+        </div>
+      </div>
+      <div class="mt-4 flex justify-end space-x-3">
+        <button @click="applyFilters" class="px-6 py-2 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg transition">
+          应用筛选
+        </button>
+      </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+      <!-- 统计卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-500 text-sm">总提交数</p>
+              <p class="text-3xl font-bold text-gray-800 mt-1">{{ commits.length }}</p>
+            </div>
+            <span class="text-4xl">📝</span>
+          </div>
+        </div>
+        <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-500 text-sm">修改文件</p>
+              <p class="text-3xl font-bold text-green-600 mt-1">{{ totalFiles }}</p>
+            </div>
+            <span class="text-4xl">📁</span>
+          </div>
+        </div>
+        <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-500 text-sm">新增行数</p>
+              <p class="text-3xl font-bold text-green-500 mt-1">+{{ totalInsertions }}</p>
+            </div>
+            <span class="text-4xl">➕</span>
+          </div>
+        </div>
+        <div class="bg-white/90 backdrop-blur rounded-xl p-5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-500 text-sm">删除行数</p>
+              <p class="text-3xl font-bold text-red-500 mt-1">{{ totalDeletions }}</p>
+            </div>
+            <span class="text-4xl">➖</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 加载状态 -->
+      <div v-if="loading" class="text-center py-12">
+        <div class="inline-block animate-spin text-4xl">🔄</div>
+        <p class="text-white text-lg mt-4">正在加载提交记录...</p>
+      </div>
+
+      <!-- 提交列表 -->
+      <div v-else-if="commits.length === 0" class="bg-white/90 backdrop-blur rounded-xl p-12 text-center shadow-lg">
+        <span class="text-6xl block mb-4">📭</span>
+        <h3 class="text-xl font-semibold text-gray-700">暂无提交记录</h3>
+        <p class="text-gray-500 mt-2">在选定日期范围内没有找到提交</p>
+      </div>
+
+      <div v-else class="space-y-4">
+        <div v-for="commit in commits" :key="commit.hash" 
+             class="commit-card bg-white/95 backdrop-blur rounded-xl p-5 shadow-lg cursor-pointer"
+             @click="toggleCommit(commit.hash)">
+          <!-- 提交头部 -->
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center space-x-3 mb-2">
+                <span class="text-lg">{{ expandedCommits.has(commit.hash) ? '🔽' : '▶️' }}</span>
+                <h3 class="text-lg font-semibold text-gray-800">{{ commit.message }}</h3>
+              </div>
+              <div class="flex items-center flex-wrap gap-3 text-sm text-gray-500">
+                <span class="flex items-center space-x-1">
+                  <span>👤</span>
+                  <span>{{ commit.authorName }}</span>
+                </span>
+                <span class="flex items-center space-x-1">
+                  <span>📅</span>
+                  <span>{{ formatDate(commit.date) }}</span>
+                </span>
+                <code class="bg-gray-100 px-2 py-1 rounded text-xs font-mono">{{ commit.shortHash }}</code>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span v-if="commit.summary" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                {{ commit.summary.files }} 文件
+              </span>
+              <span v-if="commit.summary" class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                +{{ commit.summary.insertions }}
+              </span>
+              <span v-if="commit.summary" class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">
+                -{{ commit.summary.deletions }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 展开的详情 -->
+          <div v-if="expandedCommits.has(commit.hash)" class="mt-4 pt-4 border-t border-gray-200">
+            <!-- 文件列表 -->
+            <div v-if="commit.files && commit.files.length > 0">
+              <h4 class="font-semibold text-gray-700 mb-3">修改的文件</h4>
+              <div class="space-y-2">
+                <div v-for="file in commit.files" :key="file.path" 
+                     class="file-item flex items-center justify-between p-3 rounded-lg border border-gray-200 cursor-pointer"
+                     @click.stop="viewFileDiff(commit, file)">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-lg">{{ getFileIcon(file.path) }}</span>
+                    <span class="font-mono text-sm text-gray-700">{{ file.path }}</span>
+                  </div>
+                  <div class="flex items-center space-x-3">
+                    <span class="text-green-600 text-sm">+{{ file.insertions }}</span>
+                    <span class="text-red-600 text-sm">-{{ file.deletions }}</span>
+                    <span class="text-gray-400 text-xs">👁️ 查看差异</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 提交正文 -->
+            <div v-if="commit.fullBody && commit.fullBody !== commit.message" class="mt-4">
+              <h4 class="font-semibold text-gray-700 mb-2">提交详情</h4>
+              <div class="bg-gray-50 rounded-lg p-4 text-gray-700 whitespace-pre-wrap">{{ commit.fullBody }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 文件差异模态框 -->
+    <transition name="modal">
+      <div v-if="showDiffModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+           @click.self="closeDiffModal">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col">
+          <!-- 模态框头部 -->
+          <div class="flex items-center justify-between p-5 border-b border-gray-200">
+            <div class="flex items-center space-x-3">
+              <span class="text-2xl">{{ getFileIcon(currentFile?.path || '') }}</span>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-800">{{ currentFile?.path }}</h3>
+                <p class="text-sm text-gray-500">{{ currentCommit?.shortHash }} - {{ currentCommit?.message }}</p>
+              </div>
+            </div>
+            <button @click="closeDiffModal" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+          </div>
+
+          <!-- 模态框内容 -->
+          <div class="flex-1 overflow-auto p-0">
+            <!-- 差异视图 -->
+            <div class="bg-[#1e1e1e] min-h-[400px]">
+              <div v-if="diffLoading" class="flex items-center justify-center py-12">
+                <div class="text-4xl animate-spin">🔄</div>
+                <span class="text-white ml-3">加载差异...</span>
+              </div>
+              <div v-else-if="currentDiff" class="p-4 font-mono text-sm">
+                <div v-for="(line, index) in diffLines" :key="index"
+                     :class="getDiffLineClass(line)">
+                  <pre class="inline-block w-full">{{ line }}</pre>
+                </div>
+              </div>
+              <div v-else class="flex items-center justify-center py-12">
+                <span class="text-gray-400">无差异内容</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 模态框底部 -->
+          <div class="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+            <div class="flex items-center space-x-4 text-sm text-gray-600">
+              <span v-if="currentFile" class="px-3 py-1 bg-green-100 text-green-700 rounded-full">
+                +{{ currentFile.insertions }}
+              </span>
+              <span v-if="currentFile" class="px-3 py-1 bg-red-100 text-red-700 rounded-full">
+                -{{ currentFile.deletions }}
+              </span>
+            </div>
+            <button @click="copyDiff" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 transition">
+              📋 复制差异
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Toast 提示 -->
+    <transition name="slide">
+      <div v-if="toast.show" 
+           class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        {{ toast.message }}
+      </div>
+    </transition>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        // 状态
+        const commits = ref([]);
+        const loading = ref(false);
+        const expandedCommits = ref(new Set());
+        const showSettings = ref(false);
+        const repoInfo = ref(null);
+        
+        // 筛选器
+        const filters = ref({
+          date: 'yesterday',
+          author: '',
+          mine: false,
+          noMerges: false
+        });
+
+        // 差异模态框
+        const showDiffModal = ref(false);
+        const currentCommit = ref(null);
+        const currentFile = ref(null);
+        const currentDiff = ref('');
+        const diffLoading = ref(false);
+
+        // Toast
+        const toast = ref({ show: false, message: '' });
+
+        // 统计
+        const totalFiles = computed(() => {
+          return commits.value.reduce((sum, c) => sum + (c.summary?.files || 0), 0);
+        });
+
+        const totalInsertions = computed(() => {
+          return commits.value.reduce((sum, c) => sum + (c.summary?.insertions || 0), 0);
+        });
+
+        const totalDeletions = computed(() => {
+          return commits.value.reduce((sum, c) => sum + (c.summary?.deletions || 0), 0);
+        });
+
+        const diffLines = computed(() => {
+          if (!currentDiff.value) return [];
+          return currentDiff.value.split('\n');
+        });
+
+        // 方法
+        const showToast = (message) => {
+          toast.value = { show: true, message };
+          setTimeout(() => {
+            toast.value.show = false;
+          }, 2000);
+        };
+
+        const formatDate = (dateStr) => {
+          const date = new Date(dateStr);
+          const now = new Date();
+          const diff = now - date;
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          
+          if (hours < 1) {
+            const minutes = Math.floor(diff / (1000 * 60));
+            return `${minutes}分钟前`;
+          } else if (hours < 24) {
+            return `${hours}小时前`;
+          } else {
+            return date.toLocaleDateString('zh-CN', { 
+              month: 'short', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          }
+        };
+
+        const getFileIcon = (filePath) => {
+          const ext = filePath.split('.').pop().toLowerCase();
+          const icons = {
+            'js': '🟨', 'jsx': '🟨', 'ts': '📘', 'tsx': '📘',
+            'py': '🐍', 'rb': '💎', 'go': '🔷', 'rs': '🦀',
+            'java': '☕', 'php': '🐘', 'swift': '🍎', 'kt': '🎯',
+            'html': '🌐', 'css': '🎨', 'scss': '🎨', 'less': '🎨',
+            'json': '📋', 'xml': '📋', 'yaml': '⚙️', 'yml': '⚙️',
+            'md': '📝', 'txt': '📄', 'log': '📜',
+            'png': '🖼️', 'jpg': '🖼️', 'gif': '🖼️', 'svg': '🖼️',
+            'sh': '⚡', 'bash': '⚡',
+            'sql': '🗄️', 'sqlite': '🗄️',
+            'env': '🔐', 'key': '🔐',
+            'gitignore': '🙈', 'dockerfile': '🐳', 'makefile': '🔨'
+          };
+          return icons[ext] || '📄';
+        };
+
+        const getDiffLineClass = (line) => {
+          if (line.startsWith('+') && !line.startsWith('+++')) return 'diff-add';
+          if (line.startsWith('-') && !line.startsWith('---')) return 'diff-delete';
+          return 'diff-normal';
+        };
+
+        const loadCommits = async () => {
+          loading.value = true;
+          try {
+            let url = '/api/commits?';
+            
+            if (filters.value.date === '7days') {
+              const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+              url += `since=${since}&`;
+            } else if (filters.value.date === '30days') {
+              const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+              url += `since=${since}&`;
+            } else {
+              url += `date=${filters.value.date}&`;
+            }
+
+            if (filters.value.author) {
+              url += `author=${encodeURIComponent(filters.value.author)}&`;
+            }
+            if (filters.value.mine) {
+              url += 'mine=true&';
+            }
+            if (filters.value.noMerges) {
+              url += 'noMerges=true&';
+            }
+
+            const response = await fetch(url);
+            const result = await response.json();
+            
+            if (result.success) {
+              commits.value = result.data;
+            } else {
+              showToast('加载失败：' + result.error);
+            }
+          } catch (error) {
+            showToast('加载失败：' + error.message);
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        const applyFilters = () => {
+          showSettings.value = false;
+          loadCommits();
+        };
+
+        const toggleCommit = (hash) => {
+          const newSet = new Set(expandedCommits.value);
+          if (newSet.has(hash)) {
+            newSet.delete(hash);
+          } else {
+            newSet.add(hash);
+          }
+          expandedCommits.value = newSet;
+        };
+
+        const viewFileDiff = async (commit, file) => {
+          currentCommit.value = commit;
+          currentFile.value = file;
+          showDiffModal.value = true;
+          diffLoading.value = true;
+          currentDiff.value = '';
+
+          try {
+            // 优先使用查询参数方式的 API（避免 URL 编码问题）
+            const url = `/api/commit-diff?hash=${commit.hash}&filePath=${encodeURIComponent(file.path)}`;
+            console.log('请求 diff:', url);
+            const response = await fetch(url);
+            const result = await response.json();
+            console.log('diff 响应:', result);
+
+            if (result.success && result.data) {
+              currentDiff.value = result.data.content || '';
+            } else {
+              const errorMsg = result.error || '未知错误';
+              const available = result.availableFiles ? `\n可用文件：${result.availableFiles.join(', ')}` : '';
+              currentDiff.value = `// ${errorMsg}${available}`;
+              showToast(errorMsg);
+            }
+          } catch (error) {
+            console.error('加载 diff 失败:', error);
+            showToast('加载差异失败：' + error.message);
+            currentDiff.value = '// 加载失败\n' + error.message;
+          } finally {
+            diffLoading.value = false;
+          }
+        };
+
+        const closeDiffModal = () => {
+          showDiffModal.value = false;
+          currentCommit.value = null;
+          currentFile.value = null;
+          currentDiff.value = '';
+        };
+
+        const copyDiff = () => {
+          if (currentDiff.value) {
+            navigator.clipboard.writeText(currentDiff.value);
+            showToast('差异已复制到剪贴板');
+          }
+        };
+
+        const loadRepoInfo = async () => {
+          try {
+            const response = await fetch('/api/repo');
+            const result = await response.json();
+            if (result.success && result.data) {
+              const remote = result.data.remote;
+              const stats = result.data.stats;
+              repoInfo.value = {
+                repoName: remote ? remote.repoPath : '本地仓库',
+                currentBranch: stats?.currentBranch || 'main'
+              };
+            }
+          } catch (error) {
+            console.error('加载仓库信息失败:', error);
+          }
+        };
+
+        onMounted(() => {
+          loadCommits();
+          loadRepoInfo();
+        });
+
+        return {
+          commits,
+          loading,
+          expandedCommits,
+          showSettings,
+          repoInfo,
+          filters,
+          showDiffModal,
+          currentCommit,
+          currentFile,
+          currentDiff,
+          diffLoading,
+          diffLines,
+          toast,
+          totalFiles,
+          totalInsertions,
+          totalDeletions,
+          formatDate,
+          getFileIcon,
+          getDiffLineClass,
+          loadCommits,
+          applyFilters,
+          toggleCommit,
+          viewFileDiff,
+          closeDiffModal,
+          copyDiff
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
