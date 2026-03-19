@@ -656,74 +656,272 @@
       padding-top: 15px;
     }
 
-    .diff-toggle {
-      background: #f0f0f0;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
+    /* 新的 diff 区域样式 */
+    .diff-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 13px;
-      color: #555;
-      transition: background 0.2s;
+      transition: all 0.2s;
+      margin-bottom: 10px;
     }
 
-    .diff-toggle:hover {
-      background: #e0e0e0;
+    .diff-section-header:hover {
+      background: linear-gradient(135deg, #e8ecf1 0%, #d5d9de 100%);
     }
 
-    .diff-content {
+    .diff-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .diff-icon {
+      font-size: 16px;
+    }
+
+    .diff-count-badge {
+      background: #667eea;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .diff-toggle-icon {
+      font-size: 16px;
+      transition: transform 0.3s;
+      color: #666;
+    }
+
+    .diff-section-header.expanded .diff-toggle-icon {
+      transform: rotate(90deg);
+    }
+
+    .diff-content-wrapper {
       display: none;
-      margin-top: 10px;
     }
 
-    .diff-content.show {
+    .diff-section-header.expanded + .diff-content-wrapper {
       display: block;
     }
 
     .diff-file {
-      margin-bottom: 15px;
+      margin-bottom: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+      background: white;
     }
 
     .diff-file-header {
-      background: #f6f8fa;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-family: 'Courier New', monospace;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e0e0e0;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 13px;
-      font-weight: 600;
+    }
+
+    .diff-file-header:hover {
+      background: #f0f1f3;
+    }
+
+    .diff-file-header.expanded {
+      background: #e8eaf0;
+      border-bottom-color: #667eea;
+    }
+
+    .file-path-icon,
+    .diff-file-path {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .diff-file-path {
+      flex: 1;
+      font-family: 'Courier New', monospace;
       color: #333;
-      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .diff-file-stats {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .diff-stat-add {
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .diff-stat-del {
+      background: #ffebee;
+      color: #c62828;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .diff-file-toggle {
+      font-size: 12px;
+      color: #666;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #f0f0f0;
+      transition: all 0.2s;
+    }
+
+    .diff-file-header:hover .diff-file-toggle {
+      background: #667eea;
+      color: white;
+    }
+
+    .diff-file-content {
+      display: none;
+    }
+
+    .diff-file-header.expanded + .diff-file-content {
+      display: block;
     }
 
     .diff-code {
       background: #1e1e1e;
       color: #d4d4d4;
       padding: 15px;
-      border-radius: 6px;
       overflow-x: auto;
       font-family: 'Courier New', monospace;
       font-size: 12px;
-      line-height: 1.5;
-      max-height: 400px;
+      line-height: 1.6;
+      max-height: 500px;
       overflow-y: auto;
     }
 
     .diff-code .line {
       display: block;
+      padding: 2px 0;
     }
 
     .diff-code .add {
       background: rgba(46, 160, 67, 0.2);
       color: #7ec699;
+      padding: 2px 4px;
+      border-radius: 2px;
     }
 
     .diff-code .delete {
       background: rgba(218, 54, 51, 0.2);
       color: #f97583;
+      padding: 2px 4px;
+      border-radius: 2px;
     }
 
     .diff-code .normal {
       color: #d4d4d4;
+      padding: 2px 4px;
+    }
+
+    /* 文件列表样式 */
+    .commit-files-section {
+      margin: 15px 0;
+    }
+
+    .commit-files-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .files-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
+    }
+
+    .file-item:hover {
+      background: #e8eaf0;
+      transform: translateX(4px);
+      border-left-color: #667eea;
+    }
+
+    .file-path {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .file-icon {
+      font-size: 14px;
+    }
+
+    .file-name {
+      word-break: break-all;
+    }
+
+    .file-stats {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .file-stat {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .file-stat.insertions {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .file-stat.deletions {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .no-diff-hint {
+      text-align: center;
+      padding: 20px;
+      color: #999;
+      font-size: 14px;
     }
 
     /* 增强 diff 视图 */
@@ -1921,13 +2119,13 @@
         <% commits.forEach(function(commit, commitIndex) { %>
           <div class="commit-card" data-commit-index="<%= commitIndex %>">
             <div class="commit-header">
-              <div class="commit-message" onclick="toggleCommit(this)">
-                <% 
+              <div class="commit-message" onclick="toggleCommit(this)" title="点击展开/收起详情">
+                <%
                   // 解析提交类型标签
                   const commitMessage = commit.message;
                   const typeMatch = commitMessage.match(/^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)([:(]?[^):]*)[)?:]?\s*/i);
                   const commitType = typeMatch ? typeMatch[1].toLowerCase() : null;
-                  
+
                   const typeLabels = {
                     'feat': { text: '✨ 功能', color: '#388e3c' },
                     'fix': { text: '🐛 修复', color: '#d32f2f' },
@@ -1941,16 +2139,16 @@
                     'build': { text: '📦 构建', color: '#795548' },
                     'revert': { text: '⏪ 回滚', color: '#f44336' }
                   };
-                  
+
                   const typeLabel = commitType && typeLabels[commitType] ? typeLabels[commitType] : null;
                 %>
                 <% if (typeLabel) { %>
                   <span class="commit-type-badge" style="background: <%= typeLabel.color %>; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-right: 8px;"><%= typeLabel.text %></span>
                 <% } %>
-                <%= commit.message %>
+                <span><%= commit.message %></span>
               </div>
               <div class="commit-meta">
-                <% 
+                <%
                   const authorLink = remoteRepo ? getRepoLink('author', commit.authorName, commit.authorName) : null;
                 %>
                 <% if (authorLink) { %>
@@ -1961,7 +2159,7 @@
                   <span>👤 <%= commit.authorName %></span>
                 <% } %>
                 <span>📅 <%= commit.date %></span>
-                <% 
+                <%
                   const commitLink = remoteRepo ? getRepoLink('commit', commit.shortHash) : null;
                 %>
                 <div class="hash-wrapper" onclick="<%= commitLink ? '' : 'copyHash(event, \'' + commit.shortHash + '\')' %>">
@@ -1978,179 +2176,94 @@
             </div>
 
             <div class="commit-details">
-            <% if (commit.fullBody && commit.fullBody !== commit.message) { %>
-              <div class="commit-body">
-                <div class="commit-body-title">📄 提交详情：</div>
-                <div class="commit-body-content"><%= commit.fullBody %></div>
-              </div>
-            <% } %>
-
-            <% if (includeDiff && commit.diffs && commit.diffs.length > 0) { %>
-              <div class="diff-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
-                  <button class="diff-toggle" onclick="toggleDiff(event, this)">👁️ 查看代码变更</button>
-                  <button class="btn btn-secondary btn-sm" onclick="toggleEnhancedDiff(event, this)">🔍 增强视图</button>
+              <!-- 提交正文 -->
+              <% if (commit.fullBody && commit.fullBody !== commit.message) { %>
+                <div class="commit-body">
+                  <div class="commit-body-title">📄 提交详情：</div>
+                  <div class="commit-body-content"><%= commit.fullBody %></div>
                 </div>
-                <div class="diff-content">
-                  <% commit.diffs.forEach(function(diff, diffIndex) { %>
-                    <div class="diff-file">
-                      <div class="diff-file-header">
-                        <span class="file-path-icon"><%= getFileIcon(diff.path) %></span>
-                        <%= diff.path %>
-                      </div>
-                      <div class="diff-code">
-                        <% diff.content.split('\n').forEach(function(line) { %>
-                          <% if (line.startsWith('+') && !line.startsWith('+++')) { %>
-                            <span class="line add"><%= escapeHtml(line) %></span>
-                          <% } else if (line.startsWith('-') && !line.startsWith('---')) { %>
-                            <span class="line delete"><%= escapeHtml(line) %></span>
-                          <% } else { %>
-                            <span class="line normal"><%= escapeHtml(line) %></span>
-                          <% } %>
-                        <% }); %>
-                      </div>
-                    </div>
-                  <% }); %>
-                </div>
+              <% } %>
 
-                <!-- 增强 diff 视图 -->
-                <div class="enhanced-diff-viewer" id="enhanced-diff-<%= commitIndex %>">
-                  <div class="diff-viewer-toolbar">
-                    <div class="diff-view-mode">
-                      <button class="diff-view-btn active" onclick="switchDiffView(event, 'unified', <%= commitIndex %>)">📄 统一视图</button>
-                      <button class="diff-view-btn" onclick="switchDiffView(event, 'split', <%= commitIndex %>)">📊 并排视图</button>
-                    </div>
-                    <div class="diff-stats">
-                      <%
-                        let commitAdditions = 0;
-                        let commitDeletions = 0;
-                        commit.diffs.forEach(function(diff) {
-                          diff.content.split('\n').forEach(function(line) {
-                            if (line.startsWith('+') && !line.startsWith('+++')) commitAdditions++;
-                            if (line.startsWith('-') && !line.startsWith('---')) commitDeletions++;
-                          });
-                        });
-                      %>
-                      <span class="diff-stat add">➕ <%= commitAdditions %> 新增</span>
-                      <span class="diff-stat delete">➖ <%= commitDeletions %> 删除</span>
-                    </div>
-                  </div>
-                  <div class="diff-content-unified" id="unified-view-<%= commitIndex %>">
-                    <% commit.diffs.forEach(function(diff) { %>
-                      <div style="margin-bottom: 20px;">
-                        <div style="color: #888; margin-bottom: 8px; font-size: 13px;">📁 <%= diff.path %></div>
-                        <%
-                          let lineNum = 1;
-                          diff.content.split('\n').forEach(function(line) {
-                            var lineClass = 'normal';
-                            var displayNum = '';
-                            if (line.startsWith('+') && !line.startsWith('+++')) {
-                              lineClass = 'add';
-                              displayNum = '+';
-                            } else if (line.startsWith('-') && !line.startsWith('---')) {
-                              lineClass = 'delete';
-                              displayNum = '-';
-                            } else if (line.startsWith('@@')) {
-                              lineNum = parseInt(line.match(/\+(\d+)/)?.[1] || lineNum);
-                              displayNum = '...';
-                            } else {
-                              lineNum++;
-                            }
-                        %>
-                        <div class="diff-line <%= lineClass %>">
-                          <span class="line-number"><%= displayNum || lineNum %></span>
-                          <span class="line-content"><%= escapeHtml(line) %></span>
+              <!-- 文件变更统计 -->
+              <% if (commit.files && commit.files.length > 0) { %>
+                <div class="commit-files-section">
+                  <h4 class="commit-files-title">📁 修改的文件 (<%= commit.files.length %>)</h4>
+                  <div class="files-list">
+                    <% commit.files.forEach(function(file) { %>
+                      <div class="file-item" onclick="scrollToFileDiff(<%= commitIndex %>, '<%= escapeHtml(file.path) %>')">
+                        <div class="file-path">
+                          <span class="file-icon"><%= getFileIcon(file.path) %></span>
+                          <span class="file-name"><%= file.path %></span>
                         </div>
-                        <% }); %>
+                        <div class="file-stats">
+                          <span class="file-stat insertions">+<%= file.insertions %></span>
+                          <span class="file-stat deletions">-<%= file.deletions %></span>
+                        </div>
                       </div>
                     <% }); %>
                   </div>
-                  <div class="diff-content-split" id="split-view-<%= commitIndex %>" style="display: none;">
-                    <div class="diff-pane left">
-                      <div style="color: #d32f2f; margin-bottom: 10px; font-weight: 600;">删除的行</div>
-                      <% commit.diffs.forEach(function(diff) { %>
-                        <div style="margin-bottom: 15px;">
-                          <div style="color: #888; font-size: 11px; margin-bottom: 5px;"><%= diff.path %></div>
-                          <%
-                            let leftLineNum = 1;
-                            diff.content.split('\n').forEach(function(line) {
-                              if (line.startsWith('-') && !line.startsWith('---')) {
-                          %>
-                          <div class="diff-line delete">
-                            <span class="line-number"><%= leftLineNum++ %></span>
-                            <span class="line-content"><%= escapeHtml(line) %></span>
-                          </div>
-                          <% } else if (!line.startsWith('+') && !line.startsWith('@@')) {
-                                leftLineNum++;
-                              }
-                            });
-                          %>
-                        </div>
-                      <% }); %>
+                </div>
+              <% } %>
+
+              <!-- 代码变更 Diff（始终嵌入） -->
+              <% if (commit.diffs && commit.diffs.length > 0) { %>
+                <div class="diff-section">
+                  <div class="diff-section-header" onclick="toggleDiffSection(event, this)">
+                    <div class="diff-section-title">
+                      <span class="diff-icon">🔀</span>
+                      <span>代码变更</span>
+                      <span class="diff-count-badge"><%= commit.diffs.length %> 个文件</span>
                     </div>
-                    <div class="diff-pane right">
-                      <div style="color: #388e3c; margin-bottom: 10px; font-weight: 600;">新增的行</div>
-                      <% commit.diffs.forEach(function(diff) { %>
-                        <div style="margin-bottom: 15px;">
-                          <div style="color: #888; font-size: 11px; margin-bottom: 5px;"><%= diff.path %></div>
-                          <%
-                            let rightLineNum = 1;
-                            diff.content.split('\n').forEach(function(line) {
-                              if (line.startsWith('+') && !line.startsWith('+++')) {
-                          %>
-                          <div class="diff-line add">
-                            <span class="line-number"><%= rightLineNum++ %></span>
-                            <span class="line-content"><%= escapeHtml(line) %></span>
+                    <span class="diff-toggle-icon">▶</span>
+                  </div>
+                  <div class="diff-content-wrapper">
+                    <div class="diff-content">
+                      <% commit.diffs.forEach(function(diff, diffIndex) { %>
+                        <div class="diff-file" data-file-path="<%= escapeHtml(diff.path) %>">
+                          <div class="diff-file-header" onclick="toggleDiffFile(event, this)">
+                            <span class="file-path-icon"><%= getFileIcon(diff.path) %></span>
+                            <span class="diff-file-path"><%= diff.path %></span>
+                            <span class="diff-file-stats">
+                              <%
+                                var diffAdditions = 0;
+                                var diffDeletions = 0;
+                                diff.content.split('\n').forEach(function(line) {
+                                  if (line.startsWith('+') && !line.startsWith('+++')) diffAdditions++;
+                                  if (line.startsWith('-') && !line.startsWith('---')) diffDeletions++;
+                                });
+                              %>
+                              <span class="diff-stat-add">+<%= diffAdditions %></span>
+                              <span class="diff-stat-del">-<%= diffDeletions %></span>
+                            </span>
+                            <span class="diff-file-toggle">👁️ 查看</span>
                           </div>
-                          <% } else if (!line.startsWith('-') && !line.startsWith('@@')) {
-                                rightLineNum++;
-                              }
-                            });
-                          %>
+                          <div class="diff-file-content">
+                            <div class="diff-code">
+                              <% diff.content.split('\n').forEach(function(line) { %>
+                                <% if (line.startsWith('+') && !line.startsWith('+++')) { %>
+                                  <span class="line add"><%= escapeHtml(line) %></span>
+                                <% } else if (line.startsWith('-') && !line.startsWith('---')) { %>
+                                  <span class="line delete"><%= escapeHtml(line) %></span>
+                                <% } else { %>
+                                  <span class="line normal"><%= escapeHtml(line) %></span>
+                                <% } %>
+                              <% }); %>
+                            </div>
+                          </div>
                         </div>
                       <% }); %>
                     </div>
                   </div>
                 </div>
-              </div>
-            <% } %>
-            </div>
-
-            <!-- 始终显示：统计信息和文件列表 -->
-            <div class="commit-summary-section">
-            <% if (commit.summary) { %>
-              <div class="commit-stats">
-                <span class="stat-badge files">📁 <%= commit.summary.files %> 个文件</span>
-                <span class="stat-badge insertions">+<%= commit.summary.insertions %> 行</span>
-                <span class="stat-badge deletions">-<%= commit.summary.deletions %> 行</span>
-              </div>
-            <% } %>
-
-            <% if (commit.files && commit.files.length > 0) { %>
-              <div class="files-list">
-                <div class="files-title">变更文件：</div>
-                <% commit.files.forEach(function(file) { %>
-                  <div class="file-item" onclick="openFileModal('<%= commit.hash %>', '<%= file.path.replace(/'/g, "\\'") %>', '<%= commit.shortHash %>')">
-                    <span class="file-path">
-                      <span class="file-icon"><%= getFileIcon(file.path) %></span>
-                      <%= file.path %>
-                    </span>
-                    <div class="file-changes">
-                      <% if (file.insertions > 0) { %>
-                        <span style="color: #388e3c;">+<%= file.insertions %></span>
-                      <% } %>
-                      <% if (file.deletions > 0) { %>
-                        <span style="color: #d32f2f;">-<%= file.deletions %></span>
-                      <% } %>
-                    </div>
-                  </div>
-                <% }); %>
-              </div>
-            <% } %>
+              <% } else { %>
+                <div class="no-diff-hint">
+                  <span>💭 暂无代码变更或变更内容未嵌入</span>
+                </div>
+              <% } %>
             </div>
           </div>
         <% }); %>
-        
+
         <!-- 无搜索结果提示 -->
         <div class="no-results" id="noResults" style="display: none;">
           😕 没有找到匹配的提交记录
@@ -2192,11 +2305,23 @@
 
   <script>
     // 文件元数据（用于导出 JSON）
-    const fileMetadata = <%= fileMetadata || '{}' %>;
+    const fileMetadata = <%- fileMetadata || '{}' %>;
     
     // 远程仓库信息
-    const remoteRepo = <%= remoteRepo ? JSON.stringify(remoteRepo) : 'null' %>;
-
+    const remoteRepo = <%- remoteRepo ? JSON.stringify(remoteRepo) : 'null' %>;
+    
+    // 作者统计
+    const authorStats = <%- authorStats || '[]' %>;
+    
+    // 文件类型统计
+    const fileTypeStats = <%- fileTypeStats || '[]' %>;
+    
+    // 小时分布
+    const hourDistribution = <%- hourDistribution || '[]' %>;
+    
+    // 每日统计
+    const dailyStats = <%- dailyStats || '[]' %>;
+    
     // 存储所有提交数据用于排序和过滤
     const allCommitsData = [];
 
@@ -2297,15 +2422,36 @@
     /**
      * 切换提交详情展开/收起状态
      */
-    function toggleCommit(title) {
-      const card = title.closest('.commit-card');
+    function toggleCommit(element) {
+      // 阻止事件冒泡
+      if (event) event.stopPropagation();
+      
+      console.log('toggleCommit clicked:', element);
+      
+      // 向上查找 commit-card
+      let card = element.closest('.commit-card');
+      
+      if (!card) {
+        // 尝试其他方式查找
+        card = document.querySelector('.commit-card');
+        if (!card) {
+          console.error('未找到 commit-card');
+          return;
+        }
+      }
+      
+      console.log('found card:', card);
+      
       const isExpanded = card.classList.contains('expanded');
+      console.log('toggleCommit:', isExpanded ? '收起' : '展开');
 
       if (isExpanded) {
         card.classList.remove('expanded');
       } else {
         card.classList.add('expanded');
       }
+      
+      console.log('new expanded:', card.classList.contains('expanded'));
     }
 
     /**
@@ -2412,6 +2558,57 @@
         content.classList.add('show');
         button.textContent = '🙈 隐藏代码变更';
       }
+    }
+
+    /**
+     * 切换 Diff 区域展开/收起（新的）
+     */
+    function toggleDiffSection(event, header) {
+      event.stopPropagation();
+      header.classList.toggle('expanded');
+    }
+
+    /**
+     * 切换单个 Diff 文件展开/收起
+     */
+    function toggleDiffFile(event, header) {
+      event.stopPropagation();
+      header.classList.toggle('expanded');
+    }
+
+    /**
+     * 滚动到指定的文件 Diff
+     */
+    function scrollToFileDiff(commitIndex, filePath) {
+      // 先展开提交卡片
+      const card = document.querySelector(`.commit-card[data-commit-index="${commitIndex}"]`);
+      if (card && !card.classList.contains('expanded')) {
+        card.classList.add('expanded');
+      }
+
+      // 展开 Diff 区域
+      const diffSection = card.querySelector('.diff-section-header');
+      if (diffSection && !diffSection.classList.contains('expanded')) {
+        diffSection.classList.add('expanded');
+      }
+
+      // 找到对应的文件并展开
+      setTimeout(() => {
+        const fileElement = card.querySelector(`.diff-file[data-file-path="${filePath}"]`);
+        if (fileElement) {
+          const fileHeader = fileElement.querySelector('.diff-file-header');
+          if (fileHeader && !fileHeader.classList.contains('expanded')) {
+            fileHeader.classList.add('expanded');
+          }
+          // 滚动到该文件
+          fileElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // 高亮一下
+          fileElement.style.boxShadow = '0 0 0 2px #667eea';
+          setTimeout(() => {
+            fileElement.style.boxShadow = '';
+          }, 2000);
+        }
+      }, 300);
     }
 
     /**

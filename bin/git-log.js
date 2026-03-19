@@ -24,6 +24,9 @@ function formatDateDisplay(date) {
   if (date === 'yesterday') {
     return dayjs().subtract(1, 'day').format('YYYY-MM-DD');
   }
+  if (date === 'today') {
+    return dayjs().format('YYYY-MM-DD');
+  }
   return dayjs(date).format('YYYY-MM-DD');
 }
 

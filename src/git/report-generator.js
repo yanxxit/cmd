@@ -4,9 +4,11 @@ import fs from 'fs/promises';
 import ejs from 'ejs';
 import dayjs from 'dayjs';
 import { getRemoteRepoInfo, getRepoStats } from './repo-info.js';
+import { getCommitDiff } from './commit-log.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = path.resolve(__dirname, '..');
+// 项目根目录是 src 的父目录的父目录 (src/git -> src -> project root)
+const PROJECT_ROOT = path.resolve(__dirname, '../..');
 
 /**
  * 生成 HTML 报告
@@ -130,6 +132,18 @@ export async function generateHTMLReport(commits, date, includeDiff, outputPath,
   // 加载 EJS 模板
   const templatePath = path.resolve(PROJECT_ROOT, 'templates', 'git-log.ejs');
   const template = await fs.readFile(templatePath, 'utf-8');
+
+  // 为每个 commit 添加 diff 数据（用于嵌入到 HTML）
+  for (const commit of commits) {
+    if (!commit.diffs && commit.hash) {
+      // 如果没有 diff 数据，尝试获取
+      try {
+        commit.diffs = getCommitDiff(commit.hash);
+      } catch (e) {
+        commit.diffs = [];
+      }
+    }
+  }
 
   // 文件图标映射函数
   function getFileIcon(filePath) {

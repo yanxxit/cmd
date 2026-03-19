@@ -8,7 +8,7 @@
     "it-cmd": "bin/command.js",
     "x-git-clone": "bin/git-clone.js",
     "x-git-sparse": "bin/git-sparse.js",
-    "x-git-log": "bin/x-git-log.js",
+    "x-git-log": "bin/git-log.js",
     "x-git-log-server": "bin/git-log-server.js",
     "x-ask": "bin/ask.js",
     "x-chat": "bin/chat.js",
