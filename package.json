@@ -28,7 +28,9 @@
     "x-kill-port": "bin/kill-port.js",
     "x-who-port": "bin/who-port.js",
     "x-scan-ports": "bin/scan-ports.js",
-    "x-system-top": "bin/system-top.js"
+    "x-system-top": "bin/system-top.js",
+    "x-key-listen": "bin/key-listen.js",
+    "key-listen": "bin/key-listen.js"
   },
   "scripts": {
     "clear": "npm unlink",
