@@ -1312,9 +1312,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   // 输入卡片
   inputCard: {
-    borderRadius: 12,
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+    borderRadius: 0,
+    boxShadow: 'none',
     overflow: 'hidden',
+    background: 'transparent',
+    border: 'none',
   },
   cardHeader: {
     display: 'flex',
