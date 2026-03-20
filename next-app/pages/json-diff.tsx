@@ -941,43 +941,41 @@ export default function JsonDiffPage() {
             <span style={styles.headerIcon}>🔀</span>
             <span style={styles.headerText}>JSON 对比工具</span>
           </div>
-          <p style={styles.headerDesc}>快速对比两个 JSON 数据的差异，支持实时高亮显示</p>
+          <div style={styles.headerActions}>
+            <Space size="small">
+              <Button type="primary" icon={<SyncOutlined />} onClick={handleCompare} loading={loading} size="small">
+                对比
+              </Button>
+              <Button icon={<PlusOutlined />} onClick={handleLoadExample} size="small">
+                示例
+              </Button>
+              <Button icon={<SwapOutlined />} onClick={handleSwap} size="small">
+                交换
+              </Button>
+              <Button icon={<UndoOutlined />} onClick={handleClear} size="small">
+                重置
+              </Button>
+              <div style={styles.switchWrapper}>
+                <span style={styles.switchLabel}>隐藏相同项</span>
+                <Switch checked={hideSame} onChange={handleToggleHideSame} size="small" checkedChildren="开" unCheckedChildren="关" />
+              </div>
+            </Space>
+          </div>
         </div>
-      </div>
-
-      {/* 操作区域 - 一体化设计 */}
-      <div style={styles.actionBar}>
-        <div style={styles.actionBarLeft}>
-          <Button type="primary" icon={<SyncOutlined />} onClick={handleCompare} loading={loading} size="large">
-            开始对比
-          </Button>
-          <Button icon={<PlusOutlined />} onClick={handleLoadExample} size="large">
-            加载示例
-          </Button>
-          <Button icon={<SwapOutlined />} onClick={handleSwap} size="large">
-            交换
-          </Button>
-          <Button icon={<UndoOutlined />} onClick={handleClear} size="large">
-            重置
-          </Button>
-        </div>
-        <div style={styles.actionBarRight}>
-          <span style={styles.switchLabel}>隐藏相同项</span>
-          <Switch checked={hideSame} onChange={handleToggleHideSame} checkedChildren="开" unCheckedChildren="关" />
-        </div>
+        <p style={styles.headerDesc}>快速对比两个 JSON 数据的差异，支持实时高亮显示</p>
       </div>
 
       {/* 输入区域 */}
-      <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+      <Row gutter={[24, 24]} style={{ flex: 1, minHeight: 'calc(100vh - 180px)' }}>
         <Col xs={24} lg={12}>
-          <Card style={styles.inputCard} bodyStyle={{ padding: 0 }}>
+          <Card style={{ ...styles.inputCard, height: '100%' }} bodyStyle={{ padding: 0, height: '100%' }}>
             <div style={styles.cardHeader}>
               <span style={styles.cardTitle}>📄 原始 JSON</span>
               <Button type="text" size="small" onClick={() => handleFormat('left')}>
                 ✨ 格式化
               </Button>
             </div>
-            <div style={styles.inputWrapper}>
+            <div style={{ ...styles.inputWrapper, height: 'calc(100% - 50px)' }}>
               <HighlightEditor
                 value={leftJson}
                 onChange={setLeftJson}
@@ -988,14 +986,14 @@ export default function JsonDiffPage() {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card style={styles.inputCard} bodyStyle={{ padding: 0 }}>
+          <Card style={{ ...styles.inputCard, height: '100%' }} bodyStyle={{ padding: 0, height: '100%' }}>
             <div style={styles.cardHeader}>
               <span style={styles.cardTitle}>📄 目标 JSON</span>
               <Button type="text" size="small" onClick={() => handleFormat('right')}>
                 ✨ 格式化
               </Button>
             </div>
-            <div style={styles.inputWrapper}>
+            <div style={{ ...styles.inputWrapper, height: 'calc(100% - 50px)' }}>
               <HighlightEditor
                 value={rightJson}
                 onChange={setRightJson}
@@ -1252,18 +1250,20 @@ const HighlightEditor: React.FC<HighlightEditorProps> = ({
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    maxWidth: 1400,
+    maxWidth: 1600,
     margin: '0 auto',
     padding: '24px 20px',
     minHeight: '100vh',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    display: 'flex',
+    flexDirection: 'column',
   },
   // 头部区域
   header: {
     background: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 16,
-    padding: '28px 32px',
-    marginBottom: 20,
+    padding: '24px 28px',
+    marginBottom: 24,
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
     backdropFilter: 'blur(10px)',
   },
@@ -1273,17 +1273,31 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: 16,
+    marginBottom: 12,
   },
   headerTitle: {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 600,
     color: '#1a1a1a',
   },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  switchWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    paddingLeft: 12,
+    marginLeft: 8,
+    borderLeft: '1px solid #e8e8e8',
+  },
   headerIcon: {
-    fontSize: 32,
+    fontSize: 28,
   },
   headerText: {
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -1294,37 +1308,7 @@ const styles: Record<string, React.CSSProperties> = {
   headerDesc: {
     margin: 0,
     color: '#666',
-    fontSize: 15,
-    fontWeight: 400,
-  },
-  // 操作区域
-  actionBar: {
-    background: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    padding: '16px 24px',
-    marginBottom: 24,
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  actionBarLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  actionBarRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-  },
-  switchLabel: {
-    color: '#555',
     fontSize: 14,
-    fontWeight: 500,
   },
   // 输入卡片
   inputCard: {
@@ -1347,5 +1331,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   inputWrapper: {
     background: '#fff',
+    flex: 1,
+    minHeight: 'calc(100vh - 200px)',
   },
 };
