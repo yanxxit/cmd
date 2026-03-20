@@ -246,6 +246,7 @@
       display: inline-block;
       font-size: 12px;
       transition: transform 0.3s;
+      transform: rotate(90deg);
     }
 
     .commit-card.expanded .commit-message::before {
@@ -253,7 +254,7 @@
     }
 
     .commit-details {
-      display: none;
+      display: block;
       margin-top: 15px;
       padding-top: 15px;
       border-top: 1px solid #e0e0e0;
@@ -706,7 +707,7 @@
     }
 
     .diff-content-wrapper {
-      display: none;
+      display: block;
     }
 
     .diff-section-header.expanded + .diff-content-wrapper {
@@ -796,7 +797,7 @@
     }
 
     .diff-file-content {
-      display: none;
+      display: block;
     }
 
     .diff-file-header.expanded + .diff-file-content {
@@ -1446,7 +1447,7 @@
     }
 
     .timeline-day-commits {
-      display: none;
+      display: block;
       padding-left: 20px;
     }
 
@@ -1695,7 +1696,7 @@
     }
 
     .author-card-details {
-      display: none;
+      display: block;
       padding: 0 15px 15px;
       border-top: 1px solid #e0e0e0;
     }
@@ -2085,11 +2086,11 @@
         </select>
       </div>
       <div class="toolbar-row">
-        <button class="btn btn-secondary" onclick="expandAllCommits()">
-          📖 展开全部
-        </button>
         <button class="btn btn-secondary" onclick="collapseAllCommits()">
           📕 收起全部
+        </button>
+        <button class="btn btn-secondary" onclick="expandAllCommits()">
+          📖 展开全部
         </button>
         <button class="btn btn-secondary" id="showDiffBtn" onclick="toggleAllDiffs()">
           👁️ 显示所有 Diff
@@ -2189,8 +2190,8 @@
                 <div class="commit-files-section">
                   <h4 class="commit-files-title">📁 修改的文件 (<%= commit.files.length %>)</h4>
                   <div class="files-list">
-                    <% commit.files.forEach(function(file) { %>
-                      <div class="file-item" onclick="scrollToFileDiff(<%= commitIndex %>, '<%= escapeHtml(file.path) %>')">
+                    <% commit.files.forEach(function(file, fileIndex) { %>
+                      <div class="file-item" onclick="toggleFileDiff(<%= commitIndex %>, <%= fileIndex %>, '<%= escapeHtml(file.path) %>')">
                         <div class="file-path">
                           <span class="file-icon"><%= getFileIcon(file.path) %></span>
                           <span class="file-name"><%= file.path %></span>
@@ -2198,6 +2199,7 @@
                         <div class="file-stats">
                           <span class="file-stat insertions">+<%= file.insertions %></span>
                           <span class="file-stat deletions">-<%= file.deletions %></span>
+                          <span class="file-toggle-icon" style="margin-left:8px;font-size:12px;">▶</span>
                         </div>
                       </div>
                     <% }); %>
@@ -2219,7 +2221,7 @@
                   <div class="diff-content-wrapper">
                     <div class="diff-content">
                       <% commit.diffs.forEach(function(diff, diffIndex) { %>
-                        <div class="diff-file" data-file-path="<%= escapeHtml(diff.path) %>">
+                        <div class="diff-file" data-file-index="<%= diffIndex %>" data-file-path="<%= escapeHtml(diff.path) %>">
                           <div class="diff-file-header" onclick="toggleDiffFile(event, this)">
                             <span class="file-path-icon"><%= getFileIcon(diff.path) %></span>
                             <span class="diff-file-path"><%= diff.path %></span>
@@ -2425,12 +2427,10 @@
     function toggleCommit(element) {
       // 阻止事件冒泡
       if (event) event.stopPropagation();
-      
-      console.log('toggleCommit clicked:', element);
-      
+
       // 向上查找 commit-card
       let card = element.closest('.commit-card');
-      
+
       if (!card) {
         // 尝试其他方式查找
         card = document.querySelector('.commit-card');
@@ -2439,19 +2439,9 @@
           return;
         }
       }
-      
-      console.log('found card:', card);
-      
-      const isExpanded = card.classList.contains('expanded');
-      console.log('toggleCommit:', isExpanded ? '收起' : '展开');
 
-      if (isExpanded) {
-        card.classList.remove('expanded');
-      } else {
-        card.classList.add('expanded');
-      }
-      
-      console.log('new expanded:', card.classList.contains('expanded'));
+      // 始终展开，不收起
+      card.classList.add('expanded');
     }
 
     /**
@@ -2459,20 +2449,9 @@
      */
     function toggleTimelineDay(header) {
       const day = header.closest('.timeline-day');
-      const isExpanded = day.classList.contains('expanded');
-
-      // 关闭其他展开的日期
-      document.querySelectorAll('.timeline-day.expanded').forEach(d => {
-        if (d !== day) {
-          d.classList.remove('expanded');
-        }
-      });
-
-      if (isExpanded) {
-        day.classList.remove('expanded');
-      } else {
-        day.classList.add('expanded');
-      }
+      
+      // 始终展开，不收起
+      day.classList.add('expanded');
     }
 
     /**
@@ -2481,6 +2460,14 @@
     function expandAllCommits() {
       document.querySelectorAll('.commit-card:not(.hidden)').forEach(card => {
         card.classList.add('expanded');
+      });
+      // 展开所有 Diff 区域
+      document.querySelectorAll('.diff-section-header').forEach(header => {
+        header.classList.add('expanded');
+      });
+      // 展开所有文件 Diff
+      document.querySelectorAll('.diff-file-header').forEach(header => {
+        header.classList.add('expanded');
       });
       showToast('📖 已展开全部');
     }
@@ -2492,15 +2479,24 @@
       document.querySelectorAll('.commit-card').forEach(card => {
         card.classList.remove('expanded');
       });
+      // 收起所有 Diff 区域
+      document.querySelectorAll('.diff-section-header').forEach(header => {
+        header.classList.remove('expanded');
+      });
+      // 收起所有文件 Diff
+      document.querySelectorAll('.diff-file-header').forEach(header => {
+        header.classList.remove('expanded');
+      });
       showToast('📕 已收起全部');
     }
 
     /**
-     * 展开/收起作者卡片
+     * 切换作者卡片展开/收起状态
      */
     function toggleAuthorCard(header) {
       const card = header.closest('.author-stat-card');
-      card.classList.toggle('expanded');
+      // 始终展开，不收起
+      card.classList.add('expanded');
     }
 
     /**
@@ -2565,7 +2561,8 @@
      */
     function toggleDiffSection(event, header) {
       event.stopPropagation();
-      header.classList.toggle('expanded');
+      // 始终展开，不收起
+      header.classList.add('expanded');
     }
 
     /**
@@ -2573,42 +2570,66 @@
      */
     function toggleDiffFile(event, header) {
       event.stopPropagation();
-      header.classList.toggle('expanded');
+      // 始终展开，不收起
+      header.classList.add('expanded');
     }
 
     /**
-     * 滚动到指定的文件 Diff
+     * 切换文件对应的 Diff 展开/收起
      */
-    function scrollToFileDiff(commitIndex, filePath) {
-      // 先展开提交卡片
+    function toggleFileDiff(commitIndex, fileIndex, filePath) {
+      // 找到对应的提交卡片
       const card = document.querySelector(`.commit-card[data-commit-index="${commitIndex}"]`);
-      if (card && !card.classList.contains('expanded')) {
-        card.classList.add('expanded');
+      if (!card) {
+        console.error('未找到提交卡片:', commitIndex);
+        return;
       }
+
+      // 展开提交卡片
+      card.classList.add('expanded');
 
       // 展开 Diff 区域
       const diffSection = card.querySelector('.diff-section-header');
-      if (diffSection && !diffSection.classList.contains('expanded')) {
+      if (diffSection) {
         diffSection.classList.add('expanded');
       }
 
-      // 找到对应的文件并展开
+      // 找到对应的文件 diff 并展开
       setTimeout(() => {
-        const fileElement = card.querySelector(`.diff-file[data-file-path="${filePath}"]`);
+        const fileElement = card.querySelector(`.diff-file[data-file-index="${fileIndex}"]`);
         if (fileElement) {
           const fileHeader = fileElement.querySelector('.diff-file-header');
-          if (fileHeader && !fileHeader.classList.contains('expanded')) {
+          if (fileHeader) {
+            // 始终展开
             fileHeader.classList.add('expanded');
+            // 滚动到该文件
+            fileElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 高亮一下
+            fileElement.style.boxShadow = '0 0 0 2px #667eea';
+            setTimeout(() => {
+              fileElement.style.boxShadow = '';
+            }, 2000);
+            showToast('📁 已定位：' + filePath);
           }
-          // 滚动到该文件
-          fileElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // 高亮一下
-          fileElement.style.boxShadow = '0 0 0 2px #667eea';
-          setTimeout(() => {
-            fileElement.style.boxShadow = '';
-          }, 2000);
+        } else {
+          // 如果找不到对应的 diff，尝试通过路径查找
+          const fileElementByPath = card.querySelector(`.diff-file[data-file-path="${filePath}"]`);
+          if (fileElementByPath) {
+            const fileHeader = fileElementByPath.querySelector('.diff-file-header');
+            if (fileHeader) {
+              fileHeader.classList.add('expanded');
+              fileElementByPath.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              fileElementByPath.style.boxShadow = '0 0 0 2px #667eea';
+              setTimeout(() => {
+                fileElementByPath.style.boxShadow = '';
+              }, 2000);
+              showToast('📁 已定位：' + filePath);
+            }
+          } else {
+            showToast('⚠️ 未找到该文件的 Diff');
+          }
         }
-      }, 300);
+      }, 100);
     }
 
     /**
@@ -2616,20 +2637,29 @@
      */
     function toggleAllDiffs() {
       const btn = document.getElementById('showDiffBtn');
-      const diffContents = document.querySelectorAll('.diff-content');
-      const firstDiff = diffContents[0];
-      
-      if (firstDiff && firstDiff.classList.contains('show')) {
+      const diffSections = document.querySelectorAll('.diff-section-header');
+      const firstDiff = diffSections[0];
+
+      // 检查当前是否有 Diff 是展开的
+      const hasExpandedDiff = Array.from(diffSections).some(header => 
+        header.classList.contains('expanded')
+      );
+
+      if (hasExpandedDiff) {
         // 隐藏所有
-        diffContents.forEach(content => {
-          content.classList.remove('show');
+        diffSections.forEach(header => {
+          header.classList.remove('expanded');
         });
         btn.textContent = '👁️ 显示所有 Diff';
         showToast('🙈 已隐藏所有 Diff');
       } else {
         // 显示所有
-        diffContents.forEach(content => {
-          content.classList.add('show');
+        diffSections.forEach(header => {
+          header.classList.add('expanded');
+        });
+        // 同时展开所有文件 Diff
+        document.querySelectorAll('.diff-file-header').forEach(header => {
+          header.classList.add('expanded');
         });
         btn.textContent = '🙈 隐藏所有 Diff';
         showToast('👁️ 已显示所有 Diff');
