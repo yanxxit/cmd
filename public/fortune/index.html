@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔮 在线算命 - 生辰八字测算</title>
+  <style>
+    :root {
+      --primary: #8b5cf6;
+      --primary-dark: #7c3aed;
+      --secondary: #f59e0b;
+      --bg-dark: #1e1b2e;
+      --bg-card: #2d2640;
+      --bg-input: #3d3252;
+      --text-primary: #f3f4f6;
+      --text-secondary: #a78bfa;
+      --success: #10b981;
+      --border: #4c3d6e;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #312e81 50%, var(--bg-dark) 100%);
+      min-height: 100vh;
+      color: var(--text-primary);
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* 头部 */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 30px 20px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, var(--secondary), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    /* 导航标签 */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .tab-btn {
+      padding: 12px 24px;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 1rem;
+    }
+
+    .tab-btn:hover {
+      background: var(--bg-input);
+      border-color: var(--primary);
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-color: var(--primary);
+    }
+
+    /* 内容区域 */
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    @media (max-width: 900px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 卡片 */
+    .card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 30px;
+      border: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: var(--secondary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* 表单 */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    /* 按钮 */
+    .btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+    }
+
+    /* 结果展示 */
+    .result-box {
+      background: var(--bg-input);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .result-title {
+      font-size: 1.2rem;
+      color: var(--secondary);
+      margin-bottom: 15px;
+    }
+
+    /* 八字展示 */
+    .bazi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .bazi-pillar {
+      text-align: center;
+      padding: 15px;
+      background: var(--bg-card);
+      border-radius: 10px;
+      border: 2px solid var(--border);
+    }
+
+    .bazi-pillar .gan {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--secondary);
+      margin-bottom: 5px;
+    }
+
+    .bazi-pillar .zhi {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .bazi-pillar .label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    /* 五行展示 */
+    .wuxing-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .wuxing-item {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .wuxing-item.jin { background: #fbbf24; color: #000; }
+    .wuxing-item.mu { background: #10b981; color: #fff; }
+    .wuxing-item.shui { background: #3b82f6; color: #fff; }
+    .wuxing-item.huo { background: #ef4444; color: #fff; }
+    .wuxing-item.tu { background: #92400e; color: #fff; }
+
+    .wuxing-item.missing {
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      text-decoration: line-through;
+    }
+
+    /* 运势项目 */
+    .fortune-item {
+      padding: 15px;
+      background: var(--bg-card);
+      border-radius: 10px;
+      margin-bottom: 15px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .fortune-item h4 {
+      color: var(--secondary);
+      margin-bottom: 8px;
+    }
+
+    .fortune-item p {
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .fortune-item .rating {
+      color: var(--secondary);
+      font-size: 1.2rem;
+      margin-top: 8px;
+    }
+
+    /* 生肖展示 */
+    .zodiac-display {
+      text-align: center;
+      padding: 20px;
+      background: var(--bg-card);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .zodiac-icon {
+      font-size: 4rem;
+      margin-bottom: 10px;
+    }
+
+    .zodiac-name {
+      font-size: 1.5rem;
+      color: var(--secondary);
+      font-weight: bold;
+    }
+
+    /* 隐藏/显示 */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* 动画 */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-box {
+      animation: fadeIn 0.5s ease;
+    }
+
+    /*  footer */
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <h1>🔮 在线算命</h1>
+      <p>生辰八字测算 · 五行分析 · 运势预测</p>
+    </header>
+
+    <!-- 导航标签 -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('bazi')">生辰八字</button>
+      <button class="tab-btn" onclick="switchTab('wuxing')">五行分析</button>
+      <button class="tab-btn" onclick="switchTab('fortune')">运势预测</button>
+      <button class="tab-btn" onclick="switchTab('name')">姓名测试</button>
+      <button class="tab-btn" onclick="switchTab('daily')">每日运势</button>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="content">
+      <!-- 左侧输入区 -->
+      <div class="card">
+        <h2 class="card-title">📝 基本信息</h2>
+        
+        <div class="form-group">
+          <label>姓名</label>
+          <input type="text" id="name" placeholder="请输入姓名">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>性别</label>
+            <select id="gender">
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>生肖</label>
+            <select id="zodiac">
+              <option value="">自动计算</option>
+              <option value="rat">🐭 鼠</option>
+              <option value="ox">🐮 牛</option>
+              <option value="tiger">🐯 虎</option>
+              <option value="rabbit">🐰 兔</option>
+              <option value="dragon">🐲 龙</option>
+              <option value="snake">🐍 蛇</option>
+              <option value="horse">🐴 马</option>
+              <option value="goat">🐑 羊</option>
+              <option value="monkey">🐵 猴</option>
+              <option value="rooster">🐔 鸡</option>
+              <option value="dog">🐶 狗</option>
+              <option value="pig">🐷 猪</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>出生日期</label>
+            <input type="date" id="birthdate">
+          </div>
+          <div class="form-group">
+            <label>出生时间</label>
+            <input type="time" id="birthtime">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>出生地点</label>
+          <input type="text" id="birthplace" placeholder="省市区">
+        </div>
+
+        <button class="btn" onclick="calculate()">🔮 开始测算</button>
+
+        <!-- 姓名测试专用 -->
+        <div id="name-test-input" style="display: none; margin-top: 20px;">
+          <div class="form-group">
+            <label>要测试的姓名</label>
+            <input type="text" id="test-name" placeholder="请输入姓名">
+          </div>
+          <button class="btn" onclick="testName()">📝 测试姓名</button>
+        </div>
+      </div>
+
+      <!-- 右侧结果区 -->
+      <div class="card">
+        <h2 class="card-title">📊 测算结果</h2>
+        <div id="result">
+          <p style="color: var(--text-secondary); text-align: center; padding: 40px;">
+            请填写信息后点击测算按钮
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 -->
+    <footer class="footer">
+      <p>🔮 本工具仅供娱乐参考 · 命运掌握在自己手中</p>
+    </footer>
+  </div>
+
+  <script>
+    // 天干
+    const TIAN_GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+    // 地支
+    const DI_ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+    // 生肖
+    const ZODIAC = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
+    // 五行
+    const WU_XING = {
+      '甲': '木', '乙': '木',
+      '丙': '火', '丁': '火',
+      '戊': '土', '己': '土',
+      '庚': '金', '辛': '金',
+      '壬': '水', '癸': '水',
+      '子': '水', '丑': '土',
+      '寅': '木', '卯': '木',
+      '辰': '土', '巳': '火',
+      '午': '火', '未': '土',
+      '申': '金', '酉': '金',
+      '戌': '土', '亥': '水'
+    };
+    // 五行属性颜色类
+    const WU_XING_CLASS = {
+      '金': 'jin', '木': 'mu', '水': 'shui', '火': 'huo', '土': 'tu'
+    };
+
+    // 切换标签
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // 显示/隐藏姓名测试输入
+      const nameTestInput = document.getElementById('name-test-input');
+      if (tab === 'name') {
+        nameTestInput.style.display = 'block';
+      } else {
+        nameTestInput.style.display = 'none';
+      }
+    }
+
+    // 计算生辰八字
+    function calculate() {
+      const name = document.getElementById('name').value || '缘主';
+      const gender = document.getElementById('gender').value;
+      const birthdate = document.getElementById('birthdate').value;
+      const birthtime = document.getElementById('birthtime').value;
+      const birthplace = document.getElementById('birthplace').value || '未知';
+
+      if (!birthdate) {
+        alert('请选择出生日期！');
+        return;
+      }
+
+      const birth = new Date(birthdate);
+      if (birthtime) {
+        const [hours, minutes] = birthtime.split(':');
+        birth.setHours(parseInt(hours), parseInt(minutes));
+      }
+
+      // 计算八字
+      const bazi = calculateBazi(birth);
+      
+      // 计算五行
+      const wuxing = calculateWuxing(bazi);
+      
+      // 计算生肖
+      const zodiac = ZODIAC[birth.getFullYear() % 12];
+      
+      // 生成结果
+      let html = `
+        <div class="result-box">
+          <h3 class="result-title">👤 基本信息</h3>
+          <p><strong>姓名：</strong>${name}</p>
+          <p><strong>性别：</strong>${gender === 'male' ? '男' : '女'}</p>
+          <p><strong>生肖：</strong>${zodiac}</p>
+          <p><strong>公历：</strong>${birthdate} ${birthtime || ''}</p>
+          <p><strong>出生地：</strong>${birthplace}</p>
+        </div>
+
+        <div class="zodiac-display">
+          <div class="zodiac-icon">${getZodiacIcon(zodiac)}</div>
+          <div class="zodiac-name">属${zodiac}</div>
+        </div>
+
+        <div class="result-box">
+          <h3 class="result-title">📜 生辰八字</h3>
+          <div class="bazi-grid">
+            <div class="bazi-pillar">
+              <div class="gan">${bazi.year.gan}</div>
+              <div class="zhi">${bazi.year.zhi}</div>
+              <div class="label">年柱</div>
+            </div>
+            <div class="bazi-pillar">
+              <div class="gan">${bazi.month.gan}</div>
+              <div class="zhi">${bazi.month.zhi}</div>
+              <div class="label">月柱</div>
+            </div>
+            <div class="bazi-pillar">
+              <div class="gan">${bazi.day.gan}</div>
+              <div class="zhi">${bazi.day.zhi}</div>
+              <div class="label">日柱</div>
+            </div>
+            <div class="bazi-pillar">
+              <div class="gan">${bazi.hour.gan}</div>
+              <div class="zhi">${bazi.hour.zhi}</div>
+              <div class="label">时柱</div>
+            </div>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">
+            八字：${bazi.year.gan}${bazi.year.zhi} ${bazi.month.gan}${bazi.month.zhi} ${bazi.day.gan}${bazi.day.zhi} ${bazi.hour.gan}${bazi.hour.zhi}
+          </p>
+        </div>
+
+        <div class="result-box">
+          <h3 class="result-title">⚖️ 五行分析</h3>
+          <p><strong>五行个数：</strong></p>
+          <div class="wuxing-list">
+            ${renderWuxingCount(wuxing)}
+          </div>
+          <p style="margin-top: 15px;"><strong>五行属性：</strong>${analyzeWuxing(wuxing)}</p>
+          <p><strong>日主天干：</strong><span class="wuxing-item ${WU_XING_CLASS[WU_XING[bazi.day.gan]]}">${bazi.day.gan}</span> (${WU_XING[bazi.day.gan]})</p>
+        </div>
+
+        <div class="result-box">
+          <h3 class="result-title">🔮 运势分析</h3>
+          ${getFortuneAnalysis(bazi, wuxing, zodiac)}
+        </div>
+      `;
+
+      document.getElementById('result').innerHTML = html;
+    }
+
+    // 计算八字
+    function calculateBazi(date) {
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const hour = date.getHours();
+
+      // 年柱
+      const yearGanIndex = (year - 4) % 10;
+      const yearZhiIndex = (year - 4) % 12;
+      const year = {
+        gan: TIAN_GAN[yearGanIndex < 0 ? yearGanIndex + 10 : yearGanIndex],
+        zhi: DI_ZHI[yearZhiIndex < 0 ? yearZhiIndex + 12 : yearZhiIndex]
+      };
+
+      // 月柱（简化计算）
+      const monthGanIndex = ((yearGanIndex % 5) * 2 + 2) % 10;
+      const monthZhiIndex = (month + 2) % 12;
+      const month = {
+        gan: TIAN_GAN[monthGanIndex],
+        zhi: DI_ZHI[monthZhiIndex]
+      };
+
+      // 日柱（简化计算，实际应查万年历）
+      const baseDate = new Date(1900, 0, 1);
+      const daysDiff = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
+      const dayGanIndex = daysDiff % 10;
+      const dayZhiIndex = daysDiff % 12;
+      const day = {
+        gan: TIAN_GAN[dayGanIndex < 0 ? dayGanIndex + 10 : dayGanIndex],
+        zhi: DI_ZHI[dayZhiIndex < 0 ? dayZhiIndex + 12 : dayZhiIndex]
+      };
+
+      // 时柱
+      const hourZhiIndex = Math.floor((hour + 1) % 12);
+      const hourGanIndex = ((dayGanIndex % 5) * 2 + hourZhiIndex) % 10;
+      const hour = {
+        gan: TIAN_GAN[hourGanIndex < 0 ? hourGanIndex + 10 : hourGanIndex],
+        zhi: DI_ZHI[hourZhiIndex]
+      };
+
+      return { year, month, day, hour };
+    }
+
+    // 计算五行
+    function calculateWuxing(bazi) {
+      const gans = [bazi.year.gan, bazi.month.gan, bazi.day.gan, bazi.hour.gan];
+      const zhis = [bazi.year.zhi, bazi.month.zhi, bazi.day.zhi, bazi.hour.zhi];
+      
+      const count = { '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 };
+      
+      gans.forEach(gan => {
+        count[WU_XING[gan]]++;
+      });
+      
+      zhis.forEach(zhi => {
+        count[WU_XING[zhi]]++;
+      });
+      
+      return count;
+    }
+
+    // 渲染五行个数
+    function renderWuxingCount(wuxing) {
+      return ['金', '木', '水', '火', '土'].map(wx => {
+        const count = wuxing[wx];
+        const missing = count === 0;
+        return `<span class="wuxing-item ${WU_XING_CLASS[wx]}${missing ? ' missing' : ''}">${wx}: ${count || '缺'}</span>`;
+      }).join('');
+    }
+
+    // 分析五行
+    function analyzeWuxing(wuxing) {
+      const total = Object.values(wuxing).reduce((a, b) => a + b, 0);
+      const max = Math.max(...Object.values(wuxing));
+      const min = Math.min(...Object.values(wuxing));
+      
+      let analysis = [];
+      
+      if (min === 0) {
+        const missing = Object.keys(wuxing).filter(k => wuxing[k] === 0);
+        analysis.push(`五行缺${missing.join('、')}`);
+      }
+      
+      if (max >= 3) {
+        const strong = Object.keys(wuxing).filter(k => wuxing[k] >= 3);
+        analysis.push(`${strong.join('、')}旺`);
+      }
+      
+      if (total >= 7) {
+        analysis.push('五行较平衡');
+      }
+      
+      return analysis.join('，') || '五行分布均匀';
+    }
+
+    // 获取生肖图标
+    function getZodiacIcon(zodiac) {
+      const icons = {
+        '鼠': '🐭', '牛': '🐮', '虎': '🐯', '兔': '🐰',
+        '龙': '🐲', '蛇': '🐍', '马': '🐴', '羊': '🐑',
+        '猴': '🐵', '鸡': '🐔', '狗': '🐶', '猪': '🐷'
+      };
+      return icons[zodiac] || '🐾';
+    }
+
+    // 运势分析
+    function getFortuneAnalysis(bazi, wuxing, zodiac) {
+      const dayMaster = bazi.day.gan;
+      const dayMasterWx = WU_XING[dayMaster];
+      
+      // 性格分析
+      const personality = {
+        '甲': '为人正直，有责任感，意志坚定',
+        '乙': '温柔善良，适应力强，善于沟通',
+        '丙': '热情开朗，积极向上，有领导力',
+        '丁': '细心谨慎，思维敏捷，有创造力',
+        '戊': '诚实守信，稳重可靠，包容力强',
+        '己': '温和谦逊，做事认真，有耐心',
+        '庚': '刚毅果断，有决断力，重义气',
+        '辛': '聪明机智，口才好，有魅力',
+        '壬': '智慧过人，灵活多变，善谋略',
+        '癸': '内敛深沉，有洞察力，重感情'
+      };
+
+      // 运势预测
+      const fortunes = [
+        {
+          title: '💼 事业运',
+          content: getCareerFortune(dayMasterWx, wuxing),
+          rating: getRating(dayMasterWx)
+        },
+        {
+          title: '💰 财运',
+          content: getWealthFortune(dayMasterWx, wuxing),
+          rating: getRating(dayMasterWx, true)
+        },
+        {
+          title: '❤️ 感情运',
+          content: getLoveFortune(dayMasterWx),
+          rating: getRating(dayMasterWx, false, true)
+        },
+        {
+          title: '🏥 健康运',
+          content: getHealthFortune(wuxing),
+          rating: getHealthRating(wuxing)
+        }
+      ];
+
+      return `
+        <div style="margin-bottom: 20px;">
+          <p><strong>日主天干：</strong>${dayMaster}（${dayMasterWx}）</p>
+          <p style="margin-top: 10px;"><strong>性格特点：</strong>${personality[dayMaster]}</p>
+        </div>
+        
+        ${fortunes.map(f => `
+          <div class="fortune-item">
+            <h4>${f.title}</h4>
+            <p>${f.content}</p>
+            <div class="rating">${f.rating}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function getCareerFortune(wx, wuxing) {
+      const careers = {
+        '金': '适合金融、法律、管理等职业，有领导才能',
+        '木': '适合教育、文化、艺术等领域，有创造力',
+        '水': '适合贸易、物流、咨询等行业，善于沟通',
+        '火': '适合销售、演艺、餐饮等行业，热情外向',
+        '土': '适合房地产、建筑、农业等领域，稳重可靠'
+      };
+      return careers[wx] + (wuxing[wx] >= 2 ? '，五行助力强' : '');
+    }
+
+    function getWealthFortune(wx, wuxing) {
+      const wealths = {
+        '金': '财运较好，善于理财投资',
+        '木': '财运平稳，正财为主',
+        '水': '财运波动，偏财运佳',
+        '火': '财运旺盛，但需注意守财',
+        '土': '财运稳定，积累能力强'
+      };
+      return wealths[wx];
+    }
+
+    function getLoveFortune(wx) {
+      const loves = {
+        '金': '感情专一，重视承诺',
+        '木': '温柔体贴，善解人意',
+        '水': '浪漫多情，魅力十足',
+        '火': '热情奔放，主动积极',
+        '土': '忠诚可靠，顾家爱家'
+      };
+      return loves[wx];
+    }
+
+    function getHealthFortune(wuxing) {
+      const weak = Object.keys(wuxing).filter(k => wuxing[k] === 0 || wuxing[k] === 1);
+      if (weak.length > 0) {
+        return `注意${weak.join('、')}相关的健康问题，建议多补充相应元素`;
+      }
+      return '五行较平衡，健康状况良好';
+    }
+
+    function getRating(wx, isWealth = false, isLove = false) {
+      const ratings = {
+        '金': isWealth ? '⭐⭐⭐⭐' : isLove ? '⭐⭐⭐' : '⭐⭐⭐⭐',
+        '木': isWealth ? '⭐⭐⭐' : isLove ? '⭐⭐⭐⭐' : '⭐⭐⭐⭐',
+        '水': isWealth ? '⭐⭐⭐⭐' : isLove ? '⭐⭐⭐⭐⭐' : '⭐⭐⭐',
+        '火': isWealth ? '⭐⭐⭐⭐' : isLove ? '⭐⭐⭐⭐' : '⭐⭐⭐',
+        '土': isWealth ? '⭐⭐⭐⭐' : isLove ? '⭐⭐⭐' : '⭐⭐⭐⭐'
+      };
+      return ratings[wx] || '⭐⭐⭐';
+    }
+
+    function getHealthRating(wuxing) {
+      const weak = Object.values(wuxing).filter(v => v <= 1).length;
+      if (weak === 0) return '⭐⭐⭐⭐⭐';
+      if (weak <= 2) return '⭐⭐⭐⭐';
+      return '⭐⭐⭐';
+    }
+
+    // 姓名测试
+    function testName() {
+      const name = document.getElementById('test-name').value.trim();
+      if (!name) {
+        alert('请输入姓名！');
+        return;
+      }
+
+      const score = calculateNameScore(name);
+      
+      const html = `
+        <div class="result-box">
+          <h3 class="result-title">📝 姓名：${name}</h3>
+          <div style="text-align: center; padding: 30px;">
+            <div style="font-size: 4rem; color: var(--secondary); font-weight: bold;">
+              ${score.score}分
+            </div>
+            <div style="color: var(--text-secondary); margin-top: 10px;">
+              ${score.rating}
+            </div>
+          </div>
+          <p><strong>笔画数：</strong>${score.strokes}</p>
+          <p><strong>五格：</strong>${score.wuge}</p>
+          <p style="margin-top: 15px;"><strong>分析：</strong>${score.analysis}</p>
+        </div>
+      `;
+
+      document.getElementById('result').innerHTML = html;
+    }
+
+    // 计算姓名分数
+    function calculateNameScore(name) {
+      // 简化计算，实际应使用康熙字典笔画
+      const strokes = name.length * 10; // 简化
+      const score = 60 + (name.length * 5) + (name.charCodeAt(0) % 30);
+      
+      let rating = '一般';
+      if (score >= 90) rating = '大吉';
+      else if (score >= 80) rating = '吉';
+      else if (score >= 70) rating = '半吉';
+      
+      const analyses = [
+        '姓名音律和谐，寓意美好',
+        '字形优美，笔画搭配合理',
+        '五行配置较佳，有助于运势',
+        '名字独特，容易被人记住'
+      ];
+
+      return {
+        score: Math.min(score, 100),
+        rating,
+        strokes: strokes + '画',
+        wuge: '天格-' + (strokes/2) + ' 人格-' + (strokes/2+1) + ' 地格-' + (strokes/2),
+        analysis: analyses[score % analyses.length]
+      };
+    }
+
+    // 设置默认日期
+    document.getElementById('birthdate').valueAsDate = new Date();
+  </script>
+</body>
+</html>

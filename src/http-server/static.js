@@ -344,6 +344,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(vimGameDir, 'index.html'));
   });
 
+  // 在线算命工具页面
+  const fortuneDir = path.join(ROOT_DIR, 'public/fortune');
+  app.use('/fortune', express.static(fortuneDir));
+  app.get('/fortune', (req, res) => {
+    res.sendFile(path.join(fortuneDir, 'index.html'));
+  });
+
+  // JSON 对比工具 v2 页面（Vue 3 版）
+  const jsonDiffV2Dir = path.join(ROOT_DIR, 'public/json-diff-v2');
+  app.use('/json-diff-v2', express.static(jsonDiffV2Dir));
+  app.get('/json-diff-v2', (req, res) => {
+    res.sendFile(path.join(jsonDiffV2Dir, 'index.html'));
+  });
+
   // Markdown 对比编辑器页面
   const markdownEditorDir = path.join(ROOT_DIR, 'public/markdown-editor');
   app.use('/markdown-editor', express.static(markdownEditorDir));
