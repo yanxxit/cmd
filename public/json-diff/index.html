@@ -190,11 +190,12 @@
     }
 
     .output-wrapper {
-      background: #1e1e1e;
+      background: white;
       border-radius: 8px;
       padding: 15px;
       max-height: 500px;
       overflow: auto;
+      border: 1px solid #e0e0e0;
     }
 
     .json-tree {
@@ -204,41 +205,42 @@
     }
 
     .json-key {
-      color: #9cdcfe;
+      color: #881391;
+      font-weight: 600;
     }
 
     .json-string {
-      color: #ce9178;
+      color: #c41a16;
     }
 
     .json-number {
-      color: #b5cea8;
+      color: #1c00cf;
     }
 
     .json-boolean {
-      color: #569cd6;
+      color: #0c3a8c;
     }
 
     .json-null {
-      color: #569cd6;
+      color: #0c3a8c;
     }
 
     .json-diff-added {
-      background: rgba(211, 47, 47, 0.3);
-      border-left: 3px solid #d32f2f;
+      background: rgba(244, 67, 54, 0.2);
+      border-left: 3px solid #f44336;
       padding: 2px 6px;
       border-radius: 2px;
     }
 
     .json-diff-modified {
-      background: rgba(33, 150, 243, 0.3);
+      background: rgba(33, 150, 243, 0.2);
       border-left: 3px solid #2196f3;
       padding: 2px 6px;
       border-radius: 2px;
     }
 
     .json-diff-same {
-      opacity: 0.7;
+      opacity: 0.8;
     }
 
     .json-diff-same.hidden {
@@ -250,10 +252,11 @@
       width: 20px;
       text-align: center;
       font-weight: bold;
+      font-size: 12px;
     }
 
     .diff-indicator.added {
-      color: #d32f2f;
+      color: #f44336;
     }
 
     .diff-indicator.modified {
@@ -672,13 +675,16 @@
 
     /**
      * 格式化左侧 JSON
+     * 注意：此函数始终显示完整数据，不应用过滤
      */
     function formatLeft() {
       const textarea = document.getElementById('jsonLeft');
       try {
         const data = JSON.parse(textarea.value);
-        textarea.value = JSON.stringify(data, null, 2);
+        const sorted = sortKeysByPinyin(data);
+        textarea.value = JSON.stringify(sorted, null, 2);
         hideError('errorLeft');
+        showToast('✨ 已格式化并排序');
       } catch (e) {
         showError('errorLeft', 'JSON 格式错误：' + e.message);
       }
@@ -686,13 +692,16 @@
 
     /**
      * 格式化右侧 JSON
+     * 注意：此函数始终显示完整数据，不应用过滤
      */
     function formatRight() {
       const textarea = document.getElementById('jsonRight');
       try {
         const data = JSON.parse(textarea.value);
-        textarea.value = JSON.stringify(data, null, 2);
+        const sorted = sortKeysByPinyin(data);
+        textarea.value = JSON.stringify(sorted, null, 2);
         hideError('errorRight');
+        showToast('✨ 已格式化并排序');
       } catch (e) {
         showError('errorRight', 'JSON 格式错误：' + e.message);
       }
@@ -872,11 +881,16 @@
       let renderLeft = sortedLeft;
       let renderRight = sortedRight;
       if (hideSame) {
+        // 过滤掉左右两边 key,value 都相同的数据
         renderLeft = filterSameFields(sortedLeft, sortedRight, 'left');
         renderRight = filterSameFields(sortedRight, sortedLeft, 'right');
+        
+        // 同时更新编辑器中的显示，只显示有差异的数据
+        document.getElementById('jsonLeft').value = JSON.stringify(renderLeft, null, 2);
+        document.getElementById('jsonRight').value = JSON.stringify(renderRight, null, 2);
       }
 
-      // 渲染结果
+      // 渲染结果到下方结果区域
       renderResult(renderLeft, renderRight);
 
       // 显示统计
@@ -958,6 +972,7 @@
                 result.stats.same++;
               } else {
                 // 不同，需要递归
+                const childrenDiff = calculateDiff(leftVal, rightVal, currentPath);
                 result.nodes.push({
                   path: currentPath,
                   key,
@@ -965,14 +980,14 @@
                   leftValue: leftVal,
                   rightValue: rightVal,
                   isContainer: true,
-                  children: calculateDiff(leftVal, rightVal, currentPath)
+                  children: childrenDiff
                 });
                 result.stats.modified++;
                 // 累加子节点统计
-                result.stats.total += result.children.stats.total;
-                result.stats.same += result.children.stats.same;
-                result.stats.modified += result.children.stats.modified;
-                result.stats.added += result.children.stats.added;
+                result.stats.total += childrenDiff.stats.total;
+                result.stats.same += childrenDiff.stats.same;
+                result.stats.modified += childrenDiff.stats.modified;
+                result.stats.added += childrenDiff.stats.added;
               }
             } else {
               // 都是基本类型
@@ -1146,8 +1161,19 @@
 
       if (Array.isArray(data)) {
         // 数组：过滤有变化的项
+        if (!Array.isArray(compareData)) {
+          // 类型不同，整个数组都有差异
+          return data;
+        }
+        
         return data.map((item, index) => {
-          const compareItem = compareData && compareData[index];
+          const compareItem = compareData[index];
+          
+          // 如果类型不同，保留
+          if ((typeof item === 'object') !== (typeof compareItem === 'object')) {
+            return item;
+          }
+          
           if (JSON.stringify(item) === JSON.stringify(compareItem)) {
             // 完全相同，返回 null 表示过滤掉
             return null;
@@ -1158,11 +1184,18 @@
       }
 
       // 对象：过滤相同的字段
+      // 如果 compareData 不是对象，说明类型不同，保留所有字段
+      if (!compareData || typeof compareData !== 'object') {
+        return data;
+      }
+      
       const result = {};
       for (const key of Object.keys(data)) {
         const value = data[key];
-        const compareValue = compareData ? compareData[key] : undefined;
-        const hasCompare = compareData && key in compareData;
+        const compareValue = compareData[key];
+        
+        // 检查 key 是否存在于 compareData 中
+        const hasCompare = key in compareData;
 
         if (hasCompare) {
           // 两边都有
@@ -1189,6 +1222,18 @@
       }
 
       return result;
+    }
+
+    /**
+     * 在输入框中过滤显示相同字段（用于隐藏相同部分时在 textarea 中显示）
+     * @param {Object|Array} data - 要过滤的 JSON 数据
+     * @param {Object|Array} compareData - 用于对比的另一个 JSON 数据
+     * @param {string} side - 'left' 或 'right'
+     * @returns {string} 过滤后的 JSON 字符串
+     */
+    function filterAndStringifyForDisplay(data, compareData, side) {
+      const filtered = filterSameFields(data, compareData, side);
+      return JSON.stringify(filtered, null, 2);
     }
 
     /**
@@ -1430,23 +1475,41 @@
 
     /**
      * 切换隐藏相同部分
+     * 当启用时，过滤掉左右两边 key 和 value 都相同的数据
+     * 编辑器中仅显示有差异的数据
      */
     function toggleHideSame() {
       hideSame = document.getElementById('hideSameToggle').checked;
 
       // 重新渲染，使用过滤后的数据
-      if (leftData || rightData) {
-        const sortedLeft = leftData ? sortKeysByPinyin(leftData) : null;
-        const sortedRight = rightData ? sortKeysByPinyin(rightData) : null;
+      if (leftData && rightData) {
+        const sortedLeft = sortKeysByPinyin(leftData);
+        const sortedRight = sortKeysByPinyin(rightData);
 
         let renderLeft = sortedLeft;
         let renderRight = sortedRight;
 
         if (hideSame) {
+          // 过滤掉左右两边 key,value 都相同的数据
           renderLeft = filterSameFields(sortedLeft, sortedRight, 'left');
           renderRight = filterSameFields(sortedRight, sortedLeft, 'right');
+          
+          console.log('过滤后的结果:');
+          console.log('renderLeft =', renderLeft);
+          console.log('renderRight =', renderRight);
+          console.log('renderLeft keys =', Object.keys(renderLeft));
+          console.log('renderRight keys =', Object.keys(renderRight));
+          
+          // 更新编辑器中的显示，只显示有差异的数据
+          document.getElementById('jsonLeft').value = JSON.stringify(renderLeft, null, 2);
+          document.getElementById('jsonRight').value = JSON.stringify(renderRight, null, 2);
+        } else {
+          // 恢复原始完整数据
+          document.getElementById('jsonLeft').value = JSON.stringify(sortedLeft, null, 2);
+          document.getElementById('jsonRight').value = JSON.stringify(sortedRight, null, 2);
         }
 
+        // 更新结果区域的渲染
         renderResult(renderLeft, renderRight);
       }
 
@@ -1574,8 +1637,10 @@
 
     /**
      * 格式化并排序 JSON
+     * 注意：此函数只负责格式化和排序，不过滤数据
+     * 过滤逻辑在 compareJSON 和 toggleHideSame 中处理
      */
-    function formatAndSortJSON(textareaId) {
+    function formatAndSortJSON(textareaId, forceFullDisplay = false) {
       const textarea = document.getElementById(textareaId);
       const text = textarea.value.trim();
       
@@ -1584,7 +1649,10 @@
       try {
         const data = JSON.parse(text);
         const sorted = sortKeysByPinyin(data);
+        
+        // 始终显示完整排序后的数据
         textarea.value = JSON.stringify(sorted, null, 2);
+        
         hideError(textareaId === 'jsonLeft' ? 'errorLeft' : 'errorRight');
         return true;
       } catch (e) {
@@ -1603,13 +1671,13 @@
         textarea.addEventListener('paste', function(e) {
           // 延迟执行，等待粘贴内容进入 textarea
           setTimeout(() => {
-            formatAndSortJSON(id);
-          }, 50);
+            formatAndSortJSON(id, false);
+          }, 100);
         });
         
-        // 失焦时也格式化
+        // 失焦时也格式化（显示完整数据）
         textarea.addEventListener('blur', function() {
-          formatAndSortJSON(id);
+          // 失焦时不自动过滤，保持用户看到的内容
         });
       });
     });
