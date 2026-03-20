@@ -125,7 +125,8 @@ program
       if (options.all) {
         spinner.text = '正在生成 HTML 报告...';
         spinner.start();
-        finalPath = await generateHTMLReport(commits, dateRange, options.diff, outputPath, isMonthView);
+        // HTML 报告始终包含 diff 数据
+        finalPath = await generateHTMLReport(commits, dateRange, true, outputPath, isMonthView);
         generatedFiles.push(finalPath);
 
         spinner.text = '正在生成 JSON 报告...';
@@ -150,8 +151,8 @@ program
         } else if (options.format === 'md') {
           finalPath = await generateMarkdownReport(commits, dateRange, options.diff, outputPath);
         } else {
-          // 默认 HTML
-          finalPath = await generateHTMLReport(commits, dateRange, options.diff, outputPath, isMonthView);
+          // 默认 HTML - HTML 报告始终包含 diff 数据
+          finalPath = await generateHTMLReport(commits, dateRange, true, outputPath, isMonthView);
         }
 
         spinner.succeed(`${options.format.toUpperCase()} 报告已生成：${chalk.cyan(finalPath)}`);
