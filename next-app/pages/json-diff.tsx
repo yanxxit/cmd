@@ -865,8 +865,10 @@ export default function JsonDiffPage() {
     const collectPaths = (nodes: DiffNode[]) => {
       nodes.forEach(node => {
         if (node.type === 'added') {
-          leftPaths.set(node.path, 'deleted'); // 左边删除
-          rightPaths.set(node.path, 'added'); // 右边新增
+          // node.type === 'added' 表示该节点在右侧新增（左侧不存在）
+          // 所以左侧标记为 'deleted'（删除），右侧标记为 'added'（新增）
+          leftPaths.set(node.path, 'deleted');
+          rightPaths.set(node.path, 'added');
         } else if (node.type === 'modified') {
           leftPaths.set(node.path, 'modified');
           rightPaths.set(node.path, 'modified');
@@ -1058,6 +1060,14 @@ export default function JsonDiffPage() {
 }
 
 /**
+ * 行差异类型
+ */
+interface LineDiffInfo {
+  content: string;
+  type: 'added' | 'modified' | 'deleted' | 'same';
+}
+
+/**
  * 高亮编辑器组件 - 支持行背景色高亮，宽高自适应
  */
 interface HighlightEditorProps {
@@ -1067,139 +1077,245 @@ interface HighlightEditorProps {
   placeholder?: string;
 }
 
+// 背景色配置
+const LINE_BG_COLORS = {
+  added: 'rgba(82, 196, 26, 0.15)',   // 绿色 - 新增（右边有左边没有）
+  modified: 'rgba(24, 144, 255, 0.15)', // 蓝色 - 修改
+  deleted: 'rgba(255, 77, 79, 0.15)',  // 红色 - 删除（左边有右边没有）
+  same: 'transparent',
+};
+
 const HighlightEditor: React.FC<HighlightEditorProps> = ({
   value,
   onChange,
   diffPaths,
   placeholder,
 }) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  // 处理滚动同步
-  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-    const st = e.currentTarget.scrollTop;
-    if (preRef.current) {
-      preRef.current.scrollTop = st;
+  // 处理 JSON 内容，标记每一行的差异类型
+  const processLines = (text: string): LineDiffInfo[] => {
+    if (!text) return [];
+
+    const lines = text.split('\n');
+    const result: LineDiffInfo[] = [];
+    let currentKeyPath = '';
+    let keyPathStack: string[] = [];
+    let keyLineMap = new Map<string, number>(); // 记录 key 所在行号
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmedLine = line.trim();
+      let lineType: 'added' | 'modified' | 'deleted' | 'same' = 'same';
+
+      // 尝试从行中提取 key
+      const keyMatch = trimmedLine.match(/^"([^"]+)":/);
+      if (keyMatch) {
+        const key = keyMatch[1];
+        // 更新当前路径
+        if (trimmedLine.includes('{') || trimmedLine.includes('[')) {
+          keyPathStack.push(key);
+          currentKeyPath = keyPathStack.join('.');
+        } else {
+          currentKeyPath = keyPathStack.length > 0
+            ? keyPathStack.join('.') + '.' + key
+            : key;
+        }
+
+        // 记录 key 的路径
+        keyLineMap.set(currentKeyPath, i);
+
+        // 检查差异 - 遍历所有差异路径
+        for (const [path, type] of diffPaths.entries()) {
+          // 完全匹配或路径包含
+          if (path === currentKeyPath || path.endsWith('.' + key) || path.endsWith('."' + key + '"')) {
+            // diffPaths 中的 type 含义：
+            // - 'deleted': 该路径在左侧被删除（左侧有，右边没有）→ 左侧标红
+            // - 'added': 该路径在左侧新增（右边有，左边没有）→ 左侧标绿
+            // - 'modified': 该路径值不同 → 左侧标蓝
+            if (type === 'deleted') {
+              lineType = 'deleted'; // 左边有，右边没有 - 标红
+            } else if (type === 'added') {
+              lineType = 'added'; // 右边有，左边没有 - 标绿
+            } else if (type === 'modified') {
+              lineType = 'modified'; // 值不同 - 标蓝
+            }
+            break;
+          }
+          // 检查是否是父路径
+          if (currentKeyPath.startsWith(path + '.') || currentKeyPath.startsWith(path + '[')) {
+            if (type === 'deleted') {
+              lineType = 'deleted';
+            } else if (type === 'modified') {
+              lineType = 'modified';
+            }
+            break;
+          }
+        }
+      }
+
+      // 检查数组索引
+      const indexMatch = trimmedLine.match(/^\[(\d+)\]/);
+      if (indexMatch) {
+        const index = indexMatch[1];
+        for (const [path, type] of diffPaths.entries()) {
+          if (path.includes(`[${index}]`)) {
+            if (type === 'deleted') {
+              lineType = 'deleted';
+            } else if (type === 'added') {
+              lineType = 'added';
+            } else if (type === 'modified') {
+              lineType = 'modified';
+            }
+            break;
+          }
+        }
+      }
+
+      // 检查是否是值行（没有 key，只有值）
+      // 向上查找最近的 key 行，继承其类型
+      if (lineType === 'same' && !keyMatch && !indexMatch && trimmedLine &&
+          !['{', '}', '[', ']'].includes(trimmedLine)) {
+        for (let j = i - 1; j >= 0; j--) {
+          const prevLine = lines[j].trim();
+          const prevKeyMatch = prevLine.match(/^"([^"]+)":/);
+          if (prevKeyMatch) {
+            const prevKey = prevKeyMatch[1];
+            // 获取上一行的类型
+            if (result[j] && result[j].type !== 'same') {
+              lineType = result[j].type;
+            }
+            break;
+          }
+          if (['{', '}', '[', ']'].includes(prevLine)) {
+            break;
+          }
+        }
+      }
+
+      // 处理括号行和空行 - 根据上下文决定类型
+      if (['{', '}', '[', ']'].includes(trimmedLine) || trimmedLine === '') {
+        // 查找上下文的类型
+        let contextType: 'added' | 'modified' | 'deleted' | 'same' = 'same';
+        for (let j = i - 1; j >= Math.max(0, i - 10); j--) {
+          const prevLine = lines[j].trim();
+          if (prevLine && !['{', '}', '[', ']'].includes(prevLine)) {
+            const prevResult = result[j];
+            if (prevResult && prevResult.type !== 'same') {
+              contextType = prevResult.type;
+            }
+            break;
+          }
+        }
+        if (contextType !== 'same') {
+          lineType = contextType;
+        }
+      }
+
+      result.push({
+        content: line,
+        type: lineType,
+      });
+    }
+
+    return result;
+  };
+
+  const processedLines = processLines(value);
+
+  // 生成带高亮的 HTML（用于 pre）
+  const generateHighlightedHtml = () => {
+    if (!value) return '';
+    return processedLines
+      .map((lineInfo) => {
+        const escapedLine = lineInfo.content
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        return `<div>${escapedLine || ' '}</div>`;
+      })
+      .join('');
+  };
+
+  // 生成可编辑的行（用于 contentEditable div）
+  const renderEditableLines = () => {
+    if (!value) {
+      return <div style={{ color: '#999' }}>{placeholder}</div>;
+    }
+
+    return processedLines.map((lineInfo, index) => {
+      const bgColor = LINE_BG_COLORS[lineInfo.type];
+      const hasContent = lineInfo.content && lineInfo.content.trim();
+      const leadingSpaces = hasContent ? (lineInfo.content.match(/^(\s*)/)?.[1] || '') : '';
+      const textContent = hasContent ? lineInfo.content.slice(leadingSpaces.length) : '';
+
+      return (
+        <div
+          key={index}
+          style={{
+            minHeight: '1.2em',
+            lineHeight: 1.2,
+          }}
+        >
+          {/* 前导空格 */}
+          {leadingSpaces && <span style={{ display: 'inline-block' }}>{leadingSpaces}</span>}
+          {/* 文字内容带背景色 */}
+          {textContent && (
+            <span
+              style={{
+                backgroundColor: bgColor,
+                padding: '0 4px',
+                borderRadius: '2px',
+                display: 'inline-block',
+              }}
+            >
+              {textContent}
+            </span>
+          )}
+          {/* 空行占位 */}
+          {!hasContent && <span style={{ display: 'inline-block', minWidth: '100%' }}>&nbsp;</span>}
+        </div>
+      );
+    });
+  };
+
+  // 处理输入变化
+  const handleInput = () => {
+    if (editorRef.current) {
+      const newValue = editorRef.current.innerText;
+      onChange(newValue);
     }
   };
 
   // 自适应高度
   const adjustHeight = () => {
-    const textarea = textareaRef.current;
+    const editor = editorRef.current;
     const pre = preRef.current;
-    if (textarea && pre) {
-      // 重置高度以获取正确的 scrollHeight
-      textarea.style.height = 'auto';
+    if (editor && pre) {
+      editor.style.height = 'auto';
       pre.style.height = 'auto';
-
-      // 设置自适应高度（最小 300px）
-      const newHeight = Math.max(textarea.scrollHeight, 300);
-      textarea.style.height = `${newHeight}px`;
+      const newHeight = Math.max(editor.scrollHeight, 300);
+      editor.style.height = `${newHeight}px`;
       pre.style.height = `${newHeight}px`;
     }
   };
 
-  // 内容变化时调整高度
   useEffect(() => {
     adjustHeight();
-  }, [value]);
-
-  // 获取行的背景色
-  const getLineBackground = (lineIndex: number, lines: string[]): string => {
-    const line = lines[lineIndex];
-    const trimmedLine = line.trim();
-
-    // 尝试从行中提取 key
-    const keyMatch = trimmedLine.match(/^"([^"]+)":/);
-    if (keyMatch) {
-      const key = keyMatch[1];
-      for (const [path, type] of diffPaths.entries()) {
-        const pathParts = path.split('.');
-        const lastPart = pathParts[pathParts.length - 1].replace(/\[\d+\]/g, '');
-        if (lastPart === key || path.endsWith(key)) {
-          if (type === 'deleted') {
-            return 'rgba(255, 77, 79, 0.12)';
-          } else if (type === 'added') {
-            return 'rgba(82, 196, 26, 0.12)';
-          } else if (type === 'modified') {
-            return 'rgba(24, 144, 255, 0.12)';
-          }
-        }
-      }
-    }
-
-    // 检查数组索引
-    const indexMatch = trimmedLine.match(/^\[(\d+)\]/);
-    if (indexMatch) {
-      const index = indexMatch[1];
-      for (const [path, type] of diffPaths.entries()) {
-        if (path.includes(`[${index}]`)) {
-          if (type === 'deleted') {
-            return 'rgba(255, 77, 79, 0.12)';
-          } else if (type === 'added') {
-            return 'rgba(82, 196, 26, 0.12)';
-          } else if (type === 'modified') {
-            return 'rgba(24, 144, 255, 0.12)';
-          }
-        }
-      }
-    }
-
-    // 检查是否是值行（没有 key，只有值）
-    // 向上查找最近的 key 行，继承其背景色
-    for (let i = lineIndex - 1; i >= 0; i--) {
-      const prevLine = lines[i].trim();
-      const prevKeyMatch = prevLine.match(/^"([^"]+)":/);
-      if (prevKeyMatch) {
-        const prevKey = prevKeyMatch[1];
-        for (const [path, type] of diffPaths.entries()) {
-          const pathParts = path.split('.');
-          const lastPart = pathParts[pathParts.length - 1].replace(/\[\d+\]/g, '');
-          if (lastPart === prevKey || path.endsWith(prevKey)) {
-            if (type === 'deleted') {
-              return 'rgba(255, 77, 79, 0.12)';
-            } else if (type === 'added') {
-              return 'rgba(82, 196, 26, 0.12)';
-            } else if (type === 'modified') {
-              return 'rgba(24, 144, 255, 0.12)';
-            }
-          }
-        }
-        break;
-      }
-      // 如果遇到空行或括号行，停止查找
-      if (prevLine === '' || prevLine === '{' || prevLine === '}' || prevLine === '[' || prevLine === ']') {
-        break;
-      }
-    }
-
-    return 'transparent';
-  };
-
-  // 生成带高亮的 HTML
-  const generateHighlightedHtml = () => {
-    if (!value) return '';
-    const lines = value.split('\n');
-    return lines
-      .map((line, index) => {
-        const bg = getLineBackground(index, lines);
-        const escapedLine = line
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-        return `<div style="background-color: ${bg}; line-height: 1.2; padding: 1px 0;">${escapedLine || ' '}</div>`;
-      })
-      .join('');
-  };
+  }, [value, processedLines.length]);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+    <div style={{ position: 'relative', width: '100%' }}>
+      {/* 高亮层 - 用于格式显示 */}
       <pre
         ref={preRef}
         style={{
-          position: 'relative',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           margin: 0,
           padding: '16px 20px',
           fontFamily: 'Menlo, Monaco, monospace',
@@ -1208,42 +1324,35 @@ const HighlightEditor: React.FC<HighlightEditorProps> = ({
           whiteSpace: 'pre-wrap',
           wordWrap: 'break-word',
           pointerEvents: 'none',
-          overflow: 'visible',
+          overflow: 'hidden',
           minHeight: '300px',
         }}
         dangerouslySetInnerHTML={{ __html: generateHighlightedHtml() }}
       />
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={e => {
-          onChange(e.target.value);
-          setTimeout(adjustHeight, 0);
-        }}
-        onScroll={handleScroll}
-        placeholder={placeholder}
+      {/* 可编辑层 */}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
+          position: 'relative',
           width: '100%',
-          height: '100%',
           minHeight: '300px',
           padding: '16px 20px',
           fontFamily: 'Menlo, Monaco, monospace',
           fontSize: 13,
           lineHeight: 1.2,
-          border: 'none',
-          resize: 'none',
           outline: 'none',
-          backgroundColor: 'transparent',
           color: 'transparent',
           caretColor: '#333',
           whiteSpace: 'pre-wrap',
           wordWrap: 'break-word',
           overflow: 'hidden',
         }}
-      />
+      >
+        {renderEditableLines()}
+      </div>
     </div>
   );
 };
