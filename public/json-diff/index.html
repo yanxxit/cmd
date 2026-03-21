@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html lang="zh-CN">
     <head>
-        <title>JSON比对工具</title>
+        <title>JSON 比对工具</title>
         <meta charset="UTF-8">
         <link rel="shortcut icon" href="../static/img/favicon.ico">
         <link rel="stylesheet" href="index.css" />
@@ -14,8 +14,8 @@
                 <div class="panel-heading">
                     <h3 class="panel-title">
                         <a href="https://fehelper.com" target="_blank" class="x-a-high">
-                            <img src="../static/img/fe-16.png" alt="fehelper"/> FeHelper</a>：JSON比对工具
-                            
+                            <img src="../static/img/fe-16.png" alt="fehelper"/> FeHelper</a>：JSON 比对工具
+
                         <a class="x-other-tools" @click="openOptionsPage($event)"><i class="icon-plus-circle"></i> 探索更多实用工具 <span class="tool-market-badge">工具市场</span></a>
                         <span class="x-donate-link" @click="openDonateModal($event)"><a href="#" id="donateLink"><i class="nav-icon">❤</i>&nbsp;打赏鼓励</a></span>
                     </h3>
@@ -28,7 +28,10 @@
                     <a href="#" class="example-button" data-example="userInfo">用户信息</a>
                     <a href="#" class="example-button" data-example="productData">商品数据</a>
                     <a href="#" class="example-button" data-example="configOptions">配置选项</a>
-                    <a href="#" class="example-button" data-example="apiResponse">API响应</a>
+                    <a href="#" class="example-button" data-example="apiResponse">API 响应</a>
+                    <button class="filter-button" id="filterSameBtn" @click="toggleFilterSame">
+                        <i class="icon-filter">🗂️</i> {{ filterSame ? '显示全部' : '过滤相同项' }}
+                    </button>
                     <span class="x-error result-display" v-bind:class="{'x-hlt': errorHighlight}" v-if="!!errorMessage">
                         <span class="x-hlt">Tips：</span>
                         <span v-if="leftSideError" class="x-hlt1">左侧</span>
@@ -37,10 +40,10 @@
                     </span>
                 </div>
                 <div class="col-md-6 box-wrapper-left">
-                    <textarea class="form-control mod-textarea" id="jsonSourceLeft" ref="srcLeft" placeholder="在这里粘贴JSON代码"></textarea>
+                    <textarea class="form-control mod-textarea" id="jsonSourceLeft" ref="srcLeft" placeholder="在这里粘贴 JSON 代码"></textarea>
                 </div>
                 <div class="col-md-6 box-wrapper-right">
-                    <textarea class="form-control mod-textarea" id="jsonSourceRight" ref="srcRight" placeholder="在这里粘贴JSON代码"></textarea>
+                    <textarea class="form-control mod-textarea" id="jsonSourceRight" ref="srcRight" placeholder="在这里粘贴 JSON 代码"></textarea>
                 </div>
             </div>
 
