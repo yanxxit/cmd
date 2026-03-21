@@ -951,8 +951,9 @@
           const leftVal = left ? left[key] : undefined;
           const rightVal = right ? right[key] : undefined;
 
-          const hasLeft = left && key in left;
-          const hasRight = right && key in right;
+          // 安全地检查 key 是否存在
+          const hasLeft = left && typeof left === 'object' && key in left;
+          const hasRight = right && typeof right === 'object' && key in right;
 
           if (hasLeft && !hasRight) {
             // 左侧有，右侧没有 - 删除
@@ -1493,12 +1494,6 @@
           // 过滤掉左右两边 key,value 都相同的数据
           renderLeft = filterSameFields(sortedLeft, sortedRight, 'left');
           renderRight = filterSameFields(sortedRight, sortedLeft, 'right');
-          
-          console.log('过滤后的结果:');
-          console.log('renderLeft =', renderLeft);
-          console.log('renderRight =', renderRight);
-          console.log('renderLeft keys =', Object.keys(renderLeft));
-          console.log('renderRight keys =', Object.keys(renderRight));
           
           // 更新编辑器中的显示，只显示有差异的数据
           document.getElementById('jsonLeft').value = JSON.stringify(renderLeft, null, 2);

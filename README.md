@@ -1,6 +1,20 @@
 # cmd xtools
 node.js 开发常用的命令行工具，日常使用。
 
+```sh
+# 推送
+git push origin main   # 推送到 GitHub
+# https://gitee.com/yanxxit/cmd.git
+git remote add gitee https://gitee.com/yanxxit/cmd.git
+
+git push gitee main    # 推送到 Gitee
+
+# 拉取
+git pull origin main   # 从 GitHub 拉取最新代码
+git pull gitee main    # 从 Gitee 拉取最新代码
+
+```
+
 ## 实现功能
 - [x] 开启静态服务
 - [x] 本地文件查看器（Web 页面）
@@ -313,4 +327,3 @@ npm link
   - 开启一个模拟服务器
     - 实现一个类似 http 测试接口
     - 实现一个类似 httpserver
-
