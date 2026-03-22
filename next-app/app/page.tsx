@@ -58,11 +58,18 @@ export default function Home() {
 
   const tools: Tool[] = [
     {
+      icon: '📚',
+      name: 'React + Ant Design 学习',
+      description: '完整的学生管理系统案例，包含 CRUD 操作、表单处理、表格展示',
+      href: '/react-antd-learning',
+      tags: ['学习案例', '推荐', '入门必备'],
+    },
+    {
       icon: '🔀',
       name: 'JSON 对比工具',
       description: '对比两个 JSON 数据的差异，支持拼音排序、差异高亮、统计分析',
       href: '/json-diff-v3',
-      tags: ['数据对比', 'JSON', '推荐'],
+      tags: ['数据对比', 'JSON'],
     },
     {
       icon: '📁',
