@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Button, Space, message, Card, Row, Col, Switch, Divider, Tag } from 'antd';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Button, Space, message, Card, Row, Col, Switch, Divider, Tag, Dropdown, MenuProps, Modal, Input, Upload, Tooltip, ConfigProvider, theme, UploadFile } from 'antd';
 import {
   ThunderboltOutlined,
   SyncOutlined,
@@ -10,223 +10,36 @@ import {
   UndoOutlined,
   CopyOutlined,
   FilterOutlined,
+  CheckOutlined,
+  DownloadOutlined,
+  HistoryOutlined,
+  ClearOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
+  UploadOutlined,
+  FormatPainterOutlined,
+  CompressOutlined,
+  BulbOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
+import { HighlightEditor } from '@/components/json-diff/HighlightEditor';
+import { EXAMPLES } from '@/components/json-diff/constants';
+import { DiffResult } from '@/components/json-diff/types';
+import { sortKeysByPinyin, calculateDiff, filterSameFields, collectDiffPaths } from '@/components/json-diff/logic';
+import { formatJson, minifyJson, parseJsonFile } from '@/components/json-diff/utils';
+import createStyles from '@/components/json-diff/styles';
 
-// ==================== 类型定义 ====================
+const { Dragger } = Upload;
 
-interface DiffResult {
-  stats: { total: number; same: number; modified: number; added: number };
-  diff: any;
+type ExampleType = keyof typeof EXAMPLES;
+
+interface HistoryItem {
+  id: string;
+  timestamp: number;
+  left: string;
+  right: string;
+  stats: any;
 }
-
-interface LineDiffInfo {
-  content: string;
-  type: 'added' | 'modified' | 'deleted' | 'same';
-}
-
-interface HighlightEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  diffPaths: Map<string, any>;
-  placeholder?: string;
-}
-
-// ==================== 常量配置 ====================
-
-const HIGHLIGHT_STYLES = {
-  deleted: {
-    background: 'linear-gradient(135deg, rgba(255, 77, 79, 0.2) 0%, rgba(255, 77, 79, 0.1) 100%)',
-    border: '1px solid rgba(255, 77, 79, 0.3)',
-    borderRadius: '3px',
-    color: '#c0392b',
-    fontWeight: 500,
-  },
-  added: {
-    background: 'linear-gradient(135deg, rgba(82, 196, 26, 0.2) 0%, rgba(82, 196, 26, 0.1) 100%)',
-    border: '1px solid rgba(82, 196, 26, 0.3)',
-    borderRadius: '3px',
-    color: '#27ae60',
-    fontWeight: 500,
-  },
-  modified: {
-    background: 'linear-gradient(135deg, rgba(24, 144, 255, 0.2) 0%, rgba(24, 144, 255, 0.1) 100%)',
-    border: '1px solid rgba(24, 144, 255, 0.3)',
-    borderRadius: '3px',
-    color: '#2980b9',
-    fontWeight: 500,
-  },
-};
-
-const EXAMPLES = {
-  userInfo: {
-    left: { id: 1001, name: '张三', age: 28, email: 'zhangsan@example.com', address: { city: '北京', district: '朝阳区' }, tags: ['前端', 'JavaScript', 'Vue'], isActive: true },
-    right: { id: 1001, name: '张三', age: 30, email: 'zhangsan@example.com', address: { city: '上海', district: '浦东新区' }, tags: ['前端', 'JavaScript', 'React'], isActive: true },
-  },
-  productData: {
-    left: { products: [{ id: 'p001', name: '智能手机', price: 4999, inventory: 100, specs: { brand: '小米', model: 'Mi 11' } }] },
-    right: { products: [{ id: 'p001', name: '智能手机', price: 5299, inventory: 85, specs: { brand: '小米', model: 'Mi 11 Pro' } }] },
-  },
-  apiResponse: {
-    left: { status: 'success', code: 200, data: { users: [{ id: 1, name: '李明', role: 'admin' }], pagination: { total: 25, page: 1 } } },
-    right: { status: 'success', code: 200, data: { users: [{ id: 1, name: '李明', role: 'admin' }], pagination: { total: 28, page: 1 } } },
-  },
-};
-
-// ==================== 工具函数 ====================
-
-const sortKeysByPinyin = (obj: any): any => {
-  if (obj === null || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(item => sortKeysByPinyin(item));
-  const sorted: any = {};
-  Object.keys(obj).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN')).forEach(key => {
-    sorted[key] = sortKeysByPinyin(obj[key]);
-  });
-  return sorted;
-};
-
-const calculateDiff = (left: any, right: any, path = ''): any => {
-  const result: any = { nodes: [], stats: { total: 0, same: 0, modified: 0, added: 0 } };
-  const allKeys = new Set<string>();
-  if (left && typeof left === 'object') Object.keys(left).forEach(k => allKeys.add(k));
-  if (right && typeof right === 'object') Object.keys(right).forEach(k => allKeys.add(k));
-
-  for (const key of allKeys) {
-    const currentPath = path ? `${path}.${key}` : key;
-    const hasLeft = left && key in left;
-    const hasRight = right && key in right;
-    const leftVal = hasLeft ? left[key] : undefined;
-    const rightVal = hasRight ? right[key] : undefined;
-
-    result.stats.total++;
-    if (hasLeft && !hasRight) {
-      result.nodes.push({ path: currentPath, key, type: 'added', leftValue: leftVal });
-      result.stats.added++;
-    } else if (!hasLeft && hasRight) {
-      result.nodes.push({ path: currentPath, key, type: 'added', rightValue: rightVal });
-      result.stats.added++;
-    } else if (hasLeft && hasRight) {
-      if (typeof leftVal === 'object' && typeof rightVal === 'object') {
-        const childDiff = calculateDiff(leftVal, rightVal, currentPath);
-        if (childDiff.stats.modified || childDiff.stats.added) {
-          result.nodes.push({ path: currentPath, key, type: 'modified', children: childDiff });
-          result.stats.modified++;
-          result.stats.same += childDiff.stats.same;
-          result.stats.modified += childDiff.stats.modified;
-          result.stats.added += childDiff.stats.added;
-        } else {
-          result.stats.same++;
-        }
-      } else {
-        if (leftVal === rightVal) {
-          result.stats.same++;
-        } else {
-          result.nodes.push({ path: currentPath, key, type: 'modified', leftValue: leftVal, rightValue: rightVal });
-          result.stats.modified++;
-        }
-      }
-    }
-  }
-  return result;
-};
-
-const filterSameFields = (data: any, compareData: any): any => {
-  if (data === null || typeof data !== 'object') return data;
-  if (Array.isArray(data)) {
-    if (!Array.isArray(compareData)) return data;
-    return data.map((item, i) => JSON.stringify(item) === JSON.stringify(compareData[i]) ? null : filterSameFields(item, compareData[i])).filter(item => item !== null);
-  }
-  const result: any = {};
-  for (const key of Object.keys(data)) {
-    if (key in compareData) {
-      if (typeof data[key] === 'object') {
-        const filtered = filterSameFields(data[key], compareData[key]);
-        if (Array.isArray(filtered) ? filtered.length : Object.keys(filtered).length) result[key] = filtered;
-      } else if (data[key] !== compareData[key]) {
-        result[key] = data[key];
-      }
-    } else {
-      result[key] = data[key];
-    }
-  }
-  return result;
-};
-
-const processLines = (text: string, diffPaths: Map<string, any>): LineDiffInfo[] => {
-  if (!text) return [];
-  const lines = text.split('\n');
-  const result: LineDiffInfo[] = [];
-  const keyPathStack: string[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    let type: 'added' | 'modified' | 'deleted' | 'same' = 'same';
-
-    const keyMatch = trimmed.match(/^"([^"]+)":/);
-    if (keyMatch) {
-      const key = keyMatch[1];
-      if (trimmed.includes('{') || trimmed.includes('[')) keyPathStack.push(key);
-      const path = keyPathStack.length > 0 ? keyPathStack.join('.') + '.' + key : key;
-      for (const [p, t] of diffPaths.entries()) {
-        if (p === path || p.endsWith('.' + key)) {
-          type = t === 'added' ? 'deleted' : t;
-          break;
-        }
-      }
-    }
-
-    if (type === 'same' && !keyMatch && trimmed && !['{', '}', '[', ']'].includes(trimmed)) {
-      for (let j = i - 1; j >= 0; j--) {
-        if (result[j] && result[j].type !== 'same') { type = result[j].type; break; }
-      }
-    }
-    result.push({ content: line, type });
-  }
-  return result;
-};
-
-// ==================== 编辑器组件 ====================
-
-const HighlightEditor: React.FC<HighlightEditorProps> = ({ value, onChange, diffPaths, placeholder }) => {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const processedLines = processLines(value, diffPaths);
-
-  return (
-    <div ref={editorRef} contentEditable onInput={(e) => onChange(e.currentTarget.innerText)} style={styles.editor}>
-      {processedLines.length === 0 ? (
-        <div style={styles.placeholder}>{placeholder}</div>
-      ) : (
-        processedLines.map((line, i) => {
-          const hasContent = line.content.trim();
-          const leadingSpaces = hasContent ? (line.content.match(/^(\s*)/)?.[1] || '') : '';
-          const textContent = hasContent ? line.content.slice(leadingSpaces.length) : '';
-          const hlStyle = HIGHLIGHT_STYLES[line.type];
-          const isSame = line.type === 'same';
-          return (
-            <div key={i} style={styles.line}>
-              {leadingSpaces && <span style={styles.leadingSpace}>{leadingSpaces}</span>}
-              {textContent && (
-                <span style={{
-                  ...styles.lineContent,
-                  background: isSame ? 'transparent' : hlStyle?.background,
-                  border: isSame ? 'none' : hlStyle?.border,
-                  color: isSame ? '#555' : hlStyle?.color,
-                  fontWeight: isSame ? 400 : hlStyle?.fontWeight,
-                  boxShadow: isSame ? 'none' : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                }}>
-                  {textContent}
-                </span>
-              )}
-              {!hasContent && <span style={styles.emptyLine}>&nbsp;</span>}
-            </div>
-          );
-        })
-      )}
-    </div>
-  );
-};
-
-// ==================== 主页面组件 ====================
 
 export default function JsonDiffV3Page() {
   const [leftJson, setLeftJson] = useState('');
@@ -238,21 +51,58 @@ export default function JsonDiffV3Page() {
   const [rightDiffPaths, setRightDiffPaths] = useState<Map<string, any>>(new Map());
   const [displayLeft, setDisplayLeft] = useState('');
   const [displayRight, setDisplayRight] = useState('');
+  const [hasContent, setHasContent] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [fontSize, setFontSize] = useState(13);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadTarget, setUploadTarget] = useState<'left' | 'right' | null>(null);
+  const [darkMode, setDarkMode] = useState(false);
+  const [leftFileName, setLeftFileName] = useState('');
+  const [rightFileName, setRightFileName] = useState('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
-  const collectDiffPaths = (diff: any, leftPaths: Map<string, any>, rightPaths: Map<string, any>) => {
-    diff.nodes.forEach((node: any) => {
-      if (node.type === 'added') {
-        if (node.leftValue !== undefined) leftPaths.set(node.path, 'deleted');
-        else rightPaths.set(node.path, 'added');
-      } else if (node.type === 'modified') {
-        leftPaths.set(node.path, 'modified');
-        rightPaths.set(node.path, 'modified');
+  // 检查是否有内容
+  useEffect(() => {
+    setHasContent(!!(leftJson.trim() || rightJson.trim()));
+  }, [leftJson, rightJson]);
+
+  // 加载历史记录
+  useEffect(() => {
+    const saved = localStorage.getItem('json-diff-history');
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved));
+      } catch (e) {
+        // ignore
       }
-      if (node.children) collectDiffPaths(node.children, leftPaths, rightPaths);
-    });
+    }
+  }, []);
+
+  // 保存历史记录
+  const saveToHistory = (stats: any) => {
+    const newItem: HistoryItem = {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      left: leftJson,
+      right: rightJson,
+      stats,
+    };
+    const newHistory = [newItem, ...history].slice(0, 10); // 保留最近 10 条
+    setHistory(newHistory);
+    localStorage.setItem('json-diff-history', JSON.stringify(newHistory));
   };
 
+  /**
+   * 对比 JSON
+   */
   const handleCompare = () => {
+    if (!leftJson.trim() && !rightJson.trim()) {
+      message.warning('请输入 JSON 数据');
+      return;
+    }
+
     setLoading(true);
     try {
       const leftData = leftJson.trim() ? JSON.parse(leftJson) : null;
@@ -263,16 +113,29 @@ export default function JsonDiffV3Page() {
       const compareRight = filterSame ? filterSameFields(sortedRight, sortedLeft) : sortedRight;
 
       const result = calculateDiff(compareLeft, compareRight);
+      const hasDiff = result.stats.modified > 0 || result.stats.added > 0;
+
       setDiffResult({ stats: result.stats, diff: result.nodes });
 
-      const leftPaths = new Map(), rightPaths = new Map();
+      const leftPaths = new Map();
+      const rightPaths = new Map();
       collectDiffPaths(result, leftPaths, rightPaths);
       setLeftDiffPaths(leftPaths);
       setRightDiffPaths(rightPaths);
 
       setDisplayLeft(JSON.stringify(compareLeft, null, 2));
       setDisplayRight(JSON.stringify(compareRight, null, 2));
-      message.success('对比完成');
+
+      // 保存到历史记录
+      if (hasDiff || result.stats.same > 0) {
+        saveToHistory(result.stats);
+      }
+
+      if (hasDiff) {
+        message.success(filterSame ? '已过滤相同项并对比' : '对比完成');
+      } else {
+        message.info('两个 JSON 完全相同');
+      }
     } catch (e: any) {
       message.error(`JSON 格式错误：${e.message}`);
     } finally {
@@ -280,38 +143,167 @@ export default function JsonDiffV3Page() {
     }
   };
 
-  const loadExample = (type: keyof typeof EXAMPLES) => {
+  /**
+   * 加载示例
+   */
+  const loadExample = (type: ExampleType) => {
     const ex = EXAMPLES[type];
     setLeftJson(JSON.stringify(ex.left, null, 2));
     setRightJson(JSON.stringify(ex.right, null, 2));
-    message.success('已加载示例');
+    setDiffResult(null);
+    setLeftDiffPaths(new Map());
+    setRightDiffPaths(new Map());
+    setDisplayLeft('');
+    setDisplayRight('');
+    message.success(`已加载示例：${ex.name}`);
   };
 
+  /**
+   * 交换左右
+   */
   const handleSwap = () => {
-    setLeftJson(rightJson); setRightJson(leftJson);
-    setDisplayLeft(displayRight); setDisplayRight(displayLeft);
-    setLeftDiffPaths(rightDiffPaths); setRightDiffPaths(leftDiffPaths);
-    message.success('已交换');
+    setLeftJson(rightJson);
+    setRightJson(leftJson);
+    setDisplayLeft(displayRight);
+    setDisplayRight(displayLeft);
+    setLeftDiffPaths(rightDiffPaths);
+    setRightDiffPaths(leftDiffPaths);
+    message.success('已交换左右');
   };
 
+  /**
+   * 清空
+   */
   const handleClear = () => {
-    setLeftJson(''); setRightJson(''); setDisplayLeft(''); setDisplayRight('');
-    setDiffResult(null); setLeftDiffPaths(new Map()); setRightDiffPaths(new Map());
+    setLeftJson('');
+    setRightJson('');
+    setDisplayLeft('');
+    setDisplayRight('');
+    setDiffResult(null);
+    setLeftDiffPaths(new Map());
+    setRightDiffPaths(new Map());
     setFilterSame(false);
+    setLeftFileName('');
+    setRightFileName('');
     message.success('已清空');
   };
 
-  const handleCopyDiff = () => {
-    if (!diffResult) { message.warning('请先对比'); return; }
-    navigator.clipboard.writeText(JSON.stringify({ timestamp: new Date().toISOString(), stats: diffResult.stats, left: displayLeft || leftJson, right: displayRight || rightJson }, null, 2));
-    message.success('已复制');
+  /**
+   * 处理文件上传
+   */
+  const handleFileUpload = async (file: File, target: 'left' | 'right') => {
+    setUploading(true);
+    setUploadTarget(target);
+    try {
+      const content = await parseJsonFile(file);
+      if (target === 'left') {
+        setLeftJson(content);
+        setLeftFileName(file.name);
+      } else {
+        setRightJson(content);
+        setRightFileName(file.name);
+      }
+      message.success(`已加载文件：${file.name}`);
+    } catch (e: any) {
+      message.error(`文件解析失败：${e.message}`);
+    } finally {
+      setUploading(false);
+      setUploadTarget(null);
+    }
   };
 
+  /**
+   * 格式化 JSON
+   */
+  const handleFormat = () => {
+    if (!leftJson.trim() && !rightJson.trim()) {
+      message.warning('请输入 JSON 数据');
+      return;
+    }
+    if (leftJson.trim()) setLeftJson(formatJson(leftJson));
+    if (rightJson.trim()) setRightJson(formatJson(rightJson));
+    message.success('已格式化 JSON');
+  };
+
+  /**
+   * 压缩 JSON
+   */
+  const handleMinify = () => {
+    if (!leftJson.trim() && !rightJson.trim()) {
+      message.warning('请输入 JSON 数据');
+      return;
+    }
+    if (leftJson.trim()) setLeftJson(minifyJson(leftJson));
+    if (rightJson.trim()) setRightJson(minifyJson(rightJson));
+    message.success('已压缩 JSON');
+  };
+
+  /**
+   * 切换主题
+   */
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+    message.success(darkMode ? '已切换到浅色模式' : '已切换到深色模式');
+  };
+
+  /**
+   * 复制差异
+   */
+  const handleCopyDiff = () => {
+    if (!diffResult) {
+      message.warning('请先对比');
+      return;
+    }
+    const data = {
+      timestamp: new Date().toISOString(),
+      stats: diffResult.stats,
+      summary: {
+        total: diffResult.stats.total,
+        same: diffResult.stats.same,
+        modified: diffResult.stats.modified,
+        added: diffResult.stats.added,
+        hasDiff: diffResult.stats.modified > 0 || diffResult.stats.added > 0,
+      },
+      left: displayLeft || leftJson,
+      right: displayRight || rightJson,
+    };
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    message.success('已复制差异数据');
+  };
+
+  /**
+   * 导出差异
+   */
+  const handleExport = () => {
+    if (!diffResult) {
+      message.warning('请先对比');
+      return;
+    }
+    const data = {
+      timestamp: new Date().toISOString(),
+      stats: diffResult.stats,
+      left: displayLeft || leftJson,
+      right: displayRight || rightJson,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `json-diff-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    message.success('已导出差异数据');
+  };
+
+  /**
+   * 切换过滤相同项
+   */
   const toggleFilter = () => {
     const newFilterState = !filterSame;
     setFilterSame(newFilterState);
 
-    // 切换过滤状态时，如果有数据则重新对比
     if (leftJson.trim() || rightJson.trim()) {
       setLoading(true);
       try {
@@ -325,7 +317,8 @@ export default function JsonDiffV3Page() {
         const result = calculateDiff(compareLeft, compareRight);
         setDiffResult({ stats: result.stats, diff: result.nodes });
 
-        const leftPaths = new Map(), rightPaths = new Map();
+        const leftPaths = new Map();
+        const rightPaths = new Map();
         collectDiffPaths(result, leftPaths, rightPaths);
         setLeftDiffPaths(leftPaths);
         setRightDiffPaths(rightPaths);
@@ -343,10 +336,52 @@ export default function JsonDiffV3Page() {
     }
   };
 
+  /**
+   * 调整字体大小
+   */
+  const handleZoomIn = () => setFontSize(prev => Math.min(prev + 2, 20));
+  const handleZoomOut = () => setFontSize(prev => Math.max(prev - 2, 11));
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        handleCompare();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'h') {
+        e.preventDefault();
+        setShowHistory(true);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        toggleTheme();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [leftJson, rightJson, filterSame, darkMode]);
+
+  // 历史记录菜单
+  const historyMenu: MenuProps = {
+    items: history.slice(0, 5).map(item => ({
+      key: item.id,
+      label: new Date(item.timestamp).toLocaleString(),
+      onClick: () => {
+        setLeftJson(item.left);
+        setRightJson(item.right);
+        setShowHistory(false);
+        message.success('已加载历史记录');
+      },
+    })),
+  };
+
   return (
-    <div style={styles.pageContainer}>
-      {/* 顶部工具栏 - 固定高度 */}
-      <div style={styles.toolbar}>
+    <ConfigProvider theme={{ algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
+      <div style={createStyles(darkMode).pageContainer as React.CSSProperties}>
+      {(() => {
+        const styles = createStyles(darkMode);
+        return (
+          <>
+      {/* 顶部工具栏 */}
+      <div style={styles.toolbar as React.CSSProperties}>
         <div style={styles.toolbarLeft}>
           <div style={styles.logo}>
             <ThunderboltOutlined style={styles.logoIcon} />
@@ -354,227 +389,283 @@ export default function JsonDiffV3Page() {
           </div>
           <Divider type="vertical" style={{ height: 24 }} />
           <Space size="small">
-            <Button type="primary" icon={<SyncOutlined spin={loading} />} onClick={handleCompare} loading={loading} size="small">对比</Button>
-            <Button size="small" onClick={() => loadExample('userInfo')}>示例 1</Button>
-            <Button size="small" onClick={() => loadExample('productData')}>示例 2</Button>
-            <Button size="small" onClick={() => loadExample('apiResponse')}>示例 3</Button>
+            <Dropdown menu={{ items: Object.entries(EXAMPLES).map(([key, ex]) => ({
+              key,
+              label: `${ex.name}`,
+              description: ex.description,
+              onClick: () => loadExample(key as ExampleType),
+            })) }} trigger={['click']}>
+              <Button icon={<PlusOutlined />} size="small">示例</Button>
+            </Dropdown>
+            <Button
+              type="primary"
+              icon={<SyncOutlined spin={loading} />}
+              onClick={handleCompare}
+              loading={loading}
+              size="small"
+            >
+              对比
+            </Button>
           </Space>
         </div>
         <div style={styles.toolbarRight}>
           <Space size="small">
-            <Button icon={<SwapOutlined />} onClick={handleSwap} size="small">交换</Button>
-            <Button icon={<UndoOutlined />} onClick={handleClear} size="small">重置</Button>
-            <Button icon={<CopyOutlined />} onClick={handleCopyDiff} disabled={!diffResult} size="small">复制</Button>
+            <Tooltip title="上传 JSON 文件">
+              <Button 
+                icon={<UploadOutlined />} 
+                size="small" 
+                loading={uploading}
+                onClick={() => setShowUploadModal(true)}
+              >
+                上传
+              </Button>
+            </Tooltip>
+            <Tooltip title="格式化 JSON">
+              <Button icon={<FormatPainterOutlined />} onClick={handleFormat} size="small" disabled={!hasContent}>
+                格式化
+              </Button>
+            </Tooltip>
+            <Tooltip title="压缩 JSON">
+              <Button icon={<CompressOutlined />} onClick={handleMinify} size="small" disabled={!hasContent}>
+                压缩
+              </Button>
+            </Tooltip>
+            <Divider type="vertical" style={{ height: 16 }} />
+            <Button icon={<SwapOutlined />} onClick={handleSwap} size="small" disabled={!hasContent}>
+              交换
+            </Button>
+            <Button icon={<UndoOutlined />} onClick={handleClear} size="small" disabled={!hasContent}>
+              重置
+            </Button>
+            <Button icon={<DownloadOutlined />} onClick={handleExport} disabled={!diffResult} size="small">
+              导出
+            </Button>
+            <Button icon={<CopyOutlined />} onClick={handleCopyDiff} disabled={!diffResult} size="small">
+              复制
+            </Button>
+            <Button icon={<HistoryOutlined />} onClick={() => setShowHistory(true)} size="small" disabled={history.length === 0}>
+              历史
+            </Button>
+            <Divider type="vertical" style={{ height: 16 }} />
+            <Space align="center" size={4}>
+              <Button size="small" icon={<ZoomOutOutlined />} onClick={handleZoomOut} disabled={fontSize <= 11} />
+              <span style={{ fontSize: 12, color: '#666', minWidth: 30, textAlign: 'center' }}>{fontSize}</span>
+              <Button size="small" icon={<ZoomInOutlined />} onClick={handleZoomIn} disabled={fontSize >= 20} />
+            </Space>
             <Divider type="vertical" style={{ height: 16 }} />
             <Space align="center" size={6}>
-              <FilterOutlined style={{ fontSize: 14, color: '#666' }} />
-              <span style={{ fontSize: 13, color: '#666' }}>过滤相同</span>
-              <Switch checked={filterSame} onChange={toggleFilter} size="small" />
+              <FilterOutlined style={{ fontSize: 14, color: filterSame ? '#52c41a' : '#666' }} />
+              <span style={{ fontSize: 13, color: filterSame ? '#52c41a' : '#666' }}>过滤相同</span>
+              <Switch
+                checked={filterSame}
+                onChange={toggleFilter}
+                size="small"
+                checkedChildren={<CheckOutlined />}
+                unCheckedChildren={<FilterOutlined />}
+              />
             </Space>
+            <Divider type="vertical" style={{ height: 16 }} />
+            <Tooltip title={darkMode ? '浅色模式' : '深色模式'}>
+              <Button 
+                icon={<BulbOutlined rotate={darkMode ? 180 : 0} />} 
+                onClick={toggleTheme} 
+                size="small"
+              >
+                {darkMode ? '浅' : '深'}
+              </Button>
+            </Tooltip>
           </Space>
         </div>
       </div>
 
-      {/* 主内容区 - 编辑区占据 100% 剩余空间 */}
+      {/* 主内容区 */}
       <div style={styles.mainContent}>
         <Row gutter={12} style={{ height: '100%' }}>
           <Col span={12}>
-            <Card style={styles.editorCard} bodyStyle={{ padding: 0, height: '100%' }}>
+            <Card 
+              style={{ ...styles.editorCard, fontSize }} 
+              styles={{ body: { padding: 0, height: '100%' } }}
+            >
               <div style={styles.cardHeader}>
-                <span style={styles.cardTitle}>📄 原始 JSON</span>
-                <Space wrap size={4} style={{ marginLeft: 'auto' }}>
-                  <Tag color="#ff4d4f" style={{ margin: 0, fontSize: 11 }}>删除</Tag>
-                  <Tag color="#52c41a" style={{ margin: 0, fontSize: 11 }}>新增</Tag>
-                  <Tag color="#1890ff" style={{ margin: 0, fontSize: 11 }}>修改</Tag>
-                </Space>
+                <span style={styles.cardTitle}>
+                  📄 原始 JSON
+                  {leftFileName && (
+                    <Tag icon={<FileTextOutlined />} color="blue" style={{ marginLeft: 8 }}>
+                      {leftFileName}
+                    </Tag>
+                  )}
+                </span>
               </div>
               <div style={styles.editorWrapper}>
                 <HighlightEditor
                   value={displayLeft || leftJson}
                   onChange={setLeftJson}
                   diffPaths={leftDiffPaths}
-                  placeholder="请输入或粘贴 JSON 数据..."
+                  placeholder="请输入或粘贴 JSON 数据... (⌘/Ctrl + Enter 对比)"
+                  fontSize={fontSize}
+                  title="左侧 JSON"
                 />
               </div>
             </Card>
           </Col>
           <Col span={12}>
-            <Card style={styles.editorCard} bodyStyle={{ padding: 0, height: '100%' }}>
+            <Card 
+              style={{ ...styles.editorCard, fontSize }} 
+              styles={{ body: { padding: 0, height: '100%' } }}
+            >
               <div style={styles.cardHeader}>
-                <span style={styles.cardTitle}>📄 目标 JSON</span>
-                <Space wrap size={4} style={{ marginLeft: 'auto' }}>
-                  <Tag color="#ff4d4f" style={{ margin: 0, fontSize: 11 }}>删除</Tag>
-                  <Tag color="#52c41a" style={{ margin: 0, fontSize: 11 }}>新增</Tag>
-                  <Tag color="#1890ff" style={{ margin: 0, fontSize: 11 }}>修改</Tag>
-                </Space>
+                <span style={styles.cardTitle}>
+                  📄 目标 JSON
+                  {rightFileName && (
+                    <Tag icon={<FileTextOutlined />} color="green" style={{ marginLeft: 8 }}>
+                      {rightFileName}
+                    </Tag>
+                  )}
+                </span>
               </div>
               <div style={styles.editorWrapper}>
                 <HighlightEditor
                   value={displayRight || rightJson}
                   onChange={setRightJson}
                   diffPaths={rightDiffPaths}
-                  placeholder="请输入或粘贴 JSON 数据..."
+                  placeholder="请输入或粘贴 JSON 数据... (⌘/Ctrl + Enter 对比)"
+                  fontSize={fontSize}
+                  title="右侧 JSON"
                 />
               </div>
             </Card>
           </Col>
         </Row>
       </div>
+
+      {/* 历史记录弹窗 */}
+      <Modal
+        title={<><HistoryOutlined /> 历史记录</>}
+        open={showHistory}
+        onCancel={() => setShowHistory(false)}
+        footer={[
+          <Button key="clear" icon={<ClearOutlined />} danger onClick={() => {
+            setHistory([]);
+            localStorage.removeItem('json-diff-history');
+            setShowHistory(false);
+            message.success('已清空历史记录');
+          }}>
+            清空历史
+          </Button>,
+          <Button key="close" onClick={() => setShowHistory(false)}>关闭</Button>,
+        ]}
+        width={600}
+      >
+        <div style={{ maxHeight: 400, overflow: 'auto' }}>
+          {history.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>暂无历史记录</div>
+          ) : (
+            history.map(item => (
+              <Card
+                key={item.id}
+                size="small"
+                style={{ marginBottom: 12, cursor: 'pointer' }}
+                onClick={() => {
+                  setLeftJson(item.left);
+                  setRightJson(item.right);
+                  setShowHistory(false);
+                  message.success('已加载历史记录');
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 500 }}>{new Date(item.timestamp).toLocaleString()}</div>
+                    <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+                      总数：{item.stats.total} | 相同：{item.stats.same} | 修改：{item.stats.modified} | 差异：{item.stats.added}
+                    </div>
+                  </div>
+                  <Button type="primary" size="small">加载</Button>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      </Modal>
+
+      {/* 上传文件弹窗 */}
+      <Modal
+        title={<><UploadOutlined /> 上传 JSON 文件</>}
+        open={showUploadModal}
+        onCancel={() => setShowUploadModal(false)}
+        footer={[
+          <Button key="close" onClick={() => setShowUploadModal(false)}>关闭</Button>,
+        ]}
+        width={600}
+      >
+        <Row gutter={16}>
+          <Col span={12}>
+            <Card size="small" title="📄 上传到左侧" hoverable>
+              <Dragger
+                accept=".json,application/json"
+                showUploadList={false}
+                beforeUpload={(file) => {
+                  handleFileUpload(file, 'left');
+                  setShowUploadModal(false);
+                  return false;
+                }}
+              >
+                <p className="ant-upload-drag-icon">
+                  <FileTextOutlined style={{ color: '#1890ff' }} />
+                </p>
+                <p className="ant-upload-text">点击或拖拽文件到此处</p>
+                <p className="ant-upload-hint">仅支持 .json 文件</p>
+              </Dragger>
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card size="small" title="📄 上传到右侧" hoverable>
+              <Dragger
+                accept=".json,application/json"
+                showUploadList={false}
+                beforeUpload={(file) => {
+                  handleFileUpload(file, 'right');
+                  setShowUploadModal(false);
+                  return false;
+                }}
+              >
+                <p className="ant-upload-drag-icon">
+                  <FileTextOutlined style={{ color: '#52c41a' }} />
+                </p>
+                <p className="ant-upload-text">点击或拖拽文件到此处</p>
+                <p className="ant-upload-hint">仅支持 .json 文件</p>
+              </Dragger>
+            </Card>
+          </Col>
+        </Row>
+      </Modal>
+
+      {/* 隐藏的文件输入 */}
+      <input
+        id="file-upload-left"
+        type="file"
+        accept=".json,application/json"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileUpload(file, 'left');
+          e.target.value = '';
+        }}
+      />
+      <input
+        id="file-upload-right"
+        type="file"
+        accept=".json,application/json"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileUpload(file, 'right');
+          e.target.value = '';
+        }}
+      />
+          </>
+        );
+      })()}
     </div>
+    </ConfigProvider>
   );
 }
-
-// ==================== 样式定义 ====================
-
-const styles: Record<string, React.CSSProperties> = {
-  // 页面容器 - 全屏布局
-  pageContainer: {
-    width: '100vw',
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    overflow: 'hidden',
-  },
-
-  // 顶部工具栏 - 固定 56px
-  toolbar: {
-    height: 56,
-    minHeight: 56,
-    background: 'rgba(255, 255, 255, 0.98)',
-    backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 20px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-    zIndex: 100,
-  },
-
-  toolbarLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-  },
-
-  toolbarRight: {
-    display: 'flex',
-    alignItems: 'center',
-  },
-
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-
-  logoIcon: {
-    fontSize: 22,
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-
-  logoText: {
-    fontSize: 18,
-    fontWeight: 600,
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-
-  // 主内容区 - 编辑区占据 100% 剩余空间
-  mainContent: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    padding: 12,
-    gap: 12,
-    minHeight: 0,
-    overflow: 'hidden',
-  },
-
-  // 编辑区 - 可滚动，占据剩余空间
-  editorArea: {
-    flex: 1,
-    minHeight: 0,
-    overflow: 'hidden',
-  },
-
-  editorCard: {
-    height: '100%',
-    borderRadius: 12,
-    border: 'none',
-    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-    background: 'rgba(255, 255, 255, 0.98)',
-  },
-
-  cardHeader: {
-    height: 44,
-    minHeight: 44,
-    background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-    borderBottom: '1px solid #e9ecef',
-    display: 'flex',
-    alignItems: 'center',
-    padding: '0 16px',
-    gap: 8,
-  },
-
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#333',
-  },
-
-  editorWrapper: {
-    flex: 1,
-    overflow: 'auto',
-    background: '#fff',
-  },
-
-  editor: {
-    fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, "Courier New", monospace',
-    fontSize: 13,
-    lineHeight: 1.8,
-    padding: '20px 24px',
-    minHeight: '100%',
-    outline: 'none',
-    whiteSpace: 'pre',
-    color: '#2c3e50',
-    cursor: 'text',
-  },
-
-  placeholder: {
-    color: '#bbb',
-    pointerEvents: 'none',
-  },
-
-  line: {
-    minHeight: '1.8em',
-    lineHeight: 1.8,
-    whiteSpace: 'pre',
-  },
-
-  leadingSpace: {
-    display: 'inline-block',
-    fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, monospace',
-  },
-
-  lineContent: {
-    padding: '2px 8px',
-    borderRadius: '4px',
-    display: 'inline-block',
-    whiteSpace: 'pre',
-    transition: 'all 0.15s ease',
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-  },
-
-  emptyLine: {
-    display: 'inline-block',
-    minWidth: '100%',
-  },
-};
