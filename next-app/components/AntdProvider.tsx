@@ -3,7 +3,7 @@
 import { StyleProvider } from "@ant-design/cssinjs";
 import { ConfigProvider, App, theme } from "antd";
 import type { FC, PropsWithChildren } from "react";
-import " @ant-design/v5-patch-for-react-19";
+import "@ant-design/v5-patch-for-react-19";
 
 interface AntdProviderProps extends PropsWithChildren {
   darkMode?: boolean;

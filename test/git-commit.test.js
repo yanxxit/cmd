@@ -321,6 +321,90 @@ async function runTests() {
       failedTests++;
     }
 
+    await setTimeout(500);
+
+    // ========== 测试 10: 指定 type 选项 ==========
+    console.log(chalk.yellow('\nTest 10: 指定 type 选项'));
+    try {
+      await setupTestRepo(testDir);
+      
+      // 创建修改文件
+      await fs.writeFile(path.join(testDir, 'fix.js'), 'const x = 1;\n');
+      execSync('git add fix.js', { cwd: testDir, stdio: 'pipe' });
+      
+      const result = await runCommand(['--type', 'fix'], testDir);
+      
+      // 检查是否包含 fix 类型
+      const fullOutput = result.output + result.error;
+      if (fullOutput.includes('fix:')) {
+        console.log(chalk.green('✓ 正确应用指定 type'));
+        passedTests++;
+      } else {
+        console.log(chalk.red('✗ 未正确应用指定 type'));
+        console.log(chalk.gray('输出:', fullOutput.substring(0, 200)));
+        failedTests++;
+      }
+    } catch (e) {
+      console.log(chalk.red('✗ 测试执行失败:', e.message));
+      failedTests++;
+    }
+
+    await setTimeout(500);
+
+    // ========== 测试 11: 详细模式显示文件列表 ==========
+    console.log(chalk.yellow('\nTest 11: 详细模式显示文件列表'));
+    try {
+      await setupTestRepo(testDir);
+      
+      // 创建修改文件
+      await fs.writeFile(path.join(testDir, 'stats.js'), 'console.log(1);\nconsole.log(2);\nconsole.log(3);\n');
+      execSync('git add stats.js', { cwd: testDir, stdio: 'pipe' });
+      
+      const result = await runCommand(['-v'], testDir);
+      
+      const fullOutput = result.output + result.error;
+      const hasFileList = fullOutput.includes('变更文件') || 
+                          fullOutput.includes('stats.js');
+      
+      if (hasFileList) {
+        console.log(chalk.green('✓ 详细模式显示文件列表'));
+        passedTests++;
+      } else {
+        console.log(chalk.red('✗ 详细模式未显示文件列表'));
+        console.log(chalk.gray('输出:', fullOutput.substring(0, 200)));
+        failedTests++;
+      }
+    } catch (e) {
+      console.log(chalk.red('✗ 测试执行失败:', e.message));
+      failedTests++;
+    }
+
+    await setTimeout(500);
+
+    // ========== 测试 12: 不使用 AI 模式 ==========
+    console.log(chalk.yellow('\nTest 12: 不使用 AI 模式'));
+    try {
+      await setupTestRepo(testDir);
+      
+      // 创建修改文件
+      await fs.writeFile(path.join(testDir, 'noapi.js'), 'const x = 1;\n');
+      execSync('git add noapi.js', { cwd: testDir, stdio: 'pipe' });
+      
+      const result = await runCommand(['--no-api'], testDir);
+      
+      if (result.output.includes('变更统计') || result.output.includes('文件数')) {
+        console.log(chalk.green('✓ 不使用 AI 模式正常'));
+        passedTests++;
+      } else {
+        console.log(chalk.red('✗ 不使用 AI 模式异常'));
+        console.log(chalk.gray('输出:', result.output.substring(0, 200)));
+        failedTests++;
+      }
+    } catch (e) {
+      console.log(chalk.red('✗ 测试执行失败:', e.message));
+      failedTests++;
+    }
+
     // ========== 测试总结 ==========
     console.log(chalk.cyan('\n' + '='.repeat(50)));
     console.log(chalk.cyan('测试总结:'));

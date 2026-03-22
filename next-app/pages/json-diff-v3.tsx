@@ -1,34 +1,33 @@
 'use client';
 
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Button, Card, Col, ConfigProvider, Divider, Dropdown, Input, MenuProps, Modal, Row, Space, Switch, Tag, theme, Tooltip, Upload, UploadFile, message } from 'antd';
 import {
-  ThunderboltOutlined,
-  SyncOutlined,
+  BulbOutlined,
+  CheckOutlined,
+  ClearOutlined,
+  CompressOutlined,
+  CopyOutlined,
+  DownloadOutlined,
+  FileTextOutlined,
+  FilterOutlined,
+  FormatPainterOutlined,
+  HistoryOutlined,
   PlusOutlined,
   SwapOutlined,
+  SyncOutlined,
+  ThunderboltOutlined,
   UndoOutlined,
-  CopyOutlined,
-  FilterOutlined,
-  CheckOutlined,
-  DownloadOutlined,
-  HistoryOutlined,
-  ClearOutlined,
+  UploadOutlined,
   ZoomInOutlined,
   ZoomOutOutlined,
-  UploadOutlined,
-  FormatPainterOutlined,
-  CompressOutlined,
-  BulbOutlined,
-  FileTextOutlined,
 } from '@ant-design/icons';
-import { Button, Space, Card, Row, Col, Switch, Divider, Tag, Dropdown, MenuProps, Modal, Input, Upload, Tooltip, ConfigProvider, theme, UploadFile, App } from 'antd';
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-
-import { EXAMPLES } from '@/components/json-diff/constants';
 import { HighlightEditor } from '@/components/json-diff/HighlightEditor';
-import { sortKeysByPinyin, calculateDiff, filterSameFields, collectDiffPaths } from '@/components/json-diff/logic';
-import createStyles from '@/components/json-diff/styles';
+import { EXAMPLES } from '@/components/json-diff/constants';
 import { DiffResult } from '@/components/json-diff/types';
+import { sortKeysByPinyin, calculateDiff, filterSameFields, collectDiffPaths } from '@/components/json-diff/logic';
 import { formatJson, minifyJson, parseJsonFile } from '@/components/json-diff/utils';
+import createStyles from '@/components/json-diff/styles';
 
 const { Dragger } = Upload;
 
@@ -43,8 +42,6 @@ interface HistoryItem {
 }
 
 export default function JsonDiffV3Page() {
-  const { message } = App.useApp();
-  
   const [leftJson, setLeftJson] = useState('');
   const [rightJson, setRightJson] = useState('');
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
