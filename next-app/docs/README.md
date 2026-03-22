@@ -38,6 +38,13 @@
 | [FIX_MESSAGE_WARNING.md](./FIX_MESSAGE_WARNING.md) | Message 警告修复指南 | 所有人 |
 | [PACKAGE_COMPATIBILITY.md](./PACKAGE_COMPATIBILITY.md) | 包兼容性校验报告 | 技术负责人 |
 
+### 📝 项目需求
+
+| 文档 | 说明 | 适合人群 |
+|------|------|----------|
+| [TODO_LIST_REQUIREMENTS_V2.md](./TODO_LIST_REQUIREMENTS_V2.md) | TODO List 需求文档（增强版）⭐ | 所有开发者 |
+| [TODO_LIST_REQUIREMENTS.md](./TODO_LIST_REQUIREMENTS.md) | TODO List 需求文档（初版） | 参考 |
+
 ---
 
 ## 🎯 推荐阅读顺序
