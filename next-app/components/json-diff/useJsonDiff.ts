@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { DiffResult } from './types';
+
 import { sortKeysByPinyin, calculateDiff, filterSameFields, collectDiffPaths } from './logic';
+import { DiffResult } from './types';
 
 export interface HistoryItem {
   id: string;

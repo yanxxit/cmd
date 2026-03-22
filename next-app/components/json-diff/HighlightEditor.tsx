@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useRef, useState, useMemo, useCallback } from 'react';
-import { Button, Tooltip, message } from 'antd';
 import { CopyOutlined, CheckOutlined } from '@ant-design/icons';
+import { App, Button, Tooltip } from 'antd';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
+
 import { HIGHLIGHT_STYLES } from './constants';
-import { processLines, smartFormat, copyToClipboard } from './utils';
 import createStyles from './styles';
 import type { LineDiffInfo } from './types';
+import { processLines, smartFormat, copyToClipboard } from './utils';
 
 export interface HighlightEditorProps {
   value: string;
@@ -59,6 +60,7 @@ export const HighlightEditor: React.FC<HighlightEditorProps> = ({
   fontSize = 13,
   title,
 }) => {
+  const { message } = App.useApp();
   const editorRef = useRef<HTMLDivElement>(null);
   const [copying, setCopying] = useState(false);
   const [isFocused, setIsFocused] = useState(false);

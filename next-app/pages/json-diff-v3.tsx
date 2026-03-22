@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Button, Space, Card, Row, Col, Switch, Divider, Tag, Dropdown, MenuProps, Modal, Input, Upload, Tooltip, ConfigProvider, theme, UploadFile, App } from 'antd';
 import {
   ThunderboltOutlined,
   SyncOutlined,
@@ -22,12 +20,15 @@ import {
   BulbOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
-import { HighlightEditor } from '@/components/json-diff/HighlightEditor';
+import { Button, Space, Card, Row, Col, Switch, Divider, Tag, Dropdown, MenuProps, Modal, Input, Upload, Tooltip, ConfigProvider, theme, UploadFile, App } from 'antd';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+
 import { EXAMPLES } from '@/components/json-diff/constants';
-import { DiffResult } from '@/components/json-diff/types';
+import { HighlightEditor } from '@/components/json-diff/HighlightEditor';
 import { sortKeysByPinyin, calculateDiff, filterSameFields, collectDiffPaths } from '@/components/json-diff/logic';
-import { formatJson, minifyJson, parseJsonFile } from '@/components/json-diff/utils';
 import createStyles from '@/components/json-diff/styles';
+import { DiffResult } from '@/components/json-diff/types';
+import { formatJson, minifyJson, parseJsonFile } from '@/components/json-diff/utils';
 
 const { Dragger } = Upload;
 

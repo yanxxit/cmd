@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
-import { Form, Input, Button, Checkbox, Typography, Divider, message } from 'antd';
 import { MailOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Checkbox, Typography, Divider, message } from 'antd';
 import type { FormProps } from 'antd';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useState } from 'react';
 
 const { Title, Text } = Typography;
 
