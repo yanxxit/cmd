@@ -2,8 +2,12 @@
 const nextConfig = {
   output: 'export',
   distDir: 'dist',
-  // 关闭 React 严格模式以减少开发模式下的双重渲染
-  reactStrictMode: false,
+  // React 19 严格模式
+  reactStrictMode: true,
+  // 图片优化配置
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;

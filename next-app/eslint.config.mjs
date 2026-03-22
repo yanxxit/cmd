@@ -16,12 +16,14 @@ const eslintConfig = defineConfig([
   ]),
   {
     rules: {
-      // React 最佳实践
-      "react/react-in-jsx-scope": "error",
+      // React 19 最佳实践
+      "react/react-in-jsx-scope": "off",  // React 19 不需要
       "react/prop-types": "off",
       "react/display-name": "warn",
       "react/no-unescaped-entities": "off",
       "react/jsx-no-target-blank": "warn",
+      "react/self-closing-comp": "warn",
+      "react/jsx-no-useless-fragment": "warn",
       
       // React Hooks 规则
       "react-hooks/rules-of-hooks": "error",

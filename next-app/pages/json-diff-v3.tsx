@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Button, Space, message, Card, Row, Col, Switch, Divider, Tag, Dropdown, MenuProps, Modal, Input, Upload, Tooltip, ConfigProvider, theme, UploadFile } from 'antd';
+import { Button, Space, Card, Row, Col, Switch, Divider, Tag, Dropdown, MenuProps, Modal, Input, Upload, Tooltip, ConfigProvider, theme, UploadFile, App } from 'antd';
 import {
   ThunderboltOutlined,
   SyncOutlined,
@@ -42,6 +42,8 @@ interface HistoryItem {
 }
 
 export default function JsonDiffV3Page() {
+  const { message } = App.useApp();
+  
   const [leftJson, setLeftJson] = useState('');
   const [rightJson, setRightJson] = useState('');
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
