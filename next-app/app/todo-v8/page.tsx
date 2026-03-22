@@ -11,6 +11,8 @@ import { Layout } from 'antd';
 import { TopNav, SideBar } from '@/components/todo/Layout';
 import { QuickAdd } from '@/components/todo/TodoForm';
 import { TodoList } from '@/components/todo/TodoList';
+import { FilterBar, SortBar, SearchBar } from '@/components/todo/Filter';
+import { StatsPanel, Charts } from '@/components/todo/Stats';
 import { useTodo, useTheme } from '@/components/todo/hooks';
 import type { Todo } from '@/components/todo/types';
 
@@ -27,6 +29,8 @@ export default function TodoV8Page() {
     stats, 
     loading, 
     filter, 
+    priorityFilter,
+    dateFilter,
     sort, 
     view, 
     search,
@@ -35,6 +39,8 @@ export default function TodoV8Page() {
     deleteTodo,
     toggleTodo,
     setFilter,
+    setPriorityFilter,
+    setDateFilter,
     setSort,
     setView,
     setSearch,
@@ -122,63 +128,41 @@ export default function TodoV8Page() {
                 {view === 'no-date' && '无日期'}
               </h1>
               
-              {/* 统计信息 */}
+              {/* 统计面板 */}
               {stats && (
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-                  gap: 16, 
-                  marginBottom: 24 
-                }}>
-                  <div style={{
-                    padding: 16,
-                    background: isDarkMode ? '#1f1f1f' : '#fff',
-                    borderRadius: 8,
-                    boxShadow: isDarkMode ? 'none' : '0 1px 2px rgba(0,0,0,0.1)',
-                  }}>
-                    <div style={{ fontSize: 12, color: isDarkMode ? '#666' : '#999' }}>总任务</div>
-                    <div style={{ fontSize: 24, fontWeight: 600, color: isDarkMode ? '#fff' : '#000' }}>
-                      {stats.total}
-                    </div>
-                  </div>
-                  <div style={{
-                    padding: 16,
-                    background: isDarkMode ? '#1f1f1f' : '#fff',
-                    borderRadius: 8,
-                    boxShadow: isDarkMode ? 'none' : '0 1px 2px rgba(0,0,0,0.1)',
-                  }}>
-                    <div style={{ fontSize: 12, color: isDarkMode ? '#666' : '#999' }}>未完成</div>
-                    <div style={{ fontSize: 24, fontWeight: 600, color: '#1890ff' }}>
-                      {stats.pending}
-                    </div>
-                  </div>
-                  <div style={{
-                    padding: 16,
-                    background: isDarkMode ? '#1f1f1f' : '#fff',
-                    borderRadius: 8,
-                    boxShadow: isDarkMode ? 'none' : '0 1px 2px rgba(0,0,0,0.1)',
-                  }}>
-                    <div style={{ fontSize: 12, color: isDarkMode ? '#666' : '#999' }}>已完成</div>
-                    <div style={{ fontSize: 24, fontWeight: 600, color: '#52c41a' }}>
-                      {stats.completed}
-                    </div>
-                  </div>
-                  <div style={{
-                    padding: 16,
-                    background: isDarkMode ? '#1f1f1f' : '#fff',
-                    borderRadius: 8,
-                    boxShadow: isDarkMode ? 'none' : '0 1px 2px rgba(0,0,0,0.1)',
-                  }}>
-                    <div style={{ fontSize: 12, color: isDarkMode ? '#666' : '#999' }}>逾期</div>
-                    <div style={{ fontSize: 24, fontWeight: 600, color: '#ff4d4f' }}>
-                      {stats.overdue}
-                    </div>
-                  </div>
-                </div>
+                <>
+                  <StatsPanel stats={stats} isDarkMode={isDarkMode} />
+                  <Charts todos={todos} stats={stats} isDarkMode={isDarkMode} />
+                </>
               )}
               
               {/* 快速添加任务 */}
               <QuickAdd onAdd={handleAdd} isDarkMode={isDarkMode} />
+              
+              {/* 搜索栏 */}
+              <SearchBar
+                isDarkMode={isDarkMode}
+                value={search}
+                onChange={setSearch}
+              />
+              
+              {/* 筛选栏 */}
+              <FilterBar
+                isDarkMode={isDarkMode}
+                filter={filter}
+                priority={priorityFilter}
+                dateFilter={dateFilter}
+                onFilterChange={setFilter}
+                onPriorityChange={setPriorityFilter}
+                onDateFilterChange={setDateFilter}
+              />
+              
+              {/* 排序栏 */}
+              <SortBar
+                isDarkMode={isDarkMode}
+                sort={sort}
+                onSortChange={setSort}
+              />
               
               {/* 任务列表 */}
               <TodoList

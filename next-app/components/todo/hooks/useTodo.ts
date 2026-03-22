@@ -30,6 +30,8 @@ interface UseTodoReturn {
   
   // 筛选和排序
   filter: FilterType;
+  priorityFilter: string;
+  dateFilter: string;
   sort: SortType;
   view: ViewType;
   search: string;
@@ -40,6 +42,8 @@ interface UseTodoReturn {
   deleteTodo: (id: number) => Promise<void>;
   toggleTodo: (id: number) => Promise<void>;
   setFilter: (filter: FilterType) => void;
+  setPriorityFilter: (priority: string) => void;
+  setDateFilter: (date: string) => void;
   setSort: (sort: SortType) => void;
   setView: (view: ViewType) => void;
   setSearch: (search: string) => void;
@@ -49,7 +53,7 @@ interface UseTodoReturn {
 /**
  * 过滤任务
  */
-function filterTodos(todos: Todo[], filter: FilterType, view: ViewType): Todo[] {
+function filterTodos(todos: Todo[], filter: FilterType, view: ViewType, priorityFilter: string, dateFilter: string): Todo[] {
   let filtered = [...todos];
   
   // 按视图过滤
@@ -123,6 +127,49 @@ function filterTodos(todos: Todo[], filter: FilterType, view: ViewType): Todo[] 
       break;
   }
   
+  // 按优先级过滤
+  if (priorityFilter !== 'all') {
+    const priorityMap: Record<string, number> = {
+      high: 1,
+      medium: 2,
+      low: 3,
+    };
+    filtered = filtered.filter(todo => todo.priority === priorityMap[priorityFilter]);
+  }
+  
+  // 按日期过滤
+  if (dateFilter !== 'all') {
+    switch (dateFilter) {
+      case 'today':
+        filtered = filtered.filter(todo => {
+          if (!todo.due_date) return false;
+          const dueDate = new Date(todo.due_date);
+          return dueDate.getTime() === today.getTime();
+        });
+        break;
+      case 'week':
+        filtered = filtered.filter(todo => {
+          if (!todo.due_date) return false;
+          const dueDate = new Date(todo.due_date);
+          return dueDate >= today && dueDate <= weekFromNow;
+        });
+        break;
+      case 'month':
+        filtered = filtered.filter(todo => {
+          if (!todo.due_date) return false;
+          const dueDate = new Date(todo.due_date);
+          return dueDate.getMonth() === today.getMonth();
+        });
+        break;
+      case 'overdue':
+        filtered = filtered.filter(todo => {
+          if (todo.completed || !todo.due_date) return false;
+          return new Date(todo.due_date) < today;
+        });
+        break;
+    }
+  }
+  
   return filtered;
 }
 
@@ -190,6 +237,8 @@ export function useTodo(options: UseTodoOptions = {}): UseTodoReturn {
   
   // 筛选和排序
   const [filter, setFilter] = useState<FilterType>(initialFilter);
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
   const [sort, setSort] = useState<SortType>(initialSort);
   const [view, setView] = useState<ViewType>(initialView);
   const [search, setSearch] = useState('');
@@ -261,11 +310,11 @@ export function useTodo(options: UseTodoOptions = {}): UseTodoReturn {
   
   // 过滤和排序后的任务列表
   const filteredTodos = useMemo(() => {
-    let result = filterTodos(todos, filter, view);
+    let result = filterTodos(todos, filter, view, priorityFilter, dateFilter);
     result = sortTodos(result, sort);
     result = searchTodos(result, search);
     return result;
-  }, [todos, filter, view, sort, search]);
+  }, [todos, filter, view, sort, search, priorityFilter, dateFilter]);
   
   return {
     // 数据
@@ -277,6 +326,8 @@ export function useTodo(options: UseTodoOptions = {}): UseTodoReturn {
     
     // 筛选和排序
     filter,
+    priorityFilter,
+    dateFilter,
     sort,
     view,
     search,
@@ -287,6 +338,8 @@ export function useTodo(options: UseTodoOptions = {}): UseTodoReturn {
     deleteTodo,
     toggleTodo,
     setFilter,
+    setPriorityFilter,
+    setDateFilter,
     setSort,
     setView,
     setSearch,
