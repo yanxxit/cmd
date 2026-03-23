@@ -672,6 +672,44 @@ window.vueApp = new Vue({
                     }
                 }
             });
+        },
+
+        // 添加粘贴事件监听
+        addPasteListener: function(editor) {
+            editor.on('paste', (instance, event) => {
+                // 获取粘贴的文本
+                const pastedText = event.clipboardData.getData('text');
+                if (!pastedText) return;
+
+                // 尝试解析 JSON
+                try {
+                    const json = JSON.parse(pastedText);
+                    // 格式化并排序
+                    const formatted = this.formatAndSortJson(json);
+                    const formattedStr = JSON.stringify(formatted, null, 4);
+
+                    // 阻止默认粘贴行为
+                    event.preventDefault();
+
+                    // 替换为格式化后的内容
+                    editor.replaceSelection(formattedStr);
+
+                    // 存储原始数据
+                    if (editor === jsonBox.left) {
+                        this.originalLeftJson = this.deepClone(json);
+                    } else {
+                        this.originalRightJson = this.deepClone(json);
+                    }
+
+                    // 触发比对
+                    setTimeout(() => {
+                        this.compareJson();
+                    }, 100);
+                } catch (e) {
+                    // 不是有效 JSON，使用默认粘贴行为
+                    console.log('粘贴内容不是有效 JSON，使用默认粘贴');
+                }
+            });
         }
     },
     mounted: function() {
@@ -691,6 +729,10 @@ window.vueApp = new Vue({
         jsonBox.right.on('change', () => {
             setTimeout(() => this.compareJson(), 300);
         });
+
+        // 添加粘贴事件监听 - 自动格式化 + 排序
+        this.addPasteListener(jsonBox.left);
+        this.addPasteListener(jsonBox.right);
 
         // 暴露到全局，供示例数据使用
         window.jsonBox = jsonBox;
