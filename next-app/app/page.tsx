@@ -120,6 +120,13 @@ export default function Home() {
       href: '/calendar/',
       tags: ['推荐', 'FullCalendar', 'Vue 3'],
     },
+    {
+      icon: '📝',
+      name: 'Markdown 编辑器',
+      description: '实时预览、复制 HTML、下载文件，支持代码高亮和表格',
+      href: '/markdown-tool',
+      tags: ['推荐', '编辑器', 'Markdown'],
+    },
   ];
 
   const versions: Version[] = [
@@ -301,6 +308,10 @@ export default function Home() {
               {toolCount}
             </span>
             <span style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>工具总数</span>
+          </div>
+          <div style={{ textAlign: 'center', padding: '10px 20px' }}>
+            <span style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)', display: 'block' }}>9</span>
+            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>核心工具</span>
           </div>
           <div style={{ textAlign: 'center', padding: '10px 20px' }}>
             <span style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)', display: 'block' }}>8</span>

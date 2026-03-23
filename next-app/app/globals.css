@@ -1,1 +1,65 @@
-/* @import "tailwindcss"; */
+@import "tailwindcss";
+
+/* Markdown 预览工具样式 */
+.markdown-preview-content {
+  max-width: none;
+}
+
+.markdown-preview-content h1:first-child {
+  margin-top: 0;
+}
+
+.markdown-preview-content pre {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.markdown-preview-content pre code {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+}
+
+.markdown-preview-content code {
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-preview-content img {
+  display: block;
+  margin: 1rem auto;
+}
+
+.markdown-preview-content table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.markdown-preview-content input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+/* 滚动条样式 */
+.cm-scroller::-webkit-scrollbar,
+.markdown-preview-content > div::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.cm-scroller::-webkit-scrollbar-track,
+.markdown-preview-content > div::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.cm-scroller::-webkit-scrollbar-thumb,
+.markdown-preview-content > div::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.cm-scroller::-webkit-scrollbar-thumb:hover,
+.markdown-preview-content > div::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}

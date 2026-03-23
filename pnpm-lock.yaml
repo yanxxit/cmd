@@ -92,6 +92,9 @@ importers:
       js-pinyin:
         specifier: ^0.2.7
         version: 0.2.7
+      jsondb:
+        specifier: git+https://gitee.com/yanxxit/jsondb.git#release/latest
+        version: git+https://gitee.com/yanxxit/jsondb.git#a4a20858b70689cdde5b9bb82096787abb115c16
       level:
         specifier: ^8.0.1
         version: 8.0.1
@@ -868,6 +871,10 @@ packages:
   combined-stream@1.0.8:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
     engines: {node: '>= 0.8'}
+
+  commander@12.1.0:
+    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
+    engines: {node: '>=18'}
 
   commander@14.0.3:
     resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
@@ -1783,6 +1790,12 @@ packages:
 
   json2mq@0.2.0:
     resolution: {integrity: sha512-SzoRg7ux5DWTII9J2qkrZrqV1gt+rTaoufMxEzXbS26Uid0NwaJd123HcoB80TgubEppxxIGdNxCx50fEoEWQA==}
+
+  jsondb@git+https://gitee.com/yanxxit/jsondb.git#a4a20858b70689cdde5b9bb82096787abb115c16:
+    resolution: {commit: a4a20858b70689cdde5b9bb82096787abb115c16, repo: https://gitee.com/yanxxit/jsondb.git, type: git}
+    version: 0.1.0
+    engines: {node: '>=18'}
+    hasBin: true
 
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
@@ -4012,6 +4025,8 @@ snapshots:
     dependencies:
       delayed-stream: 1.0.0
 
+  commander@12.1.0: {}
+
   commander@14.0.3: {}
 
   commander@2.20.3: {}
@@ -4990,6 +5005,10 @@ snapshots:
   json2mq@0.2.0:
     dependencies:
       string-convert: 0.2.1
+
+  jsondb@git+https://gitee.com/yanxxit/jsondb.git#a4a20858b70689cdde5b9bb82096787abb115c16:
+    dependencies:
+      commander: 12.1.0
 
   jsonfile@4.0.0:
     optionalDependencies:
