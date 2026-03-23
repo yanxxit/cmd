@@ -1,3 +1,12 @@
+/**
+ * JSON 比对工具 - 优化版本
+ * 核心功能：
+ * 1. JSON 格式化 + key 排序
+ * 2. 过滤完全相同字段（左右两边 key 和 value 都相同）
+ * 3. 过滤类型相同字段（左右两边 key 和类型都相同）
+ * 4. 过滤时直接修改 JSON 数据并重新渲染
+ */
+
 // 创建 Vue 实例并暴露到全局供事件处理使用
 window.vueApp = new Vue({
     el: '#pageContainer',
@@ -10,7 +19,11 @@ window.vueApp = new Vue({
         rightSideError: false,
         differenceCount: 0,
         isDifferent: false,
-        filterSame: false, // 过滤相同项开关
+        filterExact: false, // 过滤 key,value 完全相同的字段
+        filterType: false,  // 过滤 key 相同且类型相同的字段
+        // 存储原始 JSON 数据（用于过滤时重新计算）
+        originalLeftJson: null,
+        originalRightJson: null,
         jsonExamples: {
             userInfo: {
                 left: {
@@ -189,34 +202,236 @@ window.vueApp = new Vue({
         }
     },
     computed: {
-        // 显示的消息，计算属性替代 v-html
         displayMessage: function() {
             return this.tipMessage + this.errorMessage;
         }
     },
     methods: {
+        // 填充示例数据
         fillExample: function(exampleType) {
             if (this.jsonExamples[exampleType]) {
                 const example = this.jsonExamples[exampleType];
-                jsonBox.left.setValue(JSON.stringify(example.left, null, 4));
-                jsonBox.right.setValue(JSON.stringify(example.right, null, 4));
+                // 存储原始数据
+                this.originalLeftJson = this.deepClone(example.left);
+                this.originalRightJson = this.deepClone(example.right);
+                
+                // 格式化并排序后显示
+                const formattedLeft = this.formatAndSortJson(example.left);
+                const formattedRight = this.formatAndSortJson(example.right);
+                
+                jsonBox.left.setValue(JSON.stringify(formattedLeft, null, 4));
+                jsonBox.right.setValue(JSON.stringify(formattedRight, null, 4));
 
                 // 触发比对
                 setTimeout(() => {
                     jsonBox.left.refresh();
                     jsonBox.right.refresh();
-                    this.compareJson(); // 使用 Vue 实例的方法进行比对
+                    this.compareJson();
                 }, 100);
             }
         },
-        // 切换过滤相同项
-        toggleFilterSame: function() {
-            this.filterSame = !this.filterSame;
-            this.compareJson();
+        
+        // 格式化 + 排序 JSON
+        formatJson: function() {
+            const leftText = jsonBox.left.getValue();
+            const rightText = jsonBox.right.getValue();
+            
+            try {
+                if (leftText.trim()) {
+                    const leftJson = JSON.parse(leftText);
+                    this.originalLeftJson = this.deepClone(leftJson);
+                    const formatted = this.formatAndSortJson(leftJson);
+                    jsonBox.left.setValue(JSON.stringify(formatted, null, 4));
+                }
+            } catch (e) {
+                console.error('左侧 JSON 解析失败:', e);
+            }
+            
+            try {
+                if (rightText.trim()) {
+                    const rightJson = JSON.parse(rightText);
+                    this.originalRightJson = this.deepClone(rightJson);
+                    const formatted = this.formatAndSortJson(rightJson);
+                    jsonBox.right.setValue(JSON.stringify(formatted, null, 4));
+                }
+            } catch (e) {
+                console.error('右侧 JSON 解析失败:', e);
+            }
+            
+            setTimeout(() => {
+                jsonBox.left.refresh();
+                jsonBox.right.refresh();
+                this.compareJson();
+            }, 100);
         },
-        // 添加比对 JSON 的方法
+        
+        // 过滤条件变化时触发
+        onFilterChange: function() {
+            // 互斥逻辑：两个过滤条件不能同时开启
+            if (this.filterExact && this.filterType) {
+                this.filterType = false;
+            }
+            
+            // 重新应用过滤并比对
+            this.applyFilterAndCompare();
+        },
+        
+        // 应用过滤并比对
+        applyFilterAndCompare: function() {
+            if (!this.originalLeftJson || !this.originalRightJson) {
+                // 如果没有原始数据，先尝试解析当前编辑器内容
+                const leftText = jsonBox.left.getValue();
+                const rightText = jsonBox.right.getValue();
+                
+                try {
+                    if (leftText.trim()) {
+                        this.originalLeftJson = JSON.parse(leftText);
+                    }
+                } catch (e) {}
+                
+                try {
+                    if (rightText.trim()) {
+                        this.originalRightJson = JSON.parse(rightText);
+                    }
+                } catch (e) {}
+            }
+            
+            if (!this.originalLeftJson || !this.originalRightJson) {
+                this.compareJson();
+                return;
+            }
+            
+            // 根据过滤条件生成新的 JSON
+            let filteredLeft = this.deepClone(this.originalLeftJson);
+            let filteredRight = this.deepClone(this.originalRightJson);
+            
+            if (this.filterExact) {
+                // 过滤完全相同字段
+                const result = this.filterSameFields(filteredLeft, filteredRight, 'exact');
+                filteredLeft = result.left;
+                filteredRight = result.right;
+            } else if (this.filterType) {
+                // 过滤类型相同字段
+                const result = this.filterSameFields(filteredLeft, filteredRight, 'type');
+                filteredLeft = result.left;
+                filteredRight = result.right;
+            }
+            
+            // 更新编辑器内容
+            jsonBox.left.setValue(JSON.stringify(filteredLeft, null, 4));
+            jsonBox.right.setValue(JSON.stringify(filteredRight, null, 4));
+            
+            setTimeout(() => {
+                jsonBox.left.refresh();
+                jsonBox.right.refresh();
+                this.compareJson();
+            }, 100);
+        },
+        
+        // 格式化并排序 JSON（递归处理对象和数组）
+        formatAndSortJson: function(obj) {
+            if (obj === null || typeof obj !== 'object') {
+                return obj;
+            }
+            
+            if (Array.isArray(obj)) {
+                // 数组：递归处理每个元素
+                return obj.map(item => this.formatAndSortJson(item));
+            }
+            
+            // 对象：按 key 排序后递归处理
+            const sortedObj = {};
+            const keys = Object.keys(obj).sort();
+            for (const key of keys) {
+                sortedObj[key] = this.formatAndSortJson(obj[key]);
+            }
+            return sortedObj;
+        },
+        
+        // 过滤相同字段
+        filterSameFields: function(leftObj, rightObj, filterMode) {
+            // 创建新对象存储过滤后的结果
+            const filteredLeft = this.deepClone(leftObj);
+            const filteredRight = this.deepClone(rightObj);
+            
+            // 递归过滤
+            this.filterObject(filteredLeft, filteredRight, filterMode);
+            
+            return { left: filteredLeft, right: filteredRight };
+        },
+        
+        // 递归过滤对象
+        filterObject: function(leftObj, rightObj, filterMode) {
+            if (leftObj === null || rightObj === null || 
+                typeof leftObj !== 'object' || typeof rightObj !== 'object') {
+                return;
+            }
+            
+            // 如果类型不同，不进行过滤
+            const leftIsArray = Array.isArray(leftObj);
+            const rightIsArray = Array.isArray(rightObj);
+            
+            if (leftIsArray !== rightIsArray) {
+                return;
+            }
+            
+            // 处理数组
+            if (leftIsArray) {
+                // 数组长度不同，不进行过滤
+                if (leftObj.length !== rightObj.length) {
+                    return;
+                }
+                // 递归处理数组元素
+                for (let i = 0; i < leftObj.length; i++) {
+                    if (typeof leftObj[i] === 'object' && leftObj[i] !== null &&
+                        typeof rightObj[i] === 'object' && rightObj[i] !== null) {
+                        this.filterObject(leftObj[i], rightObj[i], filterMode);
+                    }
+                }
+                return;
+            }
+            
+            // 处理对象
+            const leftKeys = Object.keys(leftObj);
+            const rightKeys = Object.keys(rightObj);
+            const allKeys = new Set([...leftKeys, ...rightKeys]);
+            
+            for (const key of allKeys) {
+                const leftValue = leftObj[key];
+                const rightValue = rightObj[key];
+                
+                // 检查 key 是否同时存在于两边
+                if (key in leftObj && key in rightObj) {
+                    // 检查是否需要过滤
+                    let shouldFilter = false;
+                    
+                    if (filterMode === 'exact') {
+                        // 完全相同过滤：key 和 value 都相同
+                        if (JSON.stringify(leftValue) === JSON.stringify(rightValue)) {
+                            shouldFilter = true;
+                        }
+                    } else if (filterMode === 'type') {
+                        // 类型相同过滤：key 相同且类型相同
+                        if (this.getType(leftValue) === this.getType(rightValue)) {
+                            shouldFilter = true;
+                        }
+                    }
+                    
+                    // 如果需要过滤，从两边都删除这个 key
+                    if (shouldFilter) {
+                        delete leftObj[key];
+                        delete rightObj[key];
+                    } else if (typeof leftValue === 'object' && leftValue !== null &&
+                               typeof rightValue === 'object' && rightValue !== null) {
+                        // 递归处理子对象
+                        this.filterObject(leftValue, rightValue, filterMode);
+                    }
+                }
+            }
+        },
+        
+        // 比对 JSON
         compareJson: function() {
-            // 使用全局变量中的实例
             let leftText = jsonBox.left.getValue();
             let rightText = jsonBox.right.getValue();
             let leftJson, rightJson;
@@ -276,140 +491,24 @@ window.vueApp = new Vue({
                         console.warn('error while trying to highlight diff', e);
                     }
                 });
-
-                // 如果开启过滤相同项，则隐藏相同的部分
-                if (this.filterSame && diffs.length > 0) {
-                    this.filterSameContent(diffs, leftJson, rightJson);
-                }
             } catch (e) {
                 console.error('比对过程出错:', e);
             }
         },
-        // 过滤相同内容，只显示差异部分
-        filterSameContent: function(diffs, leftJson, rightJson) {
-            // 收集所有差异路径
-            const diffPaths = new Set();
-            diffs.forEach(diff => {
-                diffPaths.add(diff.path);
-                // 添加父路径，确保父节点也显示
-                let currentPath = diff.path;
-                while (currentPath && currentPath !== '') {
-                    const lastIndex = currentPath.lastIndexOf('/');
-                    if (lastIndex > 0) {
-                        currentPath = currentPath.substring(0, lastIndex);
-                        diffPaths.add(currentPath);
-                    } else {
-                        break;
-                    }
-                }
-            });
-
-            // 获取编辑器的 CodeMirror 实例
-            const leftEditor = jsonBox.left;
-            const rightEditor = jsonBox.right;
-
-            // 解析 JSON 获取行号信息
-            const leftText = leftEditor.getValue();
-            const rightText = rightEditor.getValue();
-
-            // 使用 jsonSourceMap 获取路径对应的行号范围
-            const leftResult = jsonSourceMap.parse(leftText);
-            const rightResult = jsonSourceMap.parse(rightText);
-
-            const leftPointers = leftResult.pointers;
-            const rightPointers = rightResult.pointers;
-
-            // 计算需要隐藏的行范围（相同的部分）
-            const leftHideLines = this.calculateHideLines(leftPointers, diffPaths);
-            const rightHideLines = this.calculateHideLines(rightPointers, diffPaths);
-
-            // 使用 CodeMirror 的 fold 功能隐藏相同的行
-            this.foldUnchangedLines(leftEditor, leftHideLines);
-            this.foldUnchangedLines(rightEditor, rightHideLines);
+        
+        // 深拷贝
+        deepClone: function(obj) {
+            return JSON.parse(JSON.stringify(obj));
         },
-        // 计算需要隐藏的行（没有差异的路径对应的行）
-        calculateHideLines: function(pointers, diffPaths) {
-            const hideLines = new Set();
-            const allLines = new Set();
-
-            // 获取所有行
-            for (let path in pointers) {
-                if (pointers[path].value) {
-                    const startLine = pointers[path].value.line;
-                    const endLine = pointers[path].valueEnd ? pointers[path].valueEnd.line : startLine;
-                    for (let i = startLine; i <= endLine; i++) {
-                        allLines.add(i);
-                    }
-                }
-            }
-
-            // 获取需要显示的行（差异路径）
-            const showLines = new Set();
-            diffPaths.forEach(path => {
-                if (pointers[path]) {
-                    const startLine = pointers[path].value ? pointers[path].value.line : pointers[path].key.line;
-                    const endLine = pointers[path].valueEnd ? pointers[path].valueEnd.line : startLine;
-                    for (let i = startLine; i <= endLine; i++) {
-                        showLines.add(i);
-                    }
-                }
-            });
-
-            // 需要隐藏的是所有行减去需要显示的行
-            allLines.forEach(line => {
-                if (!showLines.has(line)) {
-                    hideLines.add(line);
-                }
-            });
-
-            return hideLines;
+        
+        // 获取类型
+        getType: function(value) {
+            if (value === null) return 'null';
+            if (value === undefined) return 'undefined';
+            if (Array.isArray(value)) return 'array';
+            return typeof value;
         },
-        // 折叠未改变的行
-        foldUnchangedLines: function(editor, hideLines) {
-            // 清除之前的折叠
-            const oldMarks = editor.getAllMarks();
-            oldMarks.forEach(mark => mark.clear());
-
-            const totalLines = editor.lineCount();
-            const sortedHideLines = Array.from(hideLines).sort((a, b) => a - b);
-
-            // 找出连续的行范围进行折叠
-            let ranges = [];
-            let start = -1;
-            let end = -1;
-
-            for (let i = 0; i < sortedHideLines.length; i++) {
-                const line = sortedHideLines[i];
-                if (start === -1) {
-                    start = line;
-                    end = line;
-                } else if (line === end + 1) {
-                    end = line;
-                } else {
-                    if (end - start >= 2) { // 至少 3 行才折叠
-                        ranges.push({ from: start, to: end });
-                    }
-                    start = line;
-                    end = line;
-                }
-            }
-            if (end - start >= 2) {
-                ranges.push({ from: start, to: end });
-            }
-
-            // 创建折叠标记
-            ranges.forEach(range => {
-                editor.markText(
-                    { line: range.from, ch: 0 },
-                    { line: range.to, ch: editor.getLine(range.to).length },
-                    {
-                        collapsed: true,
-                        clearWhenEmpty: false,
-                        placeholder: '⋯⋯ 相同内容已隐藏 ⋯⋯'
-                    }
-                );
-            });
-        },
+        
         // 清除所有标记
         clearMarkers: function() {
             jsonBox.left.getAllMarks().forEach(function(marker) {
@@ -419,6 +518,7 @@ window.vueApp = new Vue({
                 marker.clear();
             });
         },
+        
         // 高亮差异
         highlightDiff: function(diff, op) {
             if (op === 'remove') {
@@ -430,23 +530,26 @@ window.vueApp = new Vue({
                 this.highlightChange(jsonBox.right, diff);
             }
         },
+        
         // 高亮删除
         highlightRemoval: function(editor, diff) {
             this._highlight(editor, diff, '#DD4444');
         },
+        
         // 高亮添加
         highlightAddition: function(editor, diff) {
             this._highlight(editor, diff, '#4ba2ff');
         },
+        
         // 高亮修改
         highlightChange: function(editor, diff) {
             this._highlight(editor, diff, '#E5E833');
         },
+        
         // 高亮辅助方法
         _highlight: function(editor, diff, color) {
             try {
                 let textValue = editor.getValue();
-                // 使用全局 jsonSourceMap 对象
                 let result = jsonSourceMap.parse(textValue);
                 let pointers = result.pointers;
                 let path = diff.path;
@@ -472,6 +575,7 @@ window.vueApp = new Vue({
                 console.error('高亮过程出错:', e);
             }
         },
+        
         // 错误处理
         errorHandler: function(which, ok) {
             if (ok) {
@@ -505,6 +609,7 @@ window.vueApp = new Vue({
                 this.errorHighlight = true;
             }
         },
+        
         // diff 处理器
         diffHandler: function(diffs) {
             if (!this.errorHighlight) {
@@ -528,16 +633,23 @@ window.vueApp = new Vue({
         openDonateModal: function(event){
             event.preventDefault();
             event.stopPropagation();
-            chrome.runtime.sendMessage({
-                type: 'fh-dynamic-any-thing',
-                thing: 'open-donate-modal',
-                params: { toolName: 'json-diff' }
-            });
+            if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
+                chrome.runtime.sendMessage({
+                    type: 'fh-dynamic-any-thing',
+                    thing: 'open-donate-modal',
+                    params: { toolName: 'json-diff' }
+                });
+            } else {
+                console.log('打赏功能仅在扩展环境中可用');
+            }
         },
 
-
         loadPatchHotfix() {
-            // 页面加载时自动获取并注入页面的补丁
+            if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+                console.log('补丁热修复功能仅在扩展环境中可用');
+                return;
+            }
+
             chrome.runtime.sendMessage({
                 type: 'fh-dynamic-any-thing',
                 thing: 'fh-get-tool-patch',
@@ -552,17 +664,17 @@ window.vueApp = new Vue({
                     if (patch.js) {
                         try {
                             if (window.evalCore && window.evalCore.getEvalInstance) {
-                                window.evalCore.getEvalInstance(window)(patch.js);
+                                window.evalCore.getEvalInstance(patch.js)();
                             }
                         } catch (e) {
-                            console.error('json-diff 补丁 JS 执行失败', e);
+                            console.error('执行补丁 JS 失败:', e);
                         }
                     }
                 }
             });
-        },
+        }
     },
-    mounted: function () {
+    mounted: function() {
         // 初始化 JSON 编辑器
         let jsonBox = JsonDiff.init(this.$refs.srcLeft, this.$refs.srcRight,
             this.errorHandler.bind(this),

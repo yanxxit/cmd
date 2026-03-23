@@ -29,9 +29,19 @@
                     <a href="#" class="example-button" data-example="productData">商品数据</a>
                     <a href="#" class="example-button" data-example="configOptions">配置选项</a>
                     <a href="#" class="example-button" data-example="apiResponse">API 响应</a>
-                    <button class="filter-button" id="filterSameBtn" @click="toggleFilterSame">
-                        <i class="icon-filter">🗂️</i> {{ filterSame ? '显示全部' : '过滤相同项' }}
-                    </button>
+                    <div class="filter-options-group">
+                        <label class="filter-option">
+                            <input type="checkbox" v-model="filterExact" @change="onFilterChange" />
+                            <span>过滤完全相同字段</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" v-model="filterType" @change="onFilterChange" />
+                            <span>过滤类型相同字段</span>
+                        </label>
+                        <button class="format-button" @click="formatJson">
+                            <i class="icon-format">📝</i> 格式化 + 排序
+                        </button>
+                    </div>
                     <span class="x-error result-display" v-bind:class="{'x-hlt': errorHighlight}" v-if="!!errorMessage">
                         <span class="x-hlt">Tips：</span>
                         <span v-if="leftSideError" class="x-hlt1">左侧</span>
