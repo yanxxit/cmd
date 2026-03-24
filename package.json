@@ -73,7 +73,7 @@
     "http-proxy-middleware": "^2.0.1",
     "is-chinese": "^2.0.0",
     "js-pinyin": "^0.2.7",
-    "jsondb": "git+https://gitee.com/yanxxit/jsondb.git#release/latest",
+    "@yanit/jsondb": "latest",
     "level": "^8.0.1",
     "log4js": "^6.9.1",
     "marked": "^15.0.12",
