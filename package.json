@@ -1,5 +1,5 @@
 {
-  "name": "it-cmd",
+  "name": "@yanit/cmd",
   "version": "1.0.12",
   "description": "cmd tools ",
   "type": "module",
