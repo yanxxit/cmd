@@ -23,6 +23,9 @@ importers:
       '@picocss/pico':
         specifier: ^2.1.1
         version: 2.1.1
+      '@yanit/jsondb':
+        specifier: latest
+        version: 0.1.6
       antd:
         specifier: ^5.29.3
         version: 5.29.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -92,9 +95,6 @@ importers:
       js-pinyin:
         specifier: ^0.2.7
         version: 0.2.7
-      jsondb:
-        specifier: git+https://gitee.com/yanxxit/jsondb.git#release/latest
-        version: git+https://gitee.com/yanxxit/jsondb.git#6c3bd68a4a595672f8dd7d9e0acb5bade70d62ff
       level:
         specifier: ^8.0.1
         version: 8.0.1
@@ -595,6 +595,11 @@ packages:
 
   '@vue/shared@3.5.30':
     resolution: {integrity: sha512-YXgQ7JjaO18NeK2K9VTbDHaFy62WrObMa6XERNfNOkAhD1F1oDSf3ZJ7K6GqabZ0BvSDHajp8qfS5Sa2I9n8uQ==}
+
+  '@yanit/jsondb@0.1.6':
+    resolution: {integrity: sha512-4c1FAzJni2fNOH1vYPPU/gn9SClzyZ3fS55ZMF2t5QQFtlwHqHH9jlMpqp4sMfhhRcw2lnqXzs+lP4CrivkCLg==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   abstract-level@1.0.4:
     resolution: {integrity: sha512-eUP/6pbXBkMbXFdx4IH2fVgvB7M0JvR7/lIL33zcs0IBcwjdzSSl31TOJsaCzmKSSDF9h8QYSOJux4Nd4YJqFg==}
@@ -1794,12 +1799,6 @@ packages:
 
   json2mq@0.2.0:
     resolution: {integrity: sha512-SzoRg7ux5DWTII9J2qkrZrqV1gt+rTaoufMxEzXbS26Uid0NwaJd123HcoB80TgubEppxxIGdNxCx50fEoEWQA==}
-
-  jsondb@git+https://gitee.com/yanxxit/jsondb.git#6c3bd68a4a595672f8dd7d9e0acb5bade70d62ff:
-    resolution: {commit: 6c3bd68a4a595672f8dd7d9e0acb5bade70d62ff, repo: https://gitee.com/yanxxit/jsondb.git, type: git}
-    version: 0.1.1
-    engines: {node: '>=18'}
-    hasBin: true
 
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
@@ -3040,6 +3039,10 @@ packages:
     resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
     hasBin: true
 
+  uuid@13.0.0:
+    resolution: {integrity: sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==}
+    hasBin: true
+
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
@@ -3629,6 +3632,11 @@ snapshots:
       vue: 3.5.30
 
   '@vue/shared@3.5.30': {}
+
+  '@yanit/jsondb@0.1.6':
+    dependencies:
+      commander: 12.1.0
+      uuid: 13.0.0
 
   abstract-level@1.0.4:
     dependencies:
@@ -5011,10 +5019,6 @@ snapshots:
   json2mq@0.2.0:
     dependencies:
       string-convert: 0.2.1
-
-  jsondb@git+https://gitee.com/yanxxit/jsondb.git#6c3bd68a4a595672f8dd7d9e0acb5bade70d62ff:
-    dependencies:
-      commander: 12.1.0
 
   jsonfile@4.0.0:
     optionalDependencies:
@@ -6400,6 +6404,8 @@ snapshots:
   utils-merge@1.0.1: {}
 
   uuid@11.1.0: {}
+
+  uuid@13.0.0: {}
 
   vary@1.1.2: {}
 

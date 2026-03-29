@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>任务管理系统 - 基于 JSONDB</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    [x-cloak] { display: none !important; }
+    .priority-low { border-left: 4px solid #22c55e; }
+    .priority-medium { border-left: 4px solid #f59e0b; }
+    .priority-high { border-left: 4px solid #ef4444; }
+    .status-pending { background-color: #fef3c7; }
+    .status-in_progress { background-color: #dbeafe; }
+    .status-completed { background-color: #d1fae5; }
+    .status-cancelled { background-color: #f3f4f6; }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div x-data="taskManager()" x-init="init()" class="min-h-screen">
+    <!-- 顶部导航 -->
+    <nav class="bg-white shadow-sm border-b">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center">
+            <h1 class="text-2xl font-bold text-gray-800">📋 任务管理系统</h1>
+            <span class="ml-4 text-sm text-gray-500">基于 @yanit/jsondb</span>
+          </div>
+          <div class="flex items-center space-x-4">
+            <button @click="openCreateModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+              ➕ 新建任务
+            </button>
+            <button @click="loadTasks()" class="text-gray-600 hover:text-gray-800">
+              🔄 刷新
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 统计信息 -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+          <div class="text-sm text-gray-500">总任务数</div>
+          <div class="text-2xl font-bold" x-text="stats.total || 0">0</div>
+        </div>
+        <div class="bg-yellow-50 rounded-lg shadow p-4">
+          <div class="text-sm text-yellow-600">待处理</div>
+          <div class="text-2xl font-bold text-yellow-700" x-text="stats.byStatus?.pending || 0">0</div>
+        </div>
+        <div class="bg-blue-50 rounded-lg shadow p-4">
+          <div class="text-sm text-blue-600">进行中</div>
+          <div class="text-2xl font-bold text-blue-700" x-text="stats.byStatus?.in_progress || 0">0</div>
+        </div>
+        <div class="bg-green-50 rounded-lg shadow p-4">
+          <div class="text-sm text-green-600">已完成</div>
+          <div class="text-2xl font-bold text-green-700" x-text="stats.byStatus?.completed || 0">0</div>
+        </div>
+      </div>
+
+      <!-- 筛选和搜索 -->
+      <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">状态筛选</label>
+            <select x-model="filters.status" @change="loadTasks()" class="w-full rounded-lg border-gray-300">
+              <option value="">全部</option>
+              <option value="pending">待处理</option>
+              <option value="in_progress">进行中</option>
+              <option value="completed">已完成</option>
+              <option value="cancelled">已取消</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">优先级</label>
+            <select x-model="filters.priority" @change="loadTasks()" class="w-full rounded-lg border-gray-300">
+              <option value="">全部</option>
+              <option value="1">低</option>
+              <option value="2">中</option>
+              <option value="3">高</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">搜索</label>
+            <input type="text" x-model="filters.search" @input.debounce.300ms="loadTasks()" 
+                   placeholder="搜索标题、描述或标签" 
+                   class="w-full rounded-lg border-gray-300">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">排序</label>
+            <select x-model="filters.sort" @change="loadTasks()" class="w-full rounded-lg border-gray-300">
+              <option value="createdAt|desc">最新创建</option>
+              <option value="createdAt|asc">最早创建</option>
+              <option value="dueDate|asc">到期时间</option>
+              <option value="priority|desc">优先级高到低</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 任务列表 -->
+      <div class="bg-white rounded-lg shadow">
+        <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+          <h2 class="text-lg font-semibold">任务列表</h2>
+          <div class="text-sm text-gray-500">
+            第 <span x-text="pagination.page">1</span> 页，共 <span x-text="pagination.pages">1</span> 页
+          </div>
+        </div>
+
+        <!-- 任务卡片 -->
+        <div class="divide-y divide-gray-200">
+          <template x-for="task in tasks" :key="task._id">
+            <div class="p-4 hover:bg-gray-50 transition" 
+                 :class="'priority-' + (task.priority === 3 ? 'high' : task.priority === 2 ? 'medium' : 'low')">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center space-x-2 mb-2">
+                    <h3 class="text-lg font-semibold" x-text="task.title">任务标题</h3>
+                    <span class="px-2 py-1 text-xs rounded-full"
+                          :class="'status-' + task.status"
+                          x-text="getStatusText(task.status)">待处理</span>
+                    <span class="px-2 py-1 text-xs rounded-full bg-gray-200"
+                          x-text="getPriorityText(task.priority)">中等</span>
+                  </div>
+                  <p class="text-gray-600 text-sm mb-2" x-text="task.description || '无描述'">描述</p>
+                  <div class="flex items-center space-x-4 text-sm text-gray-500">
+                    <span x-if="task.dueDate">📅 <span x-text="formatDate(task.dueDate)"></span></span>
+                    <span>🕐 <span x-text="formatDate(task.createdAt)"></span></span>
+                    <div class="flex space-x-2" x-if="task.tags?.length">
+                      <template x-for="tag in task.tags" :key="tag">
+                        <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded" x-text="'#' + tag"></span>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex space-x-2">
+                  <button @click="editTask(task)" class="text-blue-600 hover:text-blue-800 p-2">✏️</button>
+                  <button @click="deleteTask(task._id)" class="text-red-600 hover:text-red-800 p-2">🗑️</button>
+                </div>
+              </div>
+            </div>
+          </template>
+          
+          <!-- 空状态 -->
+          <div x-show="tasks.length === 0" class="p-8 text-center text-gray-500">
+            <p>暂无任务</p>
+          </div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="px-4 py-3 border-t border-gray-200 flex justify-between items-center">
+          <button @click="changePage(pagination.page - 1)" 
+                  :disabled="pagination.page <= 1"
+                  class="px-4 py-2 rounded-lg border disabled:opacity-50">
+            ⬅️ 上一页
+          </button>
+          <div class="flex space-x-2">
+            <template x-for="page in getPages()" :key="page">
+              <button @click="changePage(page)" 
+                      :class="pagination.page === page ? 'bg-blue-600 text-white' : 'bg-gray-200'"
+                      class="px-3 py-2 rounded-lg"
+                      x-text="page"></button>
+            </template>
+          </div>
+          <button @click="changePage(pagination.page + 1)" 
+                  :disabled="pagination.page >= pagination.pages"
+                  class="px-4 py-2 rounded-lg border disabled:opacity-50">
+            下一页 ➡️
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 创建/编辑任务模态框 -->
+    <div x-show="showModal" x-cloak 
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+        <h2 class="text-xl font-bold mb-4" x-text="isEditing ? '编辑任务' : '创建任务'"></h2>
+        
+        <form @submit.prevent="saveTask()">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">标题 *</label>
+              <input type="text" x-model="formData.title" required 
+                     class="w-full rounded-lg border-gray-300"
+                     placeholder="任务标题">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+              <textarea x-model="formData.description" rows="3" 
+                        class="w-full rounded-lg border-gray-300"
+                        placeholder="任务描述"></textarea>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">优先级</label>
+                <select x-model="formData.priority" class="w-full rounded-lg border-gray-300">
+                  <option value="1">低</option>
+                  <option value="2">中</option>
+                  <option value="3">高</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                <select x-model="formData.status" class="w-full rounded-lg border-gray-300">
+                  <option value="pending">待处理</option>
+                  <option value="in_progress">进行中</option>
+                  <option value="completed">已完成</option>
+                  <option value="cancelled">已取消</option>
+                </select>
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">到期日期</label>
+              <input type="date" x-model="formData.dueDate" 
+                     class="w-full rounded-lg border-gray-300">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">标签</label>
+              <input type="text" x-model="tagInput" 
+                     @keydown.enter.prevent="addTag()"
+                     class="w-full rounded-lg border-gray-300"
+                     placeholder="输入标签后按回车">
+              <div class="flex flex-wrap gap-2 mt-2">
+                <template x-for="(tag, index) in formData.tags" :key="index">
+                  <span class="px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded flex items-center">
+                    <span x-text="tag"></span>
+                    <button type="button" @click="removeTag(index)" class="ml-1 text-blue-700 hover:text-blue-900">✕</button>
+                  </span>
+                </template>
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" @click="closeModal()" 
+                    class="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+            <button type="submit" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <span x-text="isEditing ? '保存' : '创建'"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function taskManager() {
+      return {
+        tasks: [],
+        stats: {},
+        pagination: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          pages: 1
+        },
+        filters: {
+          status: '',
+          priority: '',
+          search: '',
+          sort: 'createdAt|desc'
+        },
+        showModal: false,
+        isEditing: false,
+        editingId: null,
+        formData: {
+          title: '',
+          description: '',
+          priority: '2',
+          status: 'pending',
+          dueDate: '',
+          tags: []
+        },
+        tagInput: '',
+
+        async init() {
+          await this.loadTasks();
+          await this.loadStats();
+        },
+
+        async loadTasks() {
+          try {
+            const [sort, order] = this.filters.sort.split('|');
+            const params = new URLSearchParams({
+              page: this.pagination.page.toString(),
+              limit: this.pagination.limit.toString(),
+              sort,
+              order
+            });
+
+            if (this.filters.status) params.append('status', this.filters.status);
+            if (this.filters.priority) params.append('priority', this.filters.priority);
+            if (this.filters.search) params.append('search', this.filters.search);
+
+            const response = await fetch(`/api/tasks?${params}`);
+            const result = await response.json();
+
+            if (result.success) {
+              this.tasks = result.data;
+              this.pagination = result.pagination;
+            }
+          } catch (err) {
+            console.error('加载任务失败:', err);
+            alert('加载任务失败：' + err.message);
+          }
+        },
+
+        async loadStats() {
+          try {
+            const response = await fetch('/api/tasks/stats');
+            const result = await response.json();
+
+            if (result.success) {
+              this.stats = result.data;
+            }
+          } catch (err) {
+            console.error('加载统计失败:', err);
+          }
+        },
+
+        getStatusText(status) {
+          const map = {
+            pending: '待处理',
+            in_progress: '进行中',
+            completed: '已完成',
+            cancelled: '已取消'
+          };
+          return map[status] || status;
+        },
+
+        getPriorityText(priority) {
+          const map = { 1: '低', 2: '中', 3: '高' };
+          return map[priority] || '中';
+        },
+
+        formatDate(dateStr) {
+          if (!dateStr) return '';
+          const date = new Date(dateStr);
+          return date.toLocaleString('zh-CN');
+        },
+
+        openCreateModal() {
+          this.isEditing = false;
+          this.editingId = null;
+          this.formData = {
+            title: '',
+            description: '',
+            priority: '2',
+            status: 'pending',
+            dueDate: '',
+            tags: []
+          };
+          this.tagInput = '';
+          this.showModal = true;
+        },
+
+        editTask(task) {
+          this.isEditing = true;
+          this.editingId = task._id;
+          this.formData = {
+            title: task.title,
+            description: task.description || '',
+            priority: task.priority.toString(),
+            status: task.status,
+            dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+            tags: task.tags || []
+          };
+          this.tagInput = '';
+          this.showModal = true;
+        },
+
+        closeModal() {
+          this.showModal = false;
+        },
+
+        addTag() {
+          const tag = this.tagInput.trim();
+          if (tag && !this.formData.tags.includes(tag)) {
+            this.formData.tags.push(tag);
+          }
+          this.tagInput = '';
+        },
+
+        removeTag(index) {
+          this.formData.tags.splice(index, 1);
+        },
+
+        async saveTask() {
+          try {
+            const url = this.isEditing ? `/api/tasks/${this.editingId}` : '/api/tasks';
+            const method = this.isEditing ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+              method,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...this.formData,
+                priority: parseInt(this.formData.priority)
+              })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              alert(this.isEditing ? '任务已更新' : '任务已创建');
+              this.closeModal();
+              await this.loadTasks();
+              await this.loadStats();
+            } else {
+              alert('操作失败：' + result.error);
+            }
+          } catch (err) {
+            console.error('保存任务失败:', err);
+            alert('保存任务失败：' + err.message);
+          }
+        },
+
+        async deleteTask(id) {
+          if (!confirm('确定要删除这个任务吗？')) return;
+
+          try {
+            const response = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+
+            if (result.success) {
+              alert('任务已删除');
+              await this.loadTasks();
+              await this.loadStats();
+            } else {
+              alert('删除失败：' + result.error);
+            }
+          } catch (err) {
+            console.error('删除任务失败:', err);
+            alert('删除任务失败：' + err.message);
+          }
+        },
+
+        changePage(page) {
+          if (page < 1 || page > this.pagination.pages) return;
+          this.pagination.page = page;
+          this.loadTasks();
+        },
+
+        getPages() {
+          const pages = [];
+          const start = Math.max(1, this.pagination.page - 2);
+          const end = Math.min(this.pagination.pages, this.pagination.page + 2);
+          for (let i = start; i <= end; i++) {
+            pages.push(i);
+          }
+          return pages;
+        }
+      }
+    }
+  </script>
+</body>
+</html>

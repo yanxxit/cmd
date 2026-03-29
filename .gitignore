@@ -47,3 +47,5 @@ next-app/dist
 
 
 test-data
+
+.jsondb/

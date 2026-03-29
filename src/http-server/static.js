@@ -10,6 +10,7 @@ import { Server } from 'socket.io';
 import fileViewerRouter from './file-viewer.js';
 import todoApiRouter from './todo-api.js';
 import pomodoroApiRouter from './pomodoro-api.js';
+import taskManagerApiRouter from './task-manager-api.js';
 import authApiRouter from './auth-api.js';
 import httpbinApiRouter from './httpbin-api.js';
 import mockApiRouter from './mock-api.js';
@@ -100,6 +101,7 @@ export default function (options = { port: 3000, dir: __dirname }) {
   // 挂载具体 API 路由（必须在通用 /api 之前）
   app.use('/api/todos', todoApiRouter);
   app.use('/api/pomodoro', pomodoroApiRouter);
+  app.use('/api/tasks', taskManagerApiRouter);
 
   // 挂载文件查看器路由（通用 /api 路由，放在最后）
   app.use('/api', fileViewerRouter);
@@ -269,6 +271,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/ai-chat', express.static(aiChatDir));
   app.get('/ai-chat', (req, res) => {
     res.sendFile(path.join(aiChatDir, 'index.html'));
+  });
+
+  // 任务管理系统页面（基于 JSONDB）
+  const taskManagerDir = path.join(ROOT_DIR, 'public/task-manager');
+  app.use('/task-manager', express.static(taskManagerDir));
+  app.get('/task-manager', (req, res) => {
+    res.sendFile(path.join(taskManagerDir, 'index.html'));
   });
 
   // Web IDE
