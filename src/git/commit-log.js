@@ -332,19 +332,19 @@ export function getCommitsByDateRange(options = {}) {
 
     const commits = [];
     const commitBlocks = commitLog.split('\ncommit ');
-    
+
     for (let i = 0; i < commitBlocks.length; i++) {
       let block = commitBlocks[i];
       if (i === 0) {
         block = block.replace(/^commit /, '');
       }
-      
+
       const lines = block.split('\n');
       const firstLine = lines[0];
       const [hash, authorName, authorEmail, date, message] = firstLine.split('|');
-      
+
       const fullBody = lines.slice(1).join('\n').trim();
-      
+
       commits.push({
         hash,
         shortHash: hash.substring(0, 7),
@@ -375,5 +375,329 @@ export function getCommitsByDateRange(options = {}) {
       throw new Error('当前目录不是 Git 仓库');
     }
     throw error;
+  }
+}
+
+/**
+ * 获取两个提交之间的 diff（支持多提交对比）
+ * @param {string} oldHash - 旧提交 hash
+ * @param {string} newHash - 新提交 hash
+ * @param {boolean} includeContent - 是否包含完整内容
+ * @returns {Array} - 文件变更详情
+ */
+export function getDiffBetweenCommits(oldHash, newHash, includeContent = true) {
+  try {
+    const safeOldHash = sanitizeHash(oldHash);
+    const safeNewHash = sanitizeHash(newHash);
+
+    const command = includeContent
+      ? `git diff ${safeOldHash} ${safeNewHash}`
+      : `git diff --stat ${safeOldHash} ${safeNewHash}`;
+
+    const diff = execSync(command, {
+      encoding: 'utf-8',
+      maxBuffer: 50 * 1024 * 1024,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    if (!diff.trim()) return [];
+
+    const lines = diff.split('\n');
+    const files = [];
+    let currentFile = null;
+    let currentContent = [];
+    let pendingOldPath = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // 检测 diff --git 行
+      const gitDiffMatch = line.match(/^diff --git a\/(.+?) b\/(.+)$/);
+      if (gitDiffMatch) {
+        // 保存上一个文件
+        if (currentFile) {
+          currentFile.content = currentContent.join('\n');
+          files.push(currentFile);
+        }
+
+        currentFile = {
+          path: gitDiffMatch[2],
+          oldPath: gitDiffMatch[1] !== gitDiffMatch[2] ? gitDiffMatch[1] : null,
+          content: '',
+          hunks: []
+        };
+        currentContent = [];
+        pendingOldPath = null;
+        continue;
+      }
+
+      // 检测旧文件路径
+      const oldFileMatch = line.match(/^--- a\/(.+)$/);
+      if (oldFileMatch) {
+        pendingOldPath = oldFileMatch[1];
+        continue;
+      }
+
+      // 检测新文件路径
+      const newFileMatch = line.match(/^\+\+\+ b\/(.+)$/);
+      if (newFileMatch) {
+        if (currentFile) {
+          currentFile.oldPath = pendingOldPath !== newFileMatch[1] ? pendingOldPath : null;
+        }
+        continue;
+      }
+
+      // 检测 hunk 头
+      const hunkMatch = line.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(.*)$/);
+      if (hunkMatch && currentFile) {
+        currentFile.hunks.push({
+          oldStart: parseInt(hunkMatch[1]),
+          oldLines: parseInt(hunkMatch[2] || 1),
+          newStart: parseInt(hunkMatch[3]),
+          newLines: parseInt(hunkMatch[4] || 1),
+          description: hunkMatch[5].trim(),
+          lines: []
+        });
+        continue;
+      }
+
+      // 收集 hunk 内容
+      if (currentFile && currentFile.hunks.length > 0 && 
+          (line.startsWith('+') || line.startsWith('-') || line.startsWith(' '))) {
+        const currentHunk = currentFile.hunks[currentFile.hunks.length - 1];
+        currentHunk.lines.push(line);
+        currentContent.push(line);
+      }
+    }
+
+    // 保存最后一个文件
+    if (currentFile) {
+      currentFile.content = currentContent.join('\n');
+      files.push(currentFile);
+    }
+
+    return files;
+  } catch (error) {
+    console.error(`getDiffBetweenCommits 错误：`, error.message);
+    return [];
+  }
+}
+
+/**
+ * 解析 diff 内容为结构化的行级数据
+ * @param {string} diffContent - diff 内容
+ * @returns {Array} - 结构化的行数据
+ */
+export function parseDiffLines(diffContent) {
+  if (!diffContent) return [];
+
+  const lines = diffContent.split('\n');
+  const result = [];
+  let oldLineNum = 0;
+  let newLineNum = 0;
+
+  for (const line of lines) {
+    // 跳过 diff 元数据行
+    if (line.startsWith('diff --git') || line.startsWith('index ') || 
+        line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@')) {
+      
+      // 解析 hunk 头，重置行号
+      const hunkMatch = line.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+      if (hunkMatch) {
+        oldLineNum = parseInt(hunkMatch[1]);
+        newLineNum = parseInt(hunkMatch[3]);
+      }
+      continue;
+    }
+
+    if (line.startsWith('+')) {
+      result.push({
+        type: 'add',
+        content: line.substring(1),
+        oldLineNum: null,
+        newLineNum: newLineNum++
+      });
+    } else if (line.startsWith('-')) {
+      result.push({
+        type: 'delete',
+        content: line.substring(1),
+        oldLineNum: oldLineNum++,
+        newLineNum: null
+      });
+    } else if (line.startsWith(' ')) {
+      result.push({
+        type: 'context',
+        content: line.substring(1),
+        oldLineNum: oldLineNum++,
+        newLineNum: newLineNum++
+      });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 获取文件变更热力图数据（按小时/星期统计）
+ * @param {string} filePath - 文件路径（可选）
+ * @param {string} since - 开始日期（可选）
+ * @param {string} until - 结束日期（可选）
+ * @param {string} cwd - 工作目录（可选）
+ * @returns {Object} - 热力图数据
+ */
+export function getFileChangeHeatmap(filePath = '', since = '', until = '', cwd = process.cwd()) {
+  try {
+    let command = 'git log --format="%ad" --date=format:"%Y-%m-%d %H"';
+
+    if (filePath) {
+      command += ` -- "${filePath}"`;
+    }
+
+    if (since) {
+      command += ` --since="${since}"`;
+    }
+    if (until) {
+      command += ` --until="${until}"`;
+    }
+
+    const output = execSync(command, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'ignore'],
+      cwd
+    }).trim();
+
+    if (!output) return { hourly: {}, daily: {}, weekly: {} };
+
+    // 按小时统计
+    const hourly = {};
+    // 按星期统计（0-6，0 是周日）
+    const weekly = {};
+    // 按日期统计
+    const daily = {};
+
+    const lines = output.split('\n');
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      const date = new Date(line);
+      const hour = date.getHours();
+      const dayOfWeek = date.getDay();
+      const dateStr = date.toISOString().split('T')[0];
+
+      // 小时统计
+      hourly[hour] = (hourly[hour] || 0) + 1;
+
+      // 星期统计
+      weekly[dayOfWeek] = (weekly[dayOfWeek] || 0) + 1;
+
+      // 日期统计
+      daily[dateStr] = (daily[dateStr] || 0) + 1;
+    }
+
+    return { hourly, daily, weekly };
+  } catch (error) {
+    return { hourly: {}, daily: {}, weekly: {} };
+  }
+}
+
+/**
+ * 按文件路径搜索提交历史
+ * @param {string} filePath - 文件路径（支持通配符）
+ * @param {number} limit - 限制返回数量
+ * @param {string} cwd - 工作目录
+ * @returns {Array} - 提交列表
+ */
+export function getCommitsByFilePath(filePath, limit = 50, cwd = process.cwd()) {
+  try {
+    // 使用 --all 搜索所有分支，使用 -- 分隔路径
+    const command = `git log --all --oneline --follow -- "${filePath}"`;
+
+    const output = execSync(command, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'ignore'],
+      maxBuffer: 10 * 1024 * 1024,
+      cwd
+    }).trim();
+
+    if (!output) return [];
+
+    const commits = [];
+    const lines = output.split('\n');
+
+    for (let i = 0; i < Math.min(lines.length, limit); i++) {
+      const line = lines[i];
+      const match = line.match(/^([a-f0-9]+)\s+(.+)$/);
+      if (match) {
+        commits.push({
+          hash: match[1],
+          shortHash: match[1],
+          message: match[2]
+        });
+      }
+    }
+
+    return commits;
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * 按关键词搜索提交消息
+ * @param {string} keyword - 搜索关键词
+ * @param {Object} options - 选项
+ * @param {string} options.since - 开始日期（可选）
+ * @param {string} options.until - 结束日期（可选）
+ * @param {string} options.author - 作者过滤（可选）
+ * @param {number} options.limit - 限制返回数量
+ * @param {string} options.cwd - 工作目录（可选）
+ * @returns {Array} - 提交列表
+ */
+export function searchCommitsByMessage(keyword, options = {}) {
+  try {
+    const { since = '', until = '', author = '', limit = 50, cwd = process.cwd() } = options;
+
+    // 使用 --grep 搜索提交消息，-i 忽略大小写
+    let command = `git log --grep="${keyword}" -i --pretty=format:"%H|%an|%ae|%ad|%s" --date=format:'%Y-%m-%d %H:%M:%S'`;
+
+    if (since) {
+      command += ` --since="${since}"`;
+    }
+    if (until) {
+      command += ` --until="${until}"`;
+    }
+    if (author) {
+      command += ` --author="${author}"`;
+    }
+
+    const output = execSync(command, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'ignore'],
+      maxBuffer: 10 * 1024 * 1024,
+      cwd
+    }).trim();
+
+    if (!output) return [];
+
+    const commits = [];
+    const lines = output.split('\n');
+
+    for (let i = 0; i < Math.min(lines.length, limit); i++) {
+      const line = lines[i];
+      const [hash, authorName, authorEmail, date, message] = line.split('|');
+      
+      commits.push({
+        hash,
+        shortHash: hash.substring(0, 7),
+        authorName,
+        authorEmail,
+        date,
+        message
+      });
+    }
+
+    return commits;
+  } catch (error) {
+    return [];
   }
 }

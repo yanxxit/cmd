@@ -9,7 +9,12 @@ export {
   getCommitStats,
   getCommitDiff,
   getFullCommitLog,
-  getCommitsByDateRange
+  getCommitsByDateRange,
+  getDiffBetweenCommits,
+  parseDiffLines,
+  getFileChangeHeatmap,
+  getCommitsByFilePath,
+  searchCommitsByMessage
 } from './commit-log.js';
 
 // 报告生成相关
@@ -25,7 +30,8 @@ export {
   getRepoStats,
   getCurrentGitUser,
   getBranches,
-  getTags
+  getTags,
+  getRecentGitUsers
 } from './repo-info.js';
 
 // 稀疏克隆

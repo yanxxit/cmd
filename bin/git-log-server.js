@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import ora from 'ora';
 import { program } from 'commander';
+import { execSync } from 'child_process';
 import {
   getCommitsByDate,
   getCommitsByDateRange,
@@ -13,7 +14,13 @@ import {
   getCommitStats,
   getCurrentGitUser,
   getRemoteRepoInfo,
-  getRepoStats
+  getRepoStats,
+  getRecentGitUsers,
+  getDiffBetweenCommits as getDiffBetweenCommitsApi,
+  parseDiffLines,
+  getFileChangeHeatmap,
+  getCommitsByFilePath,
+  searchCommitsByMessage
 } from '../src/git/index.js';
 import dayjs from 'dayjs';
 
@@ -21,38 +28,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 
 /**
- * 执行 git 命令并返回结果
- */
-function execGitCommand(command) {
-  const { execSync } = import('child_process');
-  try {
-    return execSync(command, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
-  } catch (error) {
-    return '';
-  }
-}
-
-/**
- * 获取两个提交之间的 diff
- */
-function getDiffBetweenCommits(oldHash, newHash, filePath) {
-  const { execSync } = import('child_process');
-  try {
-    let command = `git diff ${oldHash} ${newHash}`;
-    if (filePath) {
-      command += ` -- "${filePath}"`;
-    }
-    return execSync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 }).trim();
-  } catch (error) {
-    return '';
-  }
-}
-
-/**
  * 获取文件的完整内容
  */
 function getFileContent(hash, filePath) {
-  const { execSync } = import('child_process');
   try {
     const content = execSync(`git show ${hash}:"${filePath}"`, {
       encoding: 'utf-8',
@@ -87,24 +65,33 @@ program
 
     /**
      * 获取提交列表
-     * GET /api/commits?date=yesterday&since=2024-01-01&until=2024-01-31&author=xxx&noMerges=true&mine=true
+     * GET /api/commits?date=yesterday&since=2024-01-01&until=2024-01-31&author=xxx&noMerges=true&mine=true&userId=0
      */
     app.get('/api/commits', async (req, res) => {
       try {
-        const { date = 'yesterday', since, until, author, noMerges, mine } = req.query;
+        const { date = 'yesterday', since, until, author, noMerges, mine, userId } = req.query;
 
         let commits = [];
+
+        // 处理 userId 筛选（从 /api/users 返回的索引）
+        let filterAuthor = author || '';
+        if (userId !== undefined && userId !== '') {
+          const users = await getRecentGitUsers(100);
+          const userIndex = parseInt(userId);
+          if (!isNaN(userIndex) && users[userIndex]) {
+            filterAuthor = users[userIndex].name;
+          }
+        }
 
         if (since || until) {
           commits = await getCommitsByDateRange({
             since: since || dayjs().subtract(7, 'day').format('YYYY-MM-DD'),
             until: until || dayjs().format('YYYY-MM-DD'),
-            author: author || '',
+            author: filterAuthor,
             includeDiff: false
           });
         } else {
           // 处理 mine 选项
-          let filterAuthor = author || '';
           if (mine === 'true' && !filterAuthor) {
             const gitUser = getCurrentGitUser();
             filterAuthor = gitUser.name || gitUser.email;
@@ -183,7 +170,7 @@ program
           });
         }
 
-        const diff = await getDiffBetweenCommits(oldHash, newHash, filePath);
+        const diff = getDiffBetweenCommitsApi(oldHash, newHash, true);
 
         res.json({
           success: true,
@@ -386,6 +373,286 @@ program
         res.json({
           success: true,
           data: branches
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    /**
+     * 获取最近的提交用户列表
+     * GET /api/users?limit=10
+     */
+    app.get('/api/users', async (req, res) => {
+      try {
+        const { limit = 10 } = req.query;
+        const users = await getRecentGitUsers(parseInt(limit));
+        res.json({
+          success: true,
+          data: users
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    /**
+     * 功能 1: 代码审查辅助 - 多提交对比
+     * GET /api/diff/compare?oldHash=xxx&newHash=yyy&detailed=true
+     */
+    app.get('/api/diff/compare', async (req, res) => {
+      try {
+        const { oldHash, newHash, detailed = 'false' } = req.query;
+
+        if (!oldHash || !newHash) {
+          return res.status(400).json({
+            success: false,
+            error: '缺少 oldHash 或 newHash 参数'
+          });
+        }
+
+        const files = getDiffBetweenCommitsApi(oldHash, newHash, detailed === 'true');
+        
+        // 如果需要详细的行级数据
+        if (detailed === 'true') {
+          const filesWithLines = files.map(file => ({
+            ...file,
+            parsedLines: parseDiffLines(file.content)
+          }));
+          res.json({
+            success: true,
+            data: {
+              oldHash,
+              newHash,
+              files: filesWithLines,
+              stats: {
+                totalFiles: files.length,
+                totalChanges: files.reduce((sum, f) => sum + (f.hunks?.reduce((s, h) => s + h.lines.length, 0) || 0), 0)
+              }
+            }
+          });
+        } else {
+          res.json({
+            success: true,
+            data: {
+              oldHash,
+              newHash,
+              files: files.map(f => ({
+                path: f.path,
+                oldPath: f.oldPath,
+                hunksCount: f.hunks?.length || 0,
+                changes: f.hunks?.reduce((sum, h) => sum + h.lines.length, 0) || 0
+              }))
+            }
+          });
+        }
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    /**
+     * 功能 1: 代码审查辅助 - 单个文件的详细 diff（行级）
+     * GET /api/diff/parse?content=xxx
+     */
+    app.post('/api/diff/parse', async (req, res) => {
+      try {
+        const { content } = req.body;
+        
+        if (!content) {
+          return res.status(400).json({
+            success: false,
+            error: '缺少 diff 内容'
+          });
+        }
+
+        const parsedLines = parseDiffLines(content);
+        
+        // 统计
+        const stats = {
+          additions: parsedLines.filter(l => l.type === 'add').length,
+          deletions: parsedLines.filter(l => l.type === 'delete').length,
+          context: parsedLines.filter(l => l.type === 'context').length
+        };
+
+        res.json({
+          success: true,
+          data: {
+            lines: parsedLines,
+            stats
+          }
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    /**
+     * 功能 2: 团队效率分析 - 代码变更热力图
+     * GET /api/stats/heatmap?filePath=xxx&since=2024-01-01&until=2024-12-31
+     */
+    app.get('/api/stats/heatmap', async (req, res) => {
+      try {
+        const { filePath = '', since = '', until = '' } = req.query;
+
+        const heatmap = getFileChangeHeatmap(filePath, since, until, PROJECT_ROOT);
+        
+        // 格式化热力图数据，便于前端展示
+        const hourlyData = Array.from({ length: 24 }, (_, i) => ({
+          hour: i,
+          count: heatmap.hourly[i] || 0
+        }));
+        
+        const weeklyData = [
+          { day: 0, name: '周日', count: heatmap.weekly[0] || 0 },
+          { day: 1, name: '周一', count: heatmap.weekly[1] || 0 },
+          { day: 2, name: '周二', count: heatmap.weekly[2] || 0 },
+          { day: 3, name: '周三', count: heatmap.weekly[3] || 0 },
+          { day: 4, name: '周四', count: heatmap.weekly[4] || 0 },
+          { day: 5, name: '周五', count: heatmap.weekly[5] || 0 },
+          { day: 6, name: '周六', count: heatmap.weekly[6] || 0 }
+        ];
+        
+        const dailyData = Object.entries(heatmap.daily)
+          .map(([date, count]) => ({ date, count }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        res.json({
+          success: true,
+          data: {
+            hourly: hourlyData,
+            weekly: weeklyData,
+            daily: dailyData,
+            summary: {
+              totalCommits: dailyData.reduce((sum, d) => sum + d.count, 0),
+              peakHour: hourlyData.reduce((max, h) => h.count > max.count ? h : max, { hour: 0, count: 0 }).hour,
+              peakDay: weeklyData.reduce((max, d) => d.count > max.count ? d : max, { day: 0, name: '', count: 0 }).name
+            }
+          }
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    /**
+     * 功能 2: 团队效率分析 - 作者贡献统计
+     * GET /api/stats/contributors?since=2024-01-01&until=2024-12-31
+     */
+    app.get('/api/stats/contributors', async (req, res) => {
+      try {
+        const { since = '', until = '' } = req.query;
+        
+        let command = 'git shortlog -sne';
+        
+        if (since) {
+          command += ` --since="${since}"`;
+        }
+        if (until) {
+          command += ` --until="${until}"`;
+        }
+
+        const output = execSync(command, {
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'ignore'],
+          cwd: PROJECT_ROOT  // 在项目根目录执行
+        }).trim();
+
+        if (!output) {
+          return res.json({
+            success: true,
+            data: []
+          });
+        }
+
+        const contributors = output.split('\n').map(line => {
+          const match = line.match(/^\s*(\d+)\s+(.+?)\s+<(.+?)>$/);
+          if (match) {
+            return {
+              commits: parseInt(match[1]),
+              name: match[2],
+              email: match[3]
+            };
+          }
+          return null;
+        }).filter(Boolean);
+
+        res.json({
+          success: true,
+          data: contributors
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    /**
+     * 功能 3: 智能搜索 - 按文件路径搜索提交
+     * GET /api/search/file?path=src/js&limit=50
+     */
+    app.get('/api/search/file', async (req, res) => {
+      try {
+        const { path: filePath, limit = 50 } = req.query;
+        
+        if (!filePath) {
+          return res.status(400).json({
+            success: false,
+            error: '缺少文件路径参数'
+          });
+        }
+
+        const commits = getCommitsByFilePath(filePath, parseInt(limit), PROJECT_ROOT);
+        
+        res.json({
+          success: true,
+          data: commits
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    /**
+     * 功能 3: 智能搜索 - 按关键词搜索提交消息
+     * GET /api/search/message?keyword=fix&since=2024-01-01&until=2024-12-31&author=xxx&limit=50
+     */
+    app.get('/api/search/message', async (req, res) => {
+      try {
+        const { keyword, since = '', until = '', author = '', limit = 50 } = req.query;
+        
+        if (!keyword) {
+          return res.status(400).json({
+            success: false,
+            error: '缺少搜索关键词'
+          });
+        }
+
+        const commits = searchCommitsByMessage(keyword, { since, until, author, limit: parseInt(limit), cwd: PROJECT_ROOT });
+        
+        res.json({
+          success: true,
+          data: commits
         });
       } catch (error) {
         res.status(500).json({

@@ -175,10 +175,45 @@ export async function getTags() {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'ignore']
     }).trim();
-    
+
     if (!tagsRaw) return [];
-    
+
     return tagsRaw.split('\n').map(tag => ({ name: tag }));
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * 获取最近的提交用户列表（按提交次数排序）
+ * @param {number} limit - 返回用户数量限制，默认 10
+ * @returns {Promise<Array>} - 用户列表，包含 name、email、commitCount
+ */
+export async function getRecentGitUsers(limit = 10) {
+  try {
+    // 获取所有提交的作者信息，按出现次数排序
+    const usersRaw = execSync(`git log --format='%an|%ae' | sort | uniq -c | sort -rn | head -n ${limit}`, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'ignore']
+    }).trim();
+
+    if (!usersRaw) return [];
+
+    const users = usersRaw.split('\n').map(line => {
+      // 格式：count name|email
+      const trimmed = line.trim();
+      const match = trimmed.match(/^(\d+)\s+(.+)\|(.+)$/);
+      if (match) {
+        return {
+          name: match[2],
+          email: match[3],
+          commitCount: parseInt(match[1])
+        };
+      }
+      return null;
+    }).filter(Boolean);
+
+    return users;
   } catch (error) {
     return [];
   }
