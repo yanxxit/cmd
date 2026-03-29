@@ -280,6 +280,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(taskManagerDir, 'index.html'));
   });
 
+  // aPaaS 设计需求页面
+  const apaasDesignDir = path.join(ROOT_DIR, 'public/apaas-design');
+  app.use('/apaas-design', express.static(apaasDesignDir));
+  app.get('/apaas-design', (req, res) => {
+    res.sendFile(path.join(apaasDesignDir, 'index.html'));
+  });
+
+  // aPaaS 基础版页面
+  const apaasBasicDir = path.join(ROOT_DIR, 'public/apaas-basic');
+  app.use('/apaas-basic', express.static(apaasBasicDir));
+  app.get('/apaas-basic', (req, res) => {
+    res.sendFile(path.join(apaasBasicDir, 'index.html'));
+  });
+
   // Web IDE
   const webIdeDir = path.join(ROOT_DIR, 'public/web-ide');
   app.use('/web-ide', express.static(webIdeDir));
