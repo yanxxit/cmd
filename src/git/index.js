@@ -36,3 +36,49 @@ export {
 
 // 稀疏克隆
 export { sparseClone } from './sparseClone.js';
+
+// Git 克隆（支持镜像加速）
+export {
+  parseGitUrl,
+  validateRepo,
+  checkNetwork,
+  getAvailableRepoUrl,
+  cloneRepo
+} from './clone.js';
+
+// Git 提交生成
+export {
+  checkApiKey,
+  getStagedFiles,
+  getUnstagedFiles,
+  getAllChangedFiles,
+  getStagedDiff,
+  getUnstagedDiff,
+  getAllDiff,
+  getDiffStats,
+  extractChangeSummary,
+  generateChangeSummaryText,
+  inferScope,
+  inferType,
+  getRecentCommits,
+  getLastCommitMessage,
+  simplifyDiff,
+  createOptimizedPrompt,
+  generateCommitMessage,
+  interactiveSelectType,
+  interactiveConfirm,
+  interactiveEdit,
+  COMMIT_TYPES
+} from './commit.js';
+
+// Git 日志服务器
+export {
+  getFileContent,
+  createGitLogServer
+} from './log-server.js';
+
+// Git 日志报告生成
+export {
+  formatDateDisplay,
+  generateLogReport
+} from './log.js';

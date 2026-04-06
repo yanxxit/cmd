@@ -36,6 +36,17 @@
   "scripts": {
     "clear": "npm unlink",
     "local": "npm link",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:git": "vitest run test/git/",
+    "test:git:basic": "vitest run test/git/git-vitest.test.js",
+    "test:git:clone": "vitest run test/git/git-clone.test.js",
+    "test:git:commit": "vitest run test/git/git-commit.test.js",
+    "test:git:log": "vitest run test/git/git-log.test.js",
+    "test:git:server": "vitest run test/git/git-log-server.test.js",
+    "test:git:sparse": "vitest run test/git/git-sparse.test.js",
     "test:todo": "node test/todo-api-test.js",
     "build:hash": "node scripts/build-hash.js",
     "build:web-ide": "node scripts/build-hash.js public/web-ide-lite-v2"
@@ -50,6 +61,7 @@
     "@electric-sql/pglite-tools": "^0.2.21",
     "@faker-js/faker": "^10.3.0",
     "@picocss/pico": "^2.1.1",
+    "@yanit/jsondb": "latest",
     "antd": "^5.29.3",
     "axios": "^1.13.6",
     "chalk": "^4.1.2",
@@ -73,7 +85,6 @@
     "http-proxy-middleware": "^2.0.1",
     "is-chinese": "^2.0.0",
     "js-pinyin": "^0.2.7",
-    "@yanit/jsondb": "latest",
     "level": "^8.0.1",
     "log4js": "^6.9.1",
     "marked": "^15.0.12",
@@ -104,6 +115,9 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.1"
+    "@vitest/coverage-v8": "^2.1.9",
+    "@vitest/ui": "^2.1.9",
+    "tailwindcss": "^3.4.1",
+    "vitest": "^2.1.9"
   }
 }

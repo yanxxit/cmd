@@ -1,18 +1,9 @@
-#!/usr/bin/env node
-
-import { program } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { execSync } from 'child_process';
 import OpenAI from 'openai';
-import path from 'path';
-import dotenv from 'dotenv';
 import readline from 'readline';
 
-// 加载环境变量
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-
-// 支持的 commit type
 const COMMIT_TYPES = [
   { value: 'feat', label: '✨ 新功能', description: '新增功能' },
   { value: 'fix', label: '🐛 Bug 修复', description: '修复问题' },
@@ -27,7 +18,6 @@ const COMMIT_TYPES = [
   { value: 'revert', label: '⏪ 回滚', description: '回滚提交' }
 ];
 
-// 文件路径到 scope 的映射
 const SCOPE_MAP = {
   'src/': 'core',
   'lib/': 'core',
@@ -53,10 +43,7 @@ const SCOPE_MAP = {
   'vite/': 'build'
 };
 
-/**
- * 检查 API Key 是否设置
- */
-function checkApiKey() {
+export function checkApiKey() {
   const apiKey = process.env['HUNYUAN_API_KEY'];
   if (!apiKey) {
     console.error(chalk.red('错误：未设置 HUNYUAN_API_KEY 环境变量'));
@@ -67,10 +54,7 @@ function checkApiKey() {
   return apiKey;
 }
 
-/**
- * 获取暂存区的变更文件
- */
-function getStagedFiles() {
+export function getStagedFiles() {
   try {
     const output = execSync('git diff --cached --name-only', {
       encoding: 'utf-8',
@@ -82,10 +66,7 @@ function getStagedFiles() {
   }
 }
 
-/**
- * 获取工作区的变更文件
- */
-function getUnstagedFiles() {
+export function getUnstagedFiles() {
   try {
     const output = execSync('git diff --name-only', {
       encoding: 'utf-8',
@@ -97,10 +78,7 @@ function getUnstagedFiles() {
   }
 }
 
-/**
- * 获取所有变更文件（包括暂存区和工作区）
- */
-function getAllChangedFiles() {
+export function getAllChangedFiles() {
   try {
     const output = execSync('git diff --name-only', {
       encoding: 'utf-8',
@@ -126,10 +104,7 @@ function getAllChangedFiles() {
   }
 }
 
-/**
- * 获取暂存区的变更内容
- */
-function getStagedDiff() {
+export function getStagedDiff() {
   try {
     return execSync('git diff --cached', {
       encoding: 'utf-8',
@@ -141,10 +116,7 @@ function getStagedDiff() {
   }
 }
 
-/**
- * 获取工作区的变更内容
- */
-function getUnstagedDiff() {
+export function getUnstagedDiff() {
   try {
     return execSync('git diff', {
       encoding: 'utf-8',
@@ -156,10 +128,7 @@ function getUnstagedDiff() {
   }
 }
 
-/**
- * 获取所有变更内容（暂存区 + 工作区 + 新文件）
- */
-function getAllDiff() {
+export function getAllDiff() {
   try {
     const staged = getStagedDiff();
     const unstaged = getUnstagedDiff();
@@ -192,10 +161,7 @@ function getAllDiff() {
   }
 }
 
-/**
- * 获取变更统计信息
- */
-function getDiffStats(diff) {
+export function getDiffStats(diff) {
   if (!diff) return { additions: 0, deletions: 0, files: 0 };
 
   const lines = diff.split('\n');
@@ -216,11 +182,7 @@ function getDiffStats(diff) {
   return { additions, deletions, files: files || diff.split('diff --git').length - 1 };
 }
 
-/**
- * 提取文件变更的语义摘要
- * 提取关键的函数名、类名、配置项、API 等实际变更内容
- */
-function extractChangeSummary(files, diff) {
+export function extractChangeSummary(files, diff) {
   if (!diff || !files.length) return [];
 
   const summaries = [];
@@ -237,10 +199,8 @@ function extractChangeSummary(files, diff) {
   };
 
   for (const line of lines) {
-    // 检测新文件
     const fileMatch = line.match(/^diff --git a\/.+ b\/(.+)$/);
     if (fileMatch) {
-      // 保存上一个文件的摘要
       if (currentFile && (fileChanges.additions.length || fileChanges.deletions.length || fileChanges.importantChanges.length)) {
         summaries.push({
           file: currentFile,
@@ -265,31 +225,26 @@ function extractChangeSummary(files, diff) {
       };
     }
 
-    // 检测新增的函数定义
     const funcMatch = line.match(/^\+.*(?:function|const|let|var)\s+(\w+)\s*[=\(]/);
     if (funcMatch && line.startsWith('+') && !line.includes('import') && !line.includes('require')) {
       fileChanges.functions.push(funcMatch[1]);
     }
 
-    // 检测新增的类定义
     const classMatch = line.match(/^\+.*class\s+(\w+)/);
     if (classMatch && line.startsWith('+')) {
       fileChanges.classes.push(classMatch[1]);
     }
 
-    // 检测配置项/常量
     const configMatch = line.match(/^\+.*(?:const|let|var)\s+([A-Z_][A-Z0-9_]*)\s*=/);
     if (configMatch && line.startsWith('+')) {
       fileChanges.configKeys.push(configMatch[1]);
     }
 
-    // 检测 API 端点
     const apiMatch = line.match(/^\+.*['"`](\/[a-zA-Z0-9/_-]+)['"`]/);
     if (apiMatch && line.startsWith('+') && (line.includes('get') || line.includes('post') || line.includes('route'))) {
       fileChanges.apiEndpoints.push(apiMatch[1]);
     }
 
-    // 收集有意义的变更（排除 import/export/注释/空白）
     if (line.startsWith('+') && !line.startsWith('+++')) {
       const content = line.substring(1).trim();
       if (content &&
@@ -306,7 +261,6 @@ function extractChangeSummary(files, diff) {
       }
     }
 
-    // 收集有意义的删除
     if (line.startsWith('-') && !line.startsWith('---')) {
       const content = line.substring(1).trim();
       if (content &&
@@ -323,7 +277,6 @@ function extractChangeSummary(files, diff) {
     }
   }
 
-  // 保存最后一个文件
   if (currentFile && (fileChanges.additions.length || fileChanges.deletions.length || fileChanges.importantChanges.length)) {
     summaries.push({
       file: currentFile,
@@ -340,10 +293,7 @@ function extractChangeSummary(files, diff) {
   return summaries;
 }
 
-/**
- * 生成变更内容摘要文本（用于 AI 提示词）
- */
-function generateChangeSummaryText(summaries, maxFiles = 5) {
+export function generateChangeSummaryText(summaries, maxFiles = 5) {
   if (!summaries || summaries.length === 0) return '';
 
   const texts = [];
@@ -353,22 +303,18 @@ function generateChangeSummaryText(summaries, maxFiles = 5) {
     const fileName = summary.file.split('/').pop();
     const parts = [];
 
-    // 新增函数/方法
     if (summary.functions.length > 0) {
       parts.push(`新增函数：${summary.functions.join(', ')}`);
     }
 
-    // 新增类
     if (summary.classes.length > 0) {
       parts.push(`新增类：${summary.classes.join(', ')}`);
     }
 
-    // 新增配置项
     if (summary.configKeys.length > 0) {
       parts.push(`配置：${summary.configKeys.join(', ')}`);
     }
 
-    // 关键变更内容（最有意义的部分）
     if (summary.importantChanges.length > 0) {
       const keyChanges = summary.importantChanges
         .map(s => s.replace(/\s+/g, ' ').substring(0, 60))
@@ -378,7 +324,6 @@ function generateChangeSummaryText(summaries, maxFiles = 5) {
       }
     }
 
-    // 删除内容（仅显示有意义的）
     if (summary.deletions.length > 0 && summary.deletions[0]) {
       const keyDels = summary.deletions
         .map(s => s.replace(/\s+/g, ' ').substring(0, 40))
@@ -400,10 +345,7 @@ function generateChangeSummaryText(summaries, maxFiles = 5) {
   return texts.join('\n');
 }
 
-/**
- * 根据文件类型推断 scope
- */
-function inferScope(files) {
+export function inferScope(files) {
   if (!files || files.length === 0) return '';
 
   const scopeCount = {};
@@ -427,13 +369,9 @@ function inferScope(files) {
   return maxScope;
 }
 
-/**
- * 根据变更内容推断 commit type
- */
-function inferType(files, diff) {
+export function inferType(files, diff) {
   const diffLower = diff.toLowerCase();
 
-  // 检查是否有明显的类型特征
   if (diffLower.includes('fix') || diffLower.includes('bug') || diffLower.includes('issue')) {
     return 'fix';
   }
@@ -450,21 +388,16 @@ function inferType(files, diff) {
     return 'perf';
   }
 
-  // 根据文件类型推断
   const hasTestFiles = files.some(f => f.includes('test') || f.includes('spec'));
   const hasDocFiles = files.some(f => f.includes('doc') || f.includes('md'));
 
   if (hasTestFiles && files.length === 1) return 'test';
   if (hasDocFiles && files.length === 1) return 'docs';
 
-  // 默认返回 feat
   return 'feat';
 }
 
-/**
- * 获取最近的提交历史
- */
-function getRecentCommits(limit = 5) {
+export function getRecentCommits(limit = 5) {
   try {
     return execSync(`git log -${limit} --oneline --no-merges`, {
       encoding: 'utf-8',
@@ -475,10 +408,7 @@ function getRecentCommits(limit = 5) {
   }
 }
 
-/**
- * 获取上次 commit message
- */
-function getLastCommitMessage() {
+export function getLastCommitMessage() {
   try {
     return execSync('git log -1 --pretty=%B', {
       encoding: 'utf-8',
@@ -489,10 +419,7 @@ function getLastCommitMessage() {
   }
 }
 
-/**
- * 精简 diff 内容，提取关键信息
- */
-function simplifyDiff(diff, maxLines = 60) {
+export function simplifyDiff(diff, maxLines = 60) {
   if (!diff) return '';
 
   const lines = diff.split('\n');
@@ -521,29 +448,21 @@ function simplifyDiff(diff, maxLines = 60) {
   return importantLines.slice(0, maxLines).join('\n');
 }
 
-/**
- * 生成优化的提示词（<200 字符）
- * 基于实际变更内容生成有意义的 commit message
- */
-function createOptimizedPrompt(files, diff, scope, type, lastCommit) {
+export function createOptimizedPrompt(files, diff, scope, type, lastCommit) {
   const fileCount = files.length;
   const firstFile = files[0]?.split('/').pop() || 'file';
 
-  // 提取语义摘要
   const summaries = extractChangeSummary(files, diff);
   const changeText = generateChangeSummaryText(summaries, 3);
 
-  // 参考上次 commit 风格
   const refText = lastCommit ? `参考："${lastCommit.substring(0, 25)}"` : '';
 
-  // 构建提示词（<200 字符）
   let prompt = `Conventional Commits，type=${type}。
 ${fileCount}个文件：${firstFile}${fileCount > 1 ? `等${fileCount}个` : ''}。
 ${refText}
 `;
 
   if (changeText) {
-    // 只取最有价值的变更内容
     const summaryLines = changeText.split('\n');
     const keyInfo = summaryLines.slice(0, 2).join('; ');
     prompt += `变更：${keyInfo.substring(0, 140)}`;
@@ -554,10 +473,7 @@ ${refText}
   return prompt;
 }
 
-/**
- * 生成符合 Conventional Commits 规范的提交信息
- */
-async function generateCommitMessage(diff, files, lastCommit, options = {}) {
+export async function generateCommitMessage(diff, files, lastCommit, options = {}) {
   const apiKey = checkApiKey();
   const client = new OpenAI({
     apiKey,
@@ -582,19 +498,16 @@ async function generateCommitMessage(diff, files, lastCommit, options = {}) {
 
     let message = response.choices[0].message.content.trim();
 
-    // 清理多余内容
     message = message.replace(/^["']|["']$/g, '')
                      .replace(/^[`*]+\s*|\s*[`*]+$/g, '')
                      .replace(/^(commit|message|提交)[:：]?\s*/i, '');
 
-    // 验证并修复格式
     const commitPattern = /^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\([^)]+\))?:\s*.+/;
     if (!commitPattern.test(message)) {
       const scopePart = scope ? `(${scope})` : '';
       message = `${type}${scopePart}: ${message.replace(/^[^:]+:\s*/, '').substring(0, 80)}`;
     }
 
-    // 确保消息不超过 100 字符
     if (message.length > 100) {
       const prefixMatch = message.match(/^(\w+(\([^)]+\))?:\s*)/);
       if (prefixMatch) {
@@ -611,10 +524,7 @@ async function generateCommitMessage(diff, files, lastCommit, options = {}) {
   }
 }
 
-/**
- * 交互式选择 type
- */
-async function interactiveSelectType() {
+export async function interactiveSelectType() {
   console.log(chalk.cyan('\n选择 commit type:'));
   COMMIT_TYPES.forEach((t, i) => {
     console.log(`  ${chalk.gray(i + 1)}. ${t.label} - ${t.description}`);
@@ -638,10 +548,7 @@ async function interactiveSelectType() {
   });
 }
 
-/**
- * 交互式确认 commit message
- */
-async function interactiveConfirm(message) {
+export async function interactiveConfirm(message) {
   return new Promise((resolve) => {
     const rl = readline.createInterface({
       input: process.stdin,
@@ -662,10 +569,7 @@ async function interactiveConfirm(message) {
   });
 }
 
-/**
- * 交互式编辑 commit message
- */
-async function interactiveEdit(message) {
+export async function interactiveEdit(message) {
   return new Promise((resolve) => {
     const rl = readline.createInterface({
       input: process.stdin,
@@ -680,193 +584,4 @@ async function interactiveEdit(message) {
   });
 }
 
-// 配置 Commander.js
-program
-  .name('x-git-commit')
-  .description('根据当前变更生成符合规范的 git commit 总结')
-  .version('1.0.0')
-  .option('-s, --staged', '仅使用暂存区的变更（默认）')
-  .option('-a, --all', '使用所有工作区的变更（暂存区 + 工作区）')
-  .option('-c, --copy', '生成后自动复制到剪贴板')
-  .option('-v, --verbose', '显示详细信息')
-  .option('-t, --type <type>', '指定 commit type (feat/fix/docs/style/refactor/test/chore/perf/ci/build/revert)')
-  .option('--scope <scope>', '指定 commit scope')
-  .option('-i, --interactive', '交互模式（选择 type、确认消息）')
-  .option('--no-api', '不使用 AI，仅显示变更文件列表')
-  .action(async (options) => {
-    const spinner = ora();
-
-    try {
-      // 检查是否在 Git 仓库中
-      try {
-        execSync('git rev-parse --git-dir', { stdio: 'pipe' });
-      } catch (error) {
-        console.error(chalk.red('错误：当前目录不是 Git 仓库'));
-        process.exit(1);
-      }
-
-      spinner.text = '正在分析变更...';
-      spinner.start();
-
-      // 获取变更信息
-      let files = [];
-      let diff = '';
-
-      const useStaged = options.staged || !options.all;
-
-      if (useStaged) {
-        files = getStagedFiles();
-        diff = getStagedDiff();
-
-        if (files.length === 0) {
-          spinner.warn('暂存区没有变更');
-          console.log(chalk.yellow('提示：使用 git add 添加文件到暂存区，或使用 -a 参数查看所有变更'));
-          return;
-        }
-      } else {
-        files = getAllChangedFiles();
-        diff = getAllDiff();
-
-        if (files.length === 0) {
-          spinner.warn('没有任何变更');
-          return;
-        }
-      }
-
-      // 获取变更统计（仅内部使用，不默认显示）
-      const stats = getDiffStats(diff);
-
-      // 不使用 AI 模式
-      // 注意：Commander 的 --no-xxx 选项会被解析为 options.xxx = false
-      if (options.api === false) {
-        if (spinner.isSpinning) spinner.stop();
-        console.log(chalk.cyan('\n变更统计:'));
-        console.log(chalk.gray(`  文件数：${files.length}`));
-        console.log(chalk.gray(`  新增行数：+${stats.additions}`));
-        console.log(chalk.gray(`  删除行数：-${stats.deletions}`));
-        console.log(chalk.gray(`  提示：使用 -s 或 -a 参数生成 commit message\n`));
-        return;
-      }
-
-      // 详细模式显示文件列表
-      if (options.verbose) {
-        spinner.stop();
-        console.log(chalk.cyan('\n变更文件:'));
-        files.forEach(file => console.log(`  - ${file}`));
-        console.log('');
-        spinner.start('正在生成提交信息...');
-      }
-
-      // 交互模式
-      let selectedType = options.type;
-      if (options.interactive && !selectedType) {
-        spinner.stop();
-        selectedType = await interactiveSelectType();
-        spinner.start('正在生成提交信息...');
-      }
-
-      // 获取上次 commit 作为参考
-      const lastCommit = getLastCommitMessage();
-
-      // 生成提交信息
-      const commitMessage = await generateCommitMessage(diff, files, lastCommit, {
-        type: selectedType,
-        scope: options.scope
-      });
-
-      spinner.succeed('生成完成');
-
-      // 交互模式确认
-      if (options.interactive) {
-        console.log('\n' + chalk.green('📝 建议的 commit message:'));
-        console.log(chalk.cyan('='.repeat(50)));
-        console.log(chalk.white(commitMessage));
-        console.log(chalk.cyan('='.repeat(50)));
-
-        let finalMessage = commitMessage;
-        let confirm = await interactiveConfirm(finalMessage);
-
-        while (confirm === 'edit') {
-          finalMessage = await interactiveEdit(finalMessage);
-          confirm = await interactiveConfirm(finalMessage);
-        }
-
-        if (confirm === 'no') {
-          console.log(chalk.yellow('已取消提交'));
-          return;
-        }
-
-        // 显示最终消息
-        console.log('\n' + chalk.green('✅ 最终 commit message:'));
-        console.log(chalk.cyan('='.repeat(50)));
-        console.log(chalk.white(finalMessage));
-        console.log(chalk.cyan('='.repeat(50)));
-
-        // 复制到剪贴板
-        if (options.copy) {
-          try {
-            if (process.platform === 'darwin') {
-              execSync(`echo "${finalMessage}" | pbcopy`);
-            } else if (process.platform === 'win32') {
-              execSync(`echo ${finalMessage} | clip`);
-            } else {
-              try {
-                execSync(`echo "${finalMessage}" | xclip -selection clipboard`);
-              } catch (e) {
-                console.log(chalk.yellow('⚠ 无法复制到剪贴板（需要安装 xclip）'));
-              }
-            }
-            console.log(chalk.green('✓ 已复制到剪贴板'));
-          } catch (error) {
-            console.log(chalk.yellow('⚠ 复制失败，请手动复制'));
-          }
-        }
-
-        console.log('\n' + chalk.gray('使用方法:'));
-        console.log(`  git commit -m "${finalMessage}"\n`);
-      } else {
-        // 非交互模式
-        console.log('\n' + chalk.green('📝 建议的 commit message:'));
-        console.log(chalk.cyan('='.repeat(50)));
-        console.log(chalk.white(commitMessage));
-        console.log(chalk.cyan('='.repeat(50)));
-
-        // 复制到剪贴板
-        if (options.copy) {
-          try {
-            if (process.platform === 'darwin') {
-              execSync(`echo "${commitMessage}" | pbcopy`);
-            } else if (process.platform === 'win32') {
-              execSync(`echo ${commitMessage} | clip`);
-            } else {
-              try {
-                execSync(`echo "${commitMessage}" | xclip -selection clipboard`);
-              } catch (e) {
-                console.log(chalk.yellow('⚠ 无法复制到剪贴板（需要安装 xclip）'));
-              }
-            }
-            console.log(chalk.green('✓ 已复制到剪贴板'));
-          } catch (error) {
-            console.log(chalk.yellow('⚠ 复制失败，请手动复制'));
-          }
-        }
-
-        console.log('\n' + chalk.gray('使用方法:'));
-        console.log(`  git commit -m "${commitMessage}"`);
-
-        if (options.copy) {
-          console.log('  或直接粘贴：git commit -m "<Cmd+V>"');
-        }
-        console.log('');
-      }
-
-    } catch (error) {
-      if (spinner.isSpinning) {
-        spinner.fail();
-      }
-      console.error(chalk.red('错误:'), error.message);
-      process.exit(1);
-    }
-  });
-
-program.parse();
+export { COMMIT_TYPES };

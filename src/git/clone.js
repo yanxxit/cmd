@@ -1,7 +1,4 @@
-#!/usr/bin/env node
-
 import ora from 'ora';
-import { program } from 'commander';
 import path from 'path';
 import fs from 'fs/promises';
 import { execSync } from 'child_process';
@@ -12,8 +9,7 @@ import https from 'https';
  * @param {string} url - Git 仓库 URL
  * @returns {object} - 包含 owner 和 repo 名称的对象
  */
-function parseGitUrl(url) {
-  // 支持 HTTPS 和 SSH 格式的 URL
+export function parseGitUrl(url) {
   const httpsRegex = /^https:\/\/([^\/]+)\/([^\/]+)\/(.+?)(?:\.git)?$/;
   const sshRegex = /^git@([^:]+):([^\/]+)\/(.+?)(?:\.git)?$/;
   const githubShorthandRegex = /^([\w-]+)\/([\w-]+)$/;
@@ -52,12 +48,10 @@ function parseGitUrl(url) {
  * @param {string} repoPath - 仓库路径
  * @returns {boolean} - 是否有效
  */
-async function validateRepo(repoPath) {
+export async function validateRepo(repoPath) {
   try {
-    // 尝试解析 URL 以验证格式
     parseGitUrl(repoPath);
 
-    // 如果是本地路径，检查是否存在
     if (repoPath.startsWith('./') || repoPath.startsWith('../') || repoPath.startsWith('/')) {
       const stats = await fs.stat(repoPath);
       return stats.isDirectory();
@@ -74,9 +68,9 @@ async function validateRepo(repoPath) {
  * @param {string} url - 要检查的 URL
  * @returns {Promise<boolean>} - 是否可访问
  */
-async function checkNetwork(url) {
+export async function checkNetwork(url) {
   return new Promise((resolve) => {
-    const timeout = 5000; // 5秒超时
+    const timeout = 5000;
     
     const req = https.get(url, {
       timeout: timeout
@@ -95,20 +89,16 @@ async function checkNetwork(url) {
   });
 }
 
-
-
 /**
  * 获取可用的仓库 URL
  * @param {string} repo - 原始仓库地址
- * @param {string} mirror - 指定的镜像站点 (kgithub 或 ghproxy)
+ * @param {string} mirror - 指定的镜像站点
  * @returns {Promise<string>} - 可用的仓库地址
  */
-async function getAvailableRepoUrl(repo, mirror) {
+export async function getAvailableRepoUrl(repo, mirror) {
   try {
-    // 解析仓库 URL
     const parsed = parseGitUrl(repo);
     
-    // 如果用户指定了镜像站点，直接使用
     if (mirror) {
       console.log(`使用指定的 ${mirror} 镜像...`);
       if (mirror === 'kkgithub') {
@@ -128,17 +118,14 @@ async function getAvailableRepoUrl(repo, mirror) {
       }
     }
     
-    // 检查 GitHub 是否可访问
     const isGithubAccessible = await checkNetwork('https://github.com');
     
     if (isGithubAccessible) {
       return repo;
     }
     
-    // GitHub 不可访问，尝试镜像站点
     console.log('GitHub 不可访问，尝试使用镜像站点...');
     
-    // 尝试使用 Gitee 镜像（优先级最高，仅支持部分热门项目）
     console.log('尝试使用 Gitee 镜像...');
     const giteeUrl = `https://gitee.com/mirrors/${parsed.repo}`;
     const isGiteeAccessible = await checkNetwork('https://gitee.com');
@@ -147,25 +134,21 @@ async function getAvailableRepoUrl(repo, mirror) {
       return giteeUrl;
     }
     
-    // 构建镜像站点 URL
     const kkgithubUrl = `https://kkgithub.com/${parsed.owner}/${parsed.repo}`;
     const ghproxyUrl = `https://ghproxy.com/github.com/${parsed.owner}/${parsed.repo}`;
     
-    // 检查 kkgithub.com 是否可访问
     const isKkgithubAccessible = await checkNetwork('https://kkgithub.com');
     if (isKkgithubAccessible) {
       console.log('使用 kkgithub.com 镜像...');
       return kkgithubUrl;
     }
     
-    // 检查 ghproxy.com 是否可访问
     const isGhproxyAccessible = await checkNetwork('https://ghproxy.com');
     if (isGhproxyAccessible) {
       console.log('使用 ghproxy.com 镜像...');
       return ghproxyUrl;
     }
     
-    // 尝试 gh.api.99988866.xyz 镜像
     const ghApiUrl = `https://gh.api.99988866.xyz/https://github.com/${parsed.owner}/${parsed.repo}`;
     const isGhApiAccessible = await checkNetwork('https://gh.api.99988866.xyz');
     if (isGhApiAccessible) {
@@ -173,7 +156,6 @@ async function getAvailableRepoUrl(repo, mirror) {
       return ghApiUrl;
     }
     
-    // 尝试 gitclone.com 镜像
     const gitcloneUrl = `https://gitclone.com/https://github.com/${parsed.owner}/${parsed.repo}`;
     const isGitcloneAccessible = await checkNetwork('https://gitclone.com');
     if (isGitcloneAccessible) {
@@ -181,7 +163,6 @@ async function getAvailableRepoUrl(repo, mirror) {
       return gitcloneUrl;
     }
      
-    // 尝试 git.yumenaka.net 镜像
     const yumenakaUrl = `https://git.yumenaka.net/https://github.com/${parsed.owner}/${parsed.repo}`;
     const isYumenakaAccessible = await checkNetwork('https://git.yumenaka.net');
     if (isYumenakaAccessible) {
@@ -189,7 +170,6 @@ async function getAvailableRepoUrl(repo, mirror) {
       return yumenakaUrl;
     }
     
-    // 尝试 ghproxy.net 镜像
     const ghproxyNetUrl = `https://ghproxy.net/https://github.com/${parsed.owner}/${parsed.repo}`;
     const isGhproxyNetAccessible = await checkNetwork('https://ghproxy.net');
     if (isGhproxyNetAccessible) {
@@ -197,11 +177,9 @@ async function getAvailableRepoUrl(repo, mirror) {
       return ghproxyNetUrl;
     }
     
-    // 所有镜像站点都不可访问，返回原始 URL
     console.log('所有镜像站点都不可访问，尝试使用原始 URL...');
     return repo;
   } catch (error) {
-    // 解析失败，返回原始 URL
     return repo;
   }
 }
@@ -212,7 +190,7 @@ async function getAvailableRepoUrl(repo, mirror) {
  * @param {string} dest - 目标目录
  * @param {object} options - 克隆选项
  */
-async function cloneRepo(repo, dest, options = {}) {
+export async function cloneRepo(repo, dest, options = {}) {
   const spinner = ora({
     text: `Cloning repository ${repo}...`,
     spinner: 'clock'
@@ -221,30 +199,22 @@ async function cloneRepo(repo, dest, options = {}) {
   spinner.start();
 
   try {
-    // 确定目标目录名（如果未指定则使用仓库名）
     const targetDir = dest || path.basename(repo, '.git');
 
-    // 检查目标目录是否已存在
     try {
       await fs.access(targetDir);
       throw new Error(`Directory ${targetDir} already exists.`);
     } catch (accessError) {
-      // 目录不存在，可以继续
       if (accessError.code !== 'ENOENT') {
-        // 如果错误不是因为目录不存在，则抛出错误
         throw accessError;
       }
     }
 
-    // 获取可用的仓库 URL
     const availableRepoUrl = await getAvailableRepoUrl(repo, options.mirror);
 
-    // 使用 child_process 执行真实的 git clone 命令
-    // 默认使用 --depth 1 只克隆最新的提交
     const depth = options.depth || 1;
     const cloneCommand = `git clone ${options.singleBranch ? '--single-branch' : ''} --depth ${depth} ${options.branch ? `-b ${options.branch}` : ''} ${availableRepoUrl} "${targetDir}"`;
 
-    // 执行克隆命令
     execSync(cloneCommand, { stdio: 'inherit' });
 
     spinner.succeed(`Repository cloned successfully to ${targetDir}`);
@@ -254,42 +224,3 @@ async function cloneRepo(repo, dest, options = {}) {
     throw error;
   }
 }
-
-// 配置 Commander.js 以定义 CLI 接口
-program
-  .name('x-git-clone')
-  .description('A custom git clone tool built with Node.js')
-  .version('1.0.0')
-  .argument('<repository>', 'Git repository URL or shorthand (owner/repo)')
-  .argument('[destination]', 'Destination directory path')
-  .option('-b, --branch <branch>', 'Clone a specific branch')
-  .option('--single-branch', 'Clone only the history leading to the tip of a single branch')
-  .option('-d, --depth <depth>', 'Create a shallow clone with a history truncated to the specified number of commits')
-  .option('--mirror <mirror>', 'Specify mirror site to use (kkgithub, ghproxy, gitee, ghapi, gitclone, yumenaka or ghproxynet)', ['kkgithub', 'ghproxy', 'gitee', 'ghapi', 'gitclone', 'yumenaka', 'ghproxynet'])
-  .action(async (repository, destination, options) => {
-    try {
-      // 检查是否安装了 git
-      try {
-        execSync('git --version', { stdio: 'pipe' });
-      } catch (error) {
-        console.error('Git is not installed or not in PATH. Please install Git before using this tool.');
-        process.exit(1);
-      }
-
-      // 解析仓库 URL
-      parseGitUrl(repository);
-
-      // 执行克隆操作
-      await cloneRepo(repository, destination, {
-        branch: options.branch,
-        singleBranch: options.singleBranch,
-        depth: options.depth ? parseInt(options.depth) : undefined,
-        mirror: options.mirror
-      });
-    } catch (error) {
-      console.error(`Failed to clone repository: ${error.message}`);
-      process.exit(1);
-    }
-  });
-
-program.parse();
