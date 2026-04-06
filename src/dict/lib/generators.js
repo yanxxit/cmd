@@ -435,13 +435,15 @@ async function generateHTML(history, outputPath) {
     // 写入 HTML 文件
     await fs.promises.writeFile(exportPath, htmlContent);
     
-    // 自动打开网页
-    try {
+    // 自动打开网页（仅在非测试环境下）
+    if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
+      try {
         const absolutePath = path.resolve(exportPath);
         await openURL(absolutePath);
         console.log('已自动打开生成的网页');
-    } catch (error) {
+      } catch (error) {
         console.log('自动打开网页失败，您可以手动打开文件：', exportPath);
+      }
     }
     
     return exportPath;
