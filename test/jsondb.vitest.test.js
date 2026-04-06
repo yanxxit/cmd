@@ -29,7 +29,7 @@ describe('JSONDB 数据库', () => {
 
   describe('基本操作', () => {
     it('应该能够打开数据库', async () => {
-      const { Database } = await import('jsondb');
+      const { Database } = await import('@yanit/jsondb');
       const db = new Database(testDbPath);
       await db.open();
       expect(db).toBeDefined();
@@ -37,7 +37,7 @@ describe('JSONDB 数据库', () => {
     });
 
     it('应该能够创建集合', async () => {
-      const { Database } = await import('jsondb');
+      const { Database } = await import('@yanit/jsondb');
       const db = new Database(testDbPath);
       await db.open();
 
@@ -48,7 +48,7 @@ describe('JSONDB 数据库', () => {
     });
 
     it('应该能够插入文档', async () => {
-      const { Database } = await import('jsondb');
+      const { Database } = await import('@yanit/jsondb');
       const db = new Database(testDbPath);
       await db.open();
 
@@ -66,7 +66,7 @@ describe('JSONDB 数据库', () => {
     });
 
     it('应该能够查询文档', async () => {
-      const { Database } = await import('jsondb');
+      const { Database } = await import('@yanit/jsondb');
       const db = new Database(testDbPath);
       await db.open();
 
@@ -80,7 +80,7 @@ describe('JSONDB 数据库', () => {
     });
 
     it('应该能够更新文档', async () => {
-      const { Database } = await import('jsondb');
+      const { Database } = await import('@yanit/jsondb');
       const db = new Database(testDbPath);
       await db.open();
 
@@ -105,7 +105,7 @@ describe('JSONDB 数据库', () => {
     });
 
     it('应该能够删除文档', async () => {
-      const { Database } = await import('jsondb');
+      const { Database } = await import('@yanit/jsondb');
       const db = new Database(testDbPath);
       await db.open();
 
@@ -128,8 +128,17 @@ describe('JSONDB 数据库', () => {
 
   describe('JSONB 模式', () => {
     it('应该支持 JSONB 模式', async () => {
-      const { Database } = await import('jsondb');
-      const db = new Database(testDbPath + '-jsonb', { jsonb: true });
+      const { Database } = await import('@yanit/jsondb');
+      const jsonbPath = testDbPath + '-jsonb';
+      
+      // 清理测试目录
+      try {
+        await fs.rm(jsonbPath, { recursive: true, force: true });
+      } catch (e) {
+        // 忽略
+      }
+      
+      const db = new Database(jsonbPath, { jsonb: true });
       await db.open();
 
       const collection = await db.createCollection('test');
@@ -144,7 +153,7 @@ describe('JSONDB 数据库', () => {
 
   describe('遍历功能', () => {
     it('应该支持 for await...of 遍历', async () => {
-      const { Database } = await import('jsondb');
+      const { Database } = await import('@yanit/jsondb');
       const db = new Database(testDbPath);
       await db.open();
 
