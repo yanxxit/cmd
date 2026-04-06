@@ -42,6 +42,7 @@
     "test:jsondb": "vitest run test/jsondb.vitest.test.js",
     "test:dict": "vitest run test/dict.vitest.test.js",
     "test:cli": "vitest run test/cli-tools.vitest.test.js",
+    "test:todo": "vitest run test/todo.vitest.test.js",
     "build:hash": "node scripts/build-hash.js"
   },
   "author": "yanxxit",
