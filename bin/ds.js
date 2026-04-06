@@ -6,20 +6,40 @@ import readline from 'readline';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { initDictionary, checkDictionaryExists } from '../src/dict/ds-init.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 program
     .version('1.0.0')
-    .description('屌丝字典 - 命令行与Web服务器');
+    .description('屌丝字典 - 命令行与 Web 服务器');
+
+// 定义初始化子命令
+program
+    .command('init')
+    .alias('i')
+    .alias('install')
+    .description('初始化词典数据（从 GitHub 下载 endict.txt）')
+    .option('-v, --verbose', '显示详细输出')
+    .action(async (options) => {
+        await initDictionary(options);
+    });
 
 // 定义查询单词的子命令
 program
     .command('lookup <word>')
     .alias('l')
+    .alias('query')
+    .alias('fy')
     .description('查询单词释义')
     .action(async (word) => {
+        if (!checkDictionaryExists()) {
+            console.log('⚠️  词典数据未初始化');
+            console.log('请先运行：ds init\n');
+            process.exit(1);
+        }
+        
         const dict = new Dictionary();
         const result = dict.lookupResult(word);
 
@@ -35,16 +55,27 @@ program
     .command('cli')
     .description('启动交互式命令行界面')
     .action(() => {
+        if (!checkDictionaryExists()) {
+            console.log('⚠️  词典数据未初始化');
+            console.log('请先运行：ds init\n');
+            process.exit(1);
+        }
         startInteractiveCLI();
     });
 
-// 定义启动Web服务器的子命令
+// 定义启动 Web 服务器的子命令
 program
     .command('serve')
     .alias('s')
-    .description('启动Web服务器')
+    .alias('web')
+    .description('启动 Web 服务器')
     .option('-p, --port <number>', '指定端口号', '5000')
     .action((options) => {
+        if (!checkDictionaryExists()) {
+            console.log('⚠️  词典数据未初始化');
+            console.log('请先运行：ds init\n');
+            process.exit(1);
+        }
         startWebServer(parseInt(options.port));
     });
 
