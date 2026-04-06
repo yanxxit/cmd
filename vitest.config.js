@@ -20,17 +20,16 @@ export default defineConfig({
       reporter: ['text', 'json', 'html', 'lcov'],
       include: [
         'src/git/**/*.js',
+        'src/port/**/*.js',
         'src/dict/**/*.js',
         'bin/git.js',
-        'bin/kill-port.js',
-        'bin/who-port.js',
-        'bin/scan-ports.js',
+        'bin/port.js',
         'bin/system-top.js'
       ],
     },
     reporters: ['verbose', 'html'],
     outputFile: {
-      html: 'test/test-results.html'
+      html: 'test/result/test-results.html'
     }
   },
   resolve: {

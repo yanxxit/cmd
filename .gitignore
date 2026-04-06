@@ -49,3 +49,5 @@ next-app/dist
 test-data
 
 .jsondb/
+
+test/result/

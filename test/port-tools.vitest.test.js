@@ -4,7 +4,7 @@ import http from 'http';
 
 /**
  * Vitest 测试：端口管理工具集综合测试
- * 包含：who-port, kill-port 集成测试
+ * 使用统一的 x-port 命令测试 who 和 kill 功能
  */
 
 describe('端口管理工具集 - 集成测试', () => {
@@ -66,17 +66,17 @@ describe('端口管理工具集 - 集成测试', () => {
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // 2. 查询端口
-        let result = execCommand(`node bin/who-port.js ${TEST_PORT} --no-log`);
-        expect(result.output).toContain('端口占用信息查询结果');
+        let result = execCommand(`node bin/port.js who ${TEST_PORT}`);
+        expect(result.output).toContain(`端口 ${TEST_PORT} 被占用`);
 
         // 3. 关闭端口
-        result = execCommand(`node bin/kill-port.js ${TEST_PORT} --force --no-log`);
+        result = execCommand(`node bin/port.js kill ${TEST_PORT} --force`);
         expect(result.output).toMatch(/成功 | 已释放/);
 
         // 4. 验证端口已释放
         await new Promise(resolve => setTimeout(resolve, 500));
-        result = execCommand(`node bin/who-port.js ${TEST_PORT} --no-log`);
-        expect(result.output).toContain('未被占用');
+        result = execCommand(`node bin/port.js who ${TEST_PORT}`);
+        expect(result.output).toContain(`端口 ${TEST_PORT} 未被占用`);
       } finally {
         if (testServer) testServer.kill();
       }
