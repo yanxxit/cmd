@@ -132,6 +132,9 @@ describe('性能测试 - 命令行工具', () => {
       // 创建一个大文件进行测试
       const largeMdPath = path.join(PROJECT_ROOT, 'test', 'temp-large.md');
       const largeContent = '# Large File\n\n'.repeat(1000);
+      
+      // 确保目录存在
+      fs.mkdirSync(path.dirname(largeMdPath), { recursive: true });
       fs.writeFileSync(largeMdPath, largeContent);
 
       try {

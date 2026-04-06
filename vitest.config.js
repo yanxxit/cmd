@@ -7,11 +7,13 @@ export default defineConfig({
     environment: 'node',
     include: [
       'test/**/*.vitest.test.js',
-      'test/git/**/*.vitest.test.js'
+      'test/git/**/*.vitest.test.js',
+      'test/performance/**/*.vitest.test.js'
     ],
     exclude: [
       'node_modules',
-      'test/git/run-all-tests.js'
+      'test/git/run-all-tests.js',
+      'test/performance/**/*.skip.js'
     ],
     testTimeout: 30000,
     hookTimeout: 30000,
