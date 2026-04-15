@@ -381,6 +381,13 @@ export default function (options = { port: 3000, dir: __dirname }) {
     res.sendFile(path.join(jsonDiffV2Dir, 'index.html'));
   });
 
+  // String 转 JSON 工具页面
+  const stringToJsonDir = path.join(ROOT_DIR, 'public/string-to-json');
+  app.use('/string-to-json', express.static(stringToJsonDir));
+  app.get('/string-to-json', (req, res) => {
+    res.sendFile(path.join(stringToJsonDir, 'index.html'));
+  });
+
   // Markdown 对比编辑器页面
   const markdownEditorDir = path.join(ROOT_DIR, 'public/markdown-editor');
   app.use('/markdown-editor', express.static(markdownEditorDir));
