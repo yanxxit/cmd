@@ -9,6 +9,7 @@
     "x-port": "bin/port.js",
     "x-ask": "bin/ask.js",
     "x-chat": "bin/chat.js",
+    "x-agent": "bin/agent.js",
     "x-fy": "bin/fy.js",
     "x-say": "bin/say.js",
     "x-ds": "bin/ds.js",
@@ -24,7 +25,9 @@
     "x-wifi": "bin/wifi.js",
     "x-system-top": "bin/system-top.js",
     "x-key-listen": "bin/key-listen.js",
-    "key-listen": "bin/key-listen.js"
+    "key-listen": "bin/key-listen.js",
+    "x-gen": "bin/generate-large-file.js",
+    "x-harness": "bin/harness.js"
   },
   "scripts": {
     "clear": "npm unlink",
