@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🪪 身份证生成器</title>
+  <title>🪪 证件生成器</title>
   <style>
     :root {
       --primary: #0ea5e9;
@@ -17,427 +17,135 @@
       --danger: #ef4444;
       --border: #475569;
     }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
       background: linear-gradient(135deg, var(--bg-dark) 0%, #1e3a5f 50%, var(--bg-dark) 100%);
-      min-height: 100vh;
-      color: var(--text-primary);
-      padding: 20px;
+      min-height: 100vh; color: var(--text-primary); padding: 20px;
     }
-
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
-      padding: 30px 20px;
-    }
-
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 30px; padding: 30px 20px; }
     .header h1 {
       font-size: 2.5rem;
       background: linear-gradient(135deg, #60a5fa, #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 10px;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;
     }
-
-    .header p {
-      color: var(--text-secondary);
-      font-size: 1.1rem;
+    .header p { color: var(--text-secondary); font-size: 1.1rem; }
+    .tabs {
+      display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center;
     }
-
+    .tab-btn {
+      padding: 10px 20px; background: var(--bg-card); border: 2px solid var(--border);
+      border-radius: 10px; color: var(--text-primary); cursor: pointer;
+      transition: all 0.3s; font-size: 0.95rem; white-space: nowrap;
+    }
+    .tab-btn:hover { background: var(--bg-input); border-color: var(--primary); }
+    .tab-btn.active { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-color: var(--primary); }
     .card {
-      background: var(--bg-card);
-      border-radius: 16px;
-      padding: 30px;
-      border: 1px solid var(--border);
-      margin-bottom: 20px;
+      background: var(--bg-card); border-radius: 16px; padding: 30px;
+      border: 1px solid var(--border); margin-bottom: 20px;
     }
-
-    .card-title {
-      font-size: 1.3rem;
-      margin-bottom: 20px;
-      color: var(--primary);
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .card-title { font-size: 1.3rem; margin-bottom: 20px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9rem; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 12px 16px; background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-primary); font-size: 1rem;
     }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin-bottom: 15px;
-    }
-
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-    }
-
-    .form-group input,
-    .form-group select {
-      width: 100%;
-      padding: 12px 16px;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text-primary);
-      font-size: 1rem;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    .form-group small {
-      display: block;
-      margin-top: 4px;
-      color: var(--text-secondary);
-      font-size: 0.8rem;
-    }
-
-    .search-box {
-      position: relative;
-    }
-
-    .search-box input {
-      padding-right: 40px;
-    }
-
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+    .form-group small { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 0.8rem; }
+    .search-box { position: relative; }
+    .search-box input { padding-right: 40px; }
     .search-icon {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-secondary);
-      font-size: 1.2rem;
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text-secondary); font-size: 1.2rem;
     }
-
-    .btn-row {
-      display: flex;
-      gap: 12px;
-      margin-top: 20px;
-    }
-
+    .btn-row { display: flex; gap: 12px; margin-top: 20px; }
     .btn {
-      flex: 1;
-      padding: 14px 24px;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s;
+      flex: 1; padding: 14px 24px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.3s;
     }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: white;
+    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(14, 165, 233, 0.4); }
+    .btn-secondary { background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--primary); }
+    .result-area { text-align: center; padding: 30px; }
+    .result-display { font-size: 2.2rem; font-family: 'Courier New', monospace; font-weight: bold; color: #60a5fa; letter-spacing: 3px; margin: 20px 0; word-break: break-all; }
+    .result-info { display: flex; justify-content: center; gap: 30px; margin-top: 15px; flex-wrap: wrap; }
+    .result-info-item { text-align: center; }
+    .result-info-item .label { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; }
+    .result-info-item .value { font-size: 1rem; color: var(--text-primary); }
+    .country-flag { font-size: 2.5rem; margin-bottom: 10px; }
+    .type-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 6px;
+      font-size: 0.8rem; font-weight: bold; margin-bottom: 12px;
     }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(14, 165, 233, 0.4);
-    }
-
-    .btn-secondary {
-      background: var(--bg-input);
-      color: var(--text-primary);
-      border: 1px solid var(--border);
-    }
-
-    .btn-secondary:hover {
-      border-color: var(--primary);
-    }
-
-    .result-area {
-      text-align: center;
-      padding: 30px;
-    }
-
-    .id-display {
-      font-size: 2rem;
-      font-family: 'Courier New', monospace;
-      font-weight: bold;
-      color: #60a5fa;
-      letter-spacing: 3px;
-      margin: 20px 0;
-      word-break: break-all;
-    }
-
-    .id-info {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      margin-top: 15px;
-      flex-wrap: wrap;
-    }
-
-    .id-info-item {
-      text-align: center;
-    }
-
-    .id-info-item .label {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      margin-bottom: 4px;
-    }
-
-    .id-info-item .value {
-      font-size: 1rem;
-      color: var(--text-primary);
-    }
-
+    .type-badge.id-card { background: #1d4ed8; color: white; }
+    .type-badge.passport { background: #065f46; color: white; }
+    .type-badge.taiwan { background: #991b1b; color: white; }
+    .type-badge.hk-macao { background: #78350f; color: white; }
+    .type-badge.taiwan-residence { background: #c2410c; color: white; }
+    .type-badge.permanent-residence { background: #6b21a8; color: white; }
     .history-btn {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      border: none;
-      color: white;
-      font-size: 24px;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.4);
-      transition: all 0.3s;
-      z-index: 100;
+      position: fixed; bottom: 30px; right: 30px; width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none; color: white;
+      font-size: 24px; cursor: pointer; box-shadow: 0 4px 16px rgba(14, 165, 233, 0.4); transition: all 0.3s; z-index: 100;
     }
-
-    .history-btn:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 24px rgba(14, 165, 233, 0.6);
-    }
-
+    .history-btn:hover { transform: scale(1.1); box-shadow: 0 6px 24px rgba(14, 165, 233, 0.6); }
     .history-badge {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      width: 22px;
-      height: 22px;
-      background: var(--danger);
-      border-radius: 50%;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: absolute; top: -4px; right: -4px; width: 22px; height: 22px; background: var(--danger);
+      border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center;
     }
-
     .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.6);
-      z-index: 200;
-      justify-content: center;
-      align-items: center;
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.6); z-index: 200; justify-content: center; align-items: center;
     }
-
-    .modal-overlay.active {
-      display: flex;
-    }
-
+    .modal-overlay.active { display: flex; }
     .modal {
-      background: var(--bg-card);
-      border-radius: 16px;
-      width: 90%;
-      max-width: 650px;
-      max-height: 80vh;
-      display: flex;
-      flex-direction: column;
-      border: 1px solid var(--border);
+      background: var(--bg-card); border-radius: 16px; width: 90%; max-width: 650px;
+      max-height: 80vh; display: flex; flex-direction: column; border: 1px solid var(--border);
     }
-
-    .modal-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .modal-header h3 {
-      font-size: 1.2rem;
-      color: var(--primary);
-    }
-
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h3 { font-size: 1.2rem; color: var(--primary); }
     .modal-close {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--bg-input);
-      border: none;
-      color: var(--text-primary);
-      font-size: 18px;
-      cursor: pointer;
-      transition: all 0.2s;
+      width: 32px; height: 32px; border-radius: 50%; background: var(--bg-input); border: none;
+      color: var(--text-primary); font-size: 18px; cursor: pointer; transition: all 0.2s;
     }
-
-    .modal-close:hover {
-      background: var(--danger);
-    }
-
-    .modal-body {
-      padding: 16px 24px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    .modal-footer {
-      padding: 16px 24px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
+    .modal-close:hover { background: var(--danger); }
+    .modal-body { padding: 16px 24px; overflow-y: auto; flex: 1; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
     .history-item {
-      background: var(--bg-input);
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: 1px solid transparent;
+      background: var(--bg-input); border-radius: 10px; padding: 16px; margin-bottom: 12px;
+      cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
     }
-
-    .history-item:hover {
-      border-color: var(--primary);
-      transform: translateX(4px);
-    }
-
-    .history-item .id-number {
-      font-family: 'Courier New', monospace;
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: #60a5fa;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .history-item .id-detail {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-
-    .history-item .id-detail span {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-    }
-
+    .history-item:hover { border-color: var(--primary); transform: translateX(4px); }
+    .history-item .result-number { font-family: 'Courier New', monospace; font-size: 1.2rem; font-weight: bold; color: #60a5fa; letter-spacing: 1px; margin-bottom: 8px; }
+    .history-item .result-detail { display: flex; gap: 15px; flex-wrap: wrap; }
+    .history-item .result-detail span { font-size: 0.85rem; color: var(--text-secondary); }
     .copy-toast {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-100px);
-      background: var(--success);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      z-index: 300;
-      transition: transform 0.3s ease;
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+      background: var(--success); color: white; padding: 12px 24px; border-radius: 8px;
+      font-size: 0.9rem; z-index: 300; transition: transform 0.3s ease;
     }
-
-    .copy-toast.show {
-      transform: translateX(-50%) translateY(0);
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px;
-      color: var(--text-secondary);
-    }
-
-    .clear-btn {
-      padding: 8px 16px;
-      background: var(--danger);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .clear-btn:hover {
-      opacity: 0.8;
-    }
-
-    .count-badge {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-    }
-
+    .copy-toast.show { transform: translateX(-50%) translateY(0); }
+    .empty-state { text-align: center; padding: 40px; color: var(--text-secondary); }
+    .clear-btn { padding: 8px 16px; background: var(--danger); color: white; border: none; border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+    .clear-btn:hover { opacity: 0.8; }
+    .count-badge { font-size: 0.85rem; color: var(--text-secondary); }
     .hidden { display: none !important; }
-
     .dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      max-height: 300px;
-      overflow-y: auto;
-      z-index: 100;
-      margin-top: 4px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 8px; max-height: 300px;
+      overflow-y: auto; z-index: 100; margin-top: 4px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
-
-    .dropdown-item {
-      padding: 10px 16px;
-      cursor: pointer;
-      transition: all 0.2s;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .dropdown-item:hover {
-      background: var(--bg-input);
-    }
-
-    .dropdown-item:last-child {
-      border-bottom: none;
-    }
-
-    .dropdown-item .province-name {
-      font-weight: bold;
-      color: var(--text-primary);
-    }
-
-    .dropdown-item .city-count {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-    }
-
+    .dropdown-item { padding: 10px 16px; cursor: pointer; transition: all 0.2s; border-bottom: 1px solid var(--border); }
+    .dropdown-item:hover { background: var(--bg-input); }
+    .dropdown-item:last-child { border-bottom: none; }
+    .dropdown-item .province-name { font-weight: bold; color: var(--text-primary); }
+    .dropdown-item .city-count { font-size: 0.8rem; color: var(--text-secondary); }
     @media (max-width: 600px) {
       .header h1 { font-size: 1.8rem; }
-      .id-display { font-size: 1.3rem; }
+      .result-display { font-size: 1.3rem; }
       .form-row { grid-template-columns: 1fr; }
       .btn-row { flex-direction: column; }
     }
@@ -446,89 +154,246 @@
 <body>
   <div class="container">
     <header class="header">
-      <h1>🪪 身份证生成器</h1>
-      <p>根据地区、性别、出生年份生成虚拟身份证号，支持批量生成和历史记录</p>
+      <h1>🪪 证件生成器</h1>
+      <p>生成各类虚拟证件号码，仅供测试使用</p>
     </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-type="id-card" onclick="switchTab('id-card')">🪪 身份证</button>
+      <button class="tab-btn" data-type="passport" onclick="switchTab('passport')">📕 普通护照</button>
+      <button class="tab-btn" data-type="taiwan" onclick="switchTab('taiwan')">🇹🇼 台胞证</button>
+      <button class="tab-btn" data-type="hk-macao" onclick="switchTab('hk-macao')">🇭🇰 港澳通行证</button>
+      <button class="tab-btn" data-type="taiwan-residence" onclick="switchTab('taiwan-residence')">🏠 台湾居住证</button>
+      <button class="tab-btn" data-type="permanent-residence" onclick="switchTab('permanent-residence')">🌍 永居身份证</button>
+    </div>
 
     <div class="card">
       <h2 class="card-title">⚙️ 参数设置</h2>
       
-      <div class="form-row">
-        <div class="form-group">
-          <label>省份</label>
-          <div class="search-box">
-            <input type="text" id="provinceSearch" placeholder="搜索省份..." oninput="filterProvinces()" onfocus="showAllProvinces()">
-            <span class="search-icon">🔍</span>
-            <div class="dropdown hidden" id="provinceDropdown"></div>
+      <!-- 身份证表单 -->
+      <div id="idCardFields">
+        <div class="form-row">
+          <div class="form-group">
+            <label>省份</label>
+            <div class="search-box">
+              <input type="text" id="provinceSearch" placeholder="搜索省份..." oninput="filterProvinces()" onfocus="showAllProvinces()">
+              <span class="search-icon">🔍</span>
+              <div class="dropdown hidden" id="provinceDropdown"></div>
+            </div>
+            <input type="hidden" id="selectedProvince" value="310000">
+            <small id="selectedProvinceName">已选：上海市</small>
           </div>
-          <input type="hidden" id="selectedProvince" value="310000">
-          <small id="selectedProvinceName">已选：上海市</small>
+          <div class="form-group">
+            <label>性别</label>
+            <select id="gender">
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>出生年份</label>
+            <input type="number" id="birthYear" value="1995" min="1900" max="2024" placeholder="如：1995">
+          </div>
         </div>
-        <div class="form-group">
-          <label>性别</label>
-          <select id="gender">
-            <option value="male">男</option>
-            <option value="female">女</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>出生年份</label>
-          <input type="number" id="birthYear" value="1995" min="1900" max="2024" placeholder="如：1995">
+        <div class="form-row">
+          <div class="form-group">
+            <label>出生月份</label>
+            <select id="birthMonth">
+              <option value="">随机</option>
+              <option value="01">01 月</option>
+              <option value="02">02 月</option>
+              <option value="03">03 月</option>
+              <option value="04">04 月</option>
+              <option value="05">05 月</option>
+              <option value="06">06 月</option>
+              <option value="07">07 月</option>
+              <option value="08">08 月</option>
+              <option value="09">09 月</option>
+              <option value="10">10 月</option>
+              <option value="11">11 月</option>
+              <option value="12">12 月</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>出生日期</label>
+            <select id="birthDay"><option value="">随机</option></select>
+          </div>
+          <div class="form-group">
+            <label>随机姓名</label>
+            <select id="randomName">
+              <option value="false">不生成</option>
+              <option value="true">生成</option>
+            </select>
+            <small>根据省份生成对应风格的姓名</small>
+          </div>
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>出生月份</label>
-          <select id="birthMonth">
-            <option value="">随机</option>
-            <option value="01">01 月</option>
-            <option value="02">02 月</option>
-            <option value="03">03 月</option>
-            <option value="04">04 月</option>
-            <option value="05">05 月</option>
-            <option value="06">06 月</option>
-            <option value="07">07 月</option>
-            <option value="08">08 月</option>
-            <option value="09">09 月</option>
-            <option value="10">10 月</option>
-            <option value="11">11 月</option>
-            <option value="12">12 月</option>
-          </select>
+      <!-- 护照表单 -->
+      <div id="passportFields" class="hidden">
+        <div class="form-row">
+          <div class="form-group">
+            <label>护照类型</label>
+            <select id="passportType">
+              <option value="E">E - 电子普通护照</option>
+              <option value="G">G - 普通护照（旧版）</option>
+            </select>
+            <small>E 开头为电子护照（2012 年起），G 开头为旧版</small>
+          </div>
+          <div class="form-group">
+            <label>性别</label>
+            <select id="passportGender">
+              <option value="">随机</option>
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>出生年份</label>
+            <input type="number" id="passportBirthYear" value="1995" min="1900" max="2024" placeholder="如：1995">
+          </div>
         </div>
-        <div class="form-group">
-          <label>出生日期</label>
-          <select id="birthDay">
-            <option value="">随机</option>
-          </select>
+      </div>
+
+      <!-- 台胞证表单 -->
+      <div id="taiwanFields" class="hidden">
+        <div class="form-row">
+          <div class="form-group">
+            <label>性别</label>
+            <select id="taiwanGender">
+              <option value="">随机</option>
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>出生年份</label>
+            <input type="number" id="taiwanBirthYear" value="1995" min="1900" max="2024" placeholder="如：1995">
+          </div>
         </div>
-        <div class="form-group">
-          <label>随机姓名</label>
-          <select id="randomName">
-            <option value="false">不生成</option>
-            <option value="true">生成</option>
-          </select>
-          <small>根据省份生成对应风格的姓名</small>
+        <div class="form-row">
+          <div class="form-group">
+            <label>说明</label>
+            <small>台湾居民来往大陆通行证，8 位数字组成</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 港澳通行证表单 -->
+      <div id="hkMacaoFields" class="hidden">
+        <div class="form-row">
+          <div class="form-group">
+            <label>证件类型</label>
+            <select id="hkMacaoType">
+              <option value="H">H - 香港居民来往内地通行证</option>
+              <option value="M">M - 澳门居民来往内地通行证</option>
+            </select>
+            <small>H 开头为香港居民，M 开头为澳门居民，后跟 10 位数字</small>
+          </div>
+          <div class="form-group">
+            <label>性别</label>
+            <select id="hkMacaoGender">
+              <option value="">随机</option>
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>出生年份</label>
+            <input type="number" id="hkMacaoBirthYear" value="1995" min="1900" max="2024" placeholder="如：1995">
+          </div>
+        </div>
+      </div>
+
+      <!-- 台湾居住证表单 -->
+      <div id="taiwanResidenceFields" class="hidden">
+        <div class="form-row">
+          <div class="form-group">
+            <label>性别</label>
+            <select id="taiwanResidenceGender">
+              <option value="">随机</option>
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>出生年份</label>
+            <input type="number" id="taiwanResidenceBirthYear" value="1995" min="1900" max="2024" placeholder="如：1995">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>说明</label>
+            <small>台湾居民居住证，18 位（与大陆身份证格式相同，810000 开头）</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 永居身份证表单 -->
+      <div id="permanentResidenceFields" class="hidden">
+        <div class="form-row">
+          <div class="form-group">
+            <label>国籍/地区</label>
+            <select id="permanentResidenceCountry">
+              <option value="US">🇺🇸 美国</option>
+              <option value="GB">🇬🇧 英国</option>
+              <option value="FR">🇫🇷 法国</option>
+              <option value="DE">🇩🇪 德国</option>
+              <option value="IT">🇮🇹 意大利</option>
+              <option value="ES">🇪🇸 西班牙</option>
+              <option value="NL">🇳🇱 荷兰</option>
+              <option value="RU">🇷🇺 俄罗斯</option>
+              <option value="JP">🇯🇵 日本</option>
+              <option value="KR">🇰🇷 韩国</option>
+              <option value="SG">🇸🇬 新加坡</option>
+              <option value="MY">🇲🇾 马来西亚</option>
+              <option value="TH">🇹🇭 泰国</option>
+              <option value="IN">🇮🇳 印度</option>
+              <option value="AU">🇦🇺 澳大利亚</option>
+              <option value="NZ">🇳🇿 新西兰</option>
+              <option value="CA">🇨🇦 加拿大</option>
+              <option value="BR">🇧🇷 巴西</option>
+              <option value="OTHER">其他国家</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>性别</label>
+            <select id="permanentResidenceGender">
+              <option value="">随机</option>
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>出生年份</label>
+            <input type="number" id="permanentResidenceBirthYear" value="1995" min="1900" max="2024" placeholder="如：1995">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>说明</label>
+            <small>外国人永久居留身份证，18 位（与大陆身份证格式相同，910000 开头）</small>
+          </div>
         </div>
       </div>
 
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="generate()">🎲 生成身份证</button>
+        <button class="btn btn-primary" onclick="generate()">🎲 生成证件号码</button>
         <button class="btn btn-secondary" onclick="generateMultiple()">📋 批量生成 (10个)</button>
       </div>
     </div>
 
     <div class="card hidden" id="resultCard">
-      <h2 class="card-title">🪪 生成结果</h2>
+      <h2 class="card-title" id="resultTitle">🪪 生成结果</h2>
       <div class="result-area">
-        <div class="id-display" id="idDisplay"></div>
-        <div class="id-info" id="idInfo"></div>
+        <div class="type-badge" id="typeBadge"></div>
+        <div class="result-display" id="resultDisplay"></div>
+        <div class="result-info" id="resultInfo"></div>
       </div>
     </div>
 
     <button class="history-btn" onclick="openHistory()" id="historyBtn" style="display: none;">
-      📋
-      <span class="history-badge" id="historyBadge">0</span>
+      📋<span class="history-badge" id="historyBadge">0</span>
     </button>
   </div>
 
@@ -551,8 +416,9 @@
   <div class="copy-toast" id="copyToast">已复制到剪贴板</div>
 
   <script>
-    const STORAGE_KEY = 'id_card_generator_history_v3';
+    const STORAGE_KEY = '证件生成器_history';
     const MAX_HISTORY = 100;
+    let currentType = 'id-card';
 
     const provinces = [
       { code: '110000', name: '北京市', cities: ['东城区', '西城区', '朝阳区', '丰台区', '石景山区', '海淀区', '门头沟区', '房山区', '通州区', '顺义区', '昌平区', '大兴区', '怀柔区', '平谷区', '密云区', '延庆区'] },
@@ -589,69 +455,50 @@
       { code: '820000', name: '澳门特别行政区', cities: ['澳门半岛', '氹仔', '路环'] }
     ];
 
-    const chineseSurnames = ['王', '李', '张', '刘', '陈', '杨', '黄', '赵', '周', '吴', '徐', '孙', '马', '朱', '胡', '郭', '林', '何', '高', '梁', '郑', '罗', '宋', '谢', '唐', '邓', '冯', '韩', '曹', '曾', '彭', '萧', '董', '袁', '潘', '于', '蒋', '蔡', '余', '杜', '叶', '程', '魏', '苏', '吕', '丁', '任', '卢', '姚', '沈', '钟', '姜', '崔', '康', '范', '金', '陆', '郝', '孔', '白', '崔', '康', '范', '金', '陆', '郝', '孔', '白'];
+    const chineseSurnames = ['王', '李', '张', '刘', '陈', '杨', '黄', '赵', '周', '吴', '徐', '孙', '马', '朱', '胡', '郭', '林', '何', '高', '梁', '郑', '罗', '宋', '谢', '唐', '邓', '冯', '韩', '曹', '曾', '彭', '萧', '董', '袁', '潘', '于', '蒋', '蔡', '余', '杜', '叶', '程', '魏', '苏', '吕', '丁', '任', '卢', '姚', '沈', '钟', '姜', '崔', '康', '范', '金', '陆', '郝', '孔', '白'];
     const maleGivenNames = ['伟', '强', '磊', '军', '勇', '杰', '明', '浩', '宇', '飞', '建', '鹏', '涛', '峰', '龙', '刚', '超', '辉', '鑫', '博', '翔', '毅', '俊', '凯', '昊', '泽', '睿', '晨', '航', '瑞'];
     const femaleGivenNames = ['娜', '芳', '敏', '静', '丽', '艳', '玲', '萍', '婷', '雪', '梅', '琳', '红', '倩', '瑶', '薇', '欣', '莹', '洁', '茹', '彤', '悦', '颖', '蕾', '妍', '菲', '芸', '茜', '佳', '慧'];
-
     const addressPrefixes = ['街道', '路', '街', '巷', '胡同', '弄', '大道', '东路', '西路', '南路', '北路', '中路', '大街', '巷弄', '小区', '花园', '苑', '新村', '公寓', '大厦'];
     const addressNumbers = ['1', '2', '3', '5', '6', '7', '8', '9', '10', '11', '12', '15', '16', '18', '20', '22', '25', '26', '28', '30', '32', '35', '36', '38', '40', '42', '45', '46', '48', '50', '52', '55', '56', '58', '60', '62', '65', '66', '68', '70', '72', '75', '76', '78', '80', '82', '85', '86', '88', '90', '92', '95', '96', '98', '100', '101', '102', '105', '106', '108', '110', '112', '115', '116', '118', '120', '122', '125', '126', '128', '130', '132', '135', '136', '138', '140', '142', '145', '146', '148', '150', '152', '155', '156', '158', '160', '162', '165', '166', '168', '170', '172', '175', '176', '178', '180', '182', '185', '186', '188', '190', '192', '195', '196', '198', '200'];
 
-    function randomInt(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
+    const typeConfig = {
+      'id-card': { label: '身份证', icon: '🪪', badgeClass: 'id-card' },
+      'passport': { label: '普通护照', icon: '📕', badgeClass: 'passport' },
+      'taiwan': { label: '台胞证', icon: '🇹🇼', badgeClass: 'taiwan' },
+      'hk-macao': { label: '港澳通行证', icon: '🇭🇰', badgeClass: 'hk-macao' },
+      'taiwan-residence': { label: '台湾居住证', icon: '🏠', badgeClass: 'taiwan-residence' },
+      'permanent-residence': { label: '永居身份证', icon: '🌍', badgeClass: 'permanent-residence' }
+    };
 
-    function randomPick(arr) {
-      return arr[randomInt(0, arr.length - 1)];
-    }
+    function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function randomPick(arr) { return arr[randomInt(0, arr.length - 1)]; }
+    function getDaysInMonth(year, month) { return new Date(year, month, 0).getDate(); }
 
-    function getDaysInMonth(year, month) {
-      return new Date(year, month, 0).getDate();
-    }
-
-    function initBirthDays() {
-      const year = parseInt(document.getElementById('birthYear').value) || 1995;
-      const month = document.getElementById('birthMonth').value;
-      const daySelect = document.getElementById('birthDay');
-      const currentDay = daySelect.value;
-
-      daySelect.innerHTML = '<option value="">随机</option>';
-
-      if (month) {
-        const days = getDaysInMonth(year, parseInt(month));
-        for (let i = 1; i <= days; i++) {
-          const val = String(i).padStart(2, '0');
-          daySelect.innerHTML += `<option value="${val}">${val}日</option>`;
-        }
-      } else {
-        for (let i = 1; i <= 28; i++) {
-          const val = String(i).padStart(2, '0');
-          daySelect.innerHTML += `<option value="${val}">${val}日</option>`;
-        }
-      }
-
-      if (currentDay) {
-        daySelect.value = currentDay;
-      }
+    function switchTab(type) {
+      currentType = type;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+      });
+      document.getElementById('idCardFields').classList.toggle('hidden', type !== 'id-card');
+      document.getElementById('passportFields').classList.toggle('hidden', type !== 'passport');
+      document.getElementById('taiwanFields').classList.toggle('hidden', type !== 'taiwan');
+      document.getElementById('hkMacaoFields').classList.toggle('hidden', type !== 'hk-macao');
+      document.getElementById('taiwanResidenceFields').classList.toggle('hidden', type !== 'taiwan-residence');
+      document.getElementById('permanentResidenceFields').classList.toggle('hidden', type !== 'permanent-residence');
+      document.getElementById('resultCard').classList.add('hidden');
     }
 
     function filterProvinces() {
       const searchText = document.getElementById('provinceSearch').value.toLowerCase();
       const dropdown = document.getElementById('provinceDropdown');
-      
       const filtered = provinces.filter(p => p.name.toLowerCase().includes(searchText));
-      
-      if (filtered.length === 0) {
-        dropdown.classList.add('hidden');
-        return;
-      }
-
+      if (filtered.length === 0) { dropdown.classList.add('hidden'); return; }
       dropdown.innerHTML = filtered.map(province => `
         <div class="dropdown-item" onclick="selectProvince('${province.code}', '${province.name}')">
           <div class="province-name">${province.name}</div>
           <div class="city-count">${province.cities.length}个城市</div>
         </div>
       `).join('');
-      
       dropdown.classList.remove('hidden');
     }
 
@@ -673,11 +520,31 @@
       document.getElementById('provinceDropdown').classList.add('hidden');
     }
 
+    function initBirthDays() {
+      const year = parseInt(document.getElementById('birthYear').value) || 1995;
+      const month = document.getElementById('birthMonth').value;
+      const daySelect = document.getElementById('birthDay');
+      const currentDay = daySelect.value;
+      daySelect.innerHTML = '<option value="">随机</option>';
+      if (month) {
+        const days = getDaysInMonth(year, parseInt(month));
+        for (let i = 1; i <= days; i++) {
+          const val = String(i).padStart(2, '0');
+          daySelect.innerHTML += `<option value="${val}">${val}日</option>`;
+        }
+      } else {
+        for (let i = 1; i <= 28; i++) {
+          const val = String(i).padStart(2, '0');
+          daySelect.innerHTML += `<option value="${val}">${val}日</option>`;
+        }
+      }
+      if (currentDay) daySelect.value = currentDay;
+    }
+
     function generateName(provinceCode, gender) {
       const surname = randomPick(chineseSurnames);
       const givenName = gender === 'male' ? randomPick(maleGivenNames) : randomPick(femaleGivenNames);
       const isTwoChar = Math.random() > 0.5;
-      
       if (isTwoChar) {
         const secondChar = gender === 'male' ? randomPick(maleGivenNames) : randomPick(femaleGivenNames);
         return surname + givenName + secondChar;
@@ -688,7 +555,6 @@
     function generateAddress(provinceCode) {
       const province = provinces.find(p => p.code === provinceCode);
       if (!province) return '';
-
       const city = randomPick(province.cities);
       const district = city.includes('市') || city.includes('自治州') || city.includes('地区') || city.includes('盟') ? '' : randomPick(province.cities.filter(c => c !== city));
       const prefix = randomPick(addressPrefixes);
@@ -696,13 +562,9 @@
       const buildingNum = randomInt(1, 20);
       const unitNum = randomInt(1, 6);
       const roomNum = randomInt(101, 604);
-
       let address = province.name + city;
-      if (district) {
-        address += ' ' + district;
-      }
+      if (district) address += ' ' + district;
       address += ' ' + number + prefix + ' ' + buildingNum + '号楼' + unitNum + '单元' + roomNum + '室';
-      
       return address;
     }
 
@@ -711,51 +573,120 @@
       const birthMonth = month || String(randomInt(1, 12)).padStart(2, '0');
       const maxDay = getDaysInMonth(birthYear, parseInt(birthMonth));
       const birthDay = day || String(randomInt(1, maxDay)).padStart(2, '0');
-
-      let sequence;
-      if (gender === 'male') {
-        sequence = randomInt(0, 499) * 2 + 1;
-      } else {
-        sequence = randomInt(0, 499) * 2;
-      }
-
+      let sequence = gender === 'male' ? randomInt(0, 499) * 2 + 1 : randomInt(0, 499) * 2;
       const sequenceStr = String(sequence).padStart(3, '0');
       const body = region + birthYear + birthMonth + birthDay + sequenceStr;
-
       const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
       const checkCodes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
-
       let sum = 0;
-      for (let i = 0; i < 17; i++) {
-        sum += parseInt(body[i]) * weights[i];
-      }
+      for (let i = 0; i < 17; i++) sum += parseInt(body[i]) * weights[i];
       const checkCode = checkCodes[sum % 11];
-
       return {
-        id: body + checkCode,
-        year: birthYear,
-        month: birthMonth,
-        day: birthDay,
+        id: body + checkCode, year: birthYear, month: birthMonth, day: birthDay,
         gender: gender === 'male' ? '男' : '女',
         region: provinces.find(p => p.code === region)?.name || region,
-        age: new Date().getFullYear() - birthYear,
-        type: 'id-card'
+        age: new Date().getFullYear() - birthYear, type: 'id-card'
+      };
+    }
+
+    function generatePassport(passportType, gender, year) {
+      const birthYear = year || randomInt(1950, 2010);
+      const birthMonth = String(randomInt(1, 12)).padStart(2, '0');
+      const maxDay = getDaysInMonth(birthYear, parseInt(birthMonth));
+      const birthDay = String(randomInt(1, maxDay)).padStart(2, '0');
+      const randomNum = String(randomInt(10000000, 99999999));
+      return {
+        id: passportType + randomNum, year: birthYear, month: birthMonth, day: birthDay,
+        gender: gender === 'male' ? '男' : '女',
+        type: passportType === 'E' ? '电子普通护照' : '普通护照（旧版）',
+        age: new Date().getFullYear() - birthYear, docType: 'passport'
+      };
+    }
+
+    function generateTaiwanPermit(gender, year) {
+      const birthYear = year || randomInt(1950, 2010);
+      const birthMonth = String(randomInt(1, 12)).padStart(2, '0');
+      const maxDay = getDaysInMonth(birthYear, parseInt(birthMonth));
+      const birthDay = String(randomInt(1, maxDay)).padStart(2, '0');
+      const randomNum = String(randomInt(10000000, 99999999));
+      return {
+        id: randomNum, year: birthYear, month: birthMonth, day: birthDay,
+        gender: gender === 'male' ? '男' : '女', type: '台湾居民来往大陆通行证',
+        age: new Date().getFullYear() - birthYear, docType: 'taiwan'
+      };
+    }
+
+    function generateHkMacaoPermit(permitType, gender, year) {
+      const birthYear = year || randomInt(1950, 2010);
+      const birthMonth = String(randomInt(1, 12)).padStart(2, '0');
+      const maxDay = getDaysInMonth(birthYear, parseInt(birthMonth));
+      const birthDay = String(randomInt(1, maxDay)).padStart(2, '0');
+      const randomNum = String(randomInt(1000000000, 9999999999));
+      return {
+        id: permitType + randomNum, year: birthYear, month: birthMonth, day: birthDay,
+        gender: gender === 'male' ? '男' : '女',
+        type: permitType === 'H' ? '香港居民来往内地通行证' : '澳门居民来往内地通行证',
+        region: permitType === 'H' ? '香港' : '澳门',
+        age: new Date().getFullYear() - birthYear, docType: 'hk-macao'
+      };
+    }
+
+    function generateTaiwanResidencePermit(gender, year) {
+      const birthYear = year || randomInt(1950, 2010);
+      const birthMonth = String(randomInt(1, 12)).padStart(2, '0');
+      const maxDay = getDaysInMonth(birthYear, parseInt(birthMonth));
+      const birthDay = String(randomInt(1, maxDay)).padStart(2, '0');
+      let sequence = gender === 'male' ? randomInt(0, 499) * 2 + 1 : randomInt(0, 499) * 2;
+      const sequenceStr = String(sequence).padStart(3, '0');
+      const body = '810000' + birthYear + birthMonth + birthDay + sequenceStr;
+      const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+      const checkCodes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+      let sum = 0;
+      for (let i = 0; i < 17; i++) sum += parseInt(body[i]) * weights[i];
+      const checkCode = checkCodes[sum % 11];
+      return {
+        id: body + checkCode, year: birthYear, month: birthMonth, day: birthDay,
+        gender: gender === 'male' ? '男' : '女', type: '台湾居民居住证',
+        age: new Date().getFullYear() - birthYear, docType: 'taiwan-residence'
+      };
+    }
+
+    function generatePermanentResidencePermit(country, gender, year) {
+      const birthYear = year || randomInt(1950, 2010);
+      const birthMonth = String(randomInt(1, 12)).padStart(2, '0');
+      const maxDay = getDaysInMonth(birthYear, parseInt(birthMonth));
+      const birthDay = String(randomInt(1, maxDay)).padStart(2, '0');
+      let sequence = gender === 'male' ? randomInt(0, 499) * 2 + 1 : randomInt(0, 499) * 2;
+      const sequenceStr = String(sequence).padStart(3, '0');
+      const body = '910000' + birthYear + birthMonth + birthDay + sequenceStr;
+      const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+      const checkCodes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+      let sum = 0;
+      for (let i = 0; i < 17; i++) sum += parseInt(body[i]) * weights[i];
+      const checkCode = checkCodes[sum % 11];
+      const countryNames = {
+        'US': '美国', 'GB': '英国', 'FR': '法国', 'DE': '德国', 'IT': '意大利',
+        'ES': '西班牙', 'NL': '荷兰', 'RU': '俄罗斯', 'JP': '日本', 'KR': '韩国',
+        'SG': '新加坡', 'MY': '马来西亚', 'TH': '泰国', 'IN': '印度', 'AU': '澳大利亚',
+        'NZ': '新西兰', 'CA': '加拿大', 'BR': '巴西', 'OTHER': '其他国家'
+      };
+      return {
+        id: body + checkCode, year: birthYear, month: birthMonth, day: birthDay,
+        gender: gender === 'male' ? '男' : '女', type: '外国人永久居留身份证',
+        country: countryNames[country] || '其他国家',
+        age: new Date().getFullYear() - birthYear, docType: 'permanent-residence'
       };
     }
 
     function saveHistory(record) {
       let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       history.unshift(record);
-      if (history.length > MAX_HISTORY) {
-        history = history.slice(0, MAX_HISTORY);
-      }
+      if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
       updateHistoryBadge();
     }
 
-    function getHistory() {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    }
+    function getHistory() { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
 
     function updateHistoryBadge() {
       const history = getHistory();
@@ -764,132 +695,127 @@
       if (history.length > 0) {
         btn.style.display = 'block';
         badge.textContent = history.length > 99 ? '99+' : history.length;
-      } else {
-        btn.style.display = 'none';
-      }
+      } else { btn.style.display = 'none'; }
     }
 
     function showResult(record) {
-      document.getElementById('resultCard').classList.remove('hidden');
-      document.getElementById('idDisplay').textContent = record.id;
-      
+      const card = document.getElementById('resultCard');
+      card.classList.remove('hidden');
+      const config = typeConfig[record.docType || record.type];
+      const badge = document.getElementById('typeBadge');
+      badge.textContent = config.icon + ' ' + config.label;
+      badge.className = 'type-badge ' + config.badgeClass;
+      document.getElementById('resultTitle').innerHTML = config.icon + ' ' + config.label + ' - 生成结果';
+      document.getElementById('resultDisplay').textContent = record.id;
       let infoHTML = `
-        <div class="id-info-item">
-          <div class="label">地区</div>
-          <div class="value">${record.region}</div>
-        </div>
-        <div class="id-info-item">
-          <div class="label">出生日期</div>
-          <div class="value">${record.year}-${record.month}-${record.day}</div>
-        </div>
-        <div class="id-info-item">
-          <div class="label">性别</div>
-          <div class="value">${record.gender}</div>
-        </div>
-        <div class="id-info-item">
-          <div class="label">年龄</div>
-          <div class="value">${record.age}岁</div>
-        </div>
+        <div class="result-info-item"><div class="label">出生日期</div><div class="value">${record.year}-${record.month}-${record.day}</div></div>
+        <div class="result-info-item"><div class="label">性别</div><div class="value">${record.gender}</div></div>
+        <div class="result-info-item"><div class="label">年龄</div><div class="value">${record.age}岁</div></div>
       `;
-
-      if (record.name) {
-        infoHTML = `
-          <div class="id-info-item">
-            <div class="label">姓名</div>
-            <div class="value">${record.name}</div>
-          </div>
-        ` + infoHTML;
+      if (record.type === 'id-card') {
+        infoHTML = `<div class="result-info-item"><div class="label">地区</div><div class="value">${record.region}</div></div>` + infoHTML;
+        if (record.name) infoHTML = `<div class="result-info-item"><div class="label">姓名</div><div class="value">${record.name}</div></div>` + infoHTML;
+        if (record.address) infoHTML += `<div class="result-info-item" style="width: 100%;"><div class="label">居住地址</div><div class="value" style="margin-top: 8px; font-size: 0.95rem;">${record.address}</div></div>`;
+      } else if (record.docType === 'passport') {
+        infoHTML = `<div class="result-info-item"><div class="label">护照类型</div><div class="value">${record.type}</div></div>` + infoHTML;
+      } else if (record.docType === 'taiwan') {
+        infoHTML = `<div class="result-info-item"><div class="label">证件类型</div><div class="value">${record.type}</div></div>` + infoHTML;
+      } else if (record.docType === 'hk-macao') {
+        infoHTML = `<div class="result-info-item"><div class="label">证件类型</div><div class="value">${record.type}</div></div><div class="result-info-item"><div class="label">居民地区</div><div class="value">${record.region}</div></div>` + infoHTML;
+      } else if (record.docType === 'taiwan-residence') {
+        infoHTML = `<div class="result-info-item"><div class="label">证件类型</div><div class="value">${record.type}</div></div>` + infoHTML;
+      } else if (record.docType === 'permanent-residence') {
+        infoHTML = `<div class="result-info-item"><div class="label">证件类型</div><div class="value">${record.type}</div></div><div class="result-info-item"><div class="label">国籍/地区</div><div class="value">${record.country}</div></div>` + infoHTML;
       }
-
-      if (record.address) {
-        infoHTML += `
-          <div class="id-info-item" style="width: 100%;">
-            <div class="label">居住地址</div>
-            <div class="value" style="margin-top: 8px; font-size: 0.95rem;">${record.address}</div>
-          </div>
-        `;
-      }
-
-      document.getElementById('idInfo').innerHTML = infoHTML;
+      document.getElementById('resultInfo').innerHTML = infoHTML;
     }
 
     function generate() {
-      const provinceCode = document.getElementById('selectedProvince').value;
-      const gender = document.getElementById('gender').value;
-      const year = document.getElementById('birthYear').value;
-      const month = document.getElementById('birthMonth').value || '';
-      const day = document.getElementById('birthDay').value || '';
-      const generateNameFlag = document.getElementById('randomName').value === 'true';
-
-      const record = generateIdCard(provinceCode, gender, year, month, day);
-
-      if (generateNameFlag) {
-        record.name = generateName(provinceCode, gender);
+      let record;
+      switch (currentType) {
+        case 'id-card':
+          const provinceCode = document.getElementById('selectedProvince').value;
+          const gender = document.getElementById('gender').value;
+          const year = document.getElementById('birthYear').value;
+          const month = document.getElementById('birthMonth').value || '';
+          const day = document.getElementById('birthDay').value || '';
+          const generateNameFlag = document.getElementById('randomName').value === 'true';
+          record = generateIdCard(provinceCode, gender, year, month, day);
+          if (generateNameFlag) record.name = generateName(provinceCode, gender);
+          record.address = generateAddress(provinceCode);
+          break;
+        case 'passport':
+          const passportType = document.getElementById('passportType').value;
+          const passportGender = document.getElementById('passportGender').value || (Math.random() > 0.5 ? 'male' : 'female');
+          const passportYear = document.getElementById('passportBirthYear').value;
+          record = generatePassport(passportType, passportGender, passportYear);
+          break;
+        case 'taiwan':
+          const taiwanGender = document.getElementById('taiwanGender').value || (Math.random() > 0.5 ? 'male' : 'female');
+          const taiwanYear = document.getElementById('taiwanBirthYear').value;
+          record = generateTaiwanPermit(taiwanGender, taiwanYear);
+          break;
+        case 'hk-macao':
+          const hkMacaoType = document.getElementById('hkMacaoType').value;
+          const hkMacaoGender = document.getElementById('hkMacaoGender').value || (Math.random() > 0.5 ? 'male' : 'female');
+          const hkMacaoYear = document.getElementById('hkMacaoBirthYear').value;
+          record = generateHkMacaoPermit(hkMacaoType, hkMacaoGender, hkMacaoYear);
+          break;
+        case 'taiwan-residence':
+          const taiwanResidenceGender = document.getElementById('taiwanResidenceGender').value || (Math.random() > 0.5 ? 'male' : 'female');
+          const taiwanResidenceYear = document.getElementById('taiwanResidenceBirthYear').value;
+          record = generateTaiwanResidencePermit(taiwanResidenceGender, taiwanResidenceYear);
+          break;
+        case 'permanent-residence':
+          const permanentResidenceCountry = document.getElementById('permanentResidenceCountry').value;
+          const permanentResidenceGender = document.getElementById('permanentResidenceGender').value || (Math.random() > 0.5 ? 'male' : 'female');
+          const permanentResidenceYear = document.getElementById('permanentResidenceBirthYear').value;
+          record = generatePermanentResidencePermit(permanentResidenceCountry, permanentResidenceGender, permanentResidenceYear);
+          break;
       }
-
-      record.address = generateAddress(provinceCode);
-
       saveHistory(record);
       showResult(record);
     }
 
     function generateMultiple() {
-      const provinceCode = document.getElementById('selectedProvince').value;
-      const gender = document.getElementById('gender').value;
-      const year = document.getElementById('birthYear').value;
-      const generateNameFlag = document.getElementById('randomName').value === 'true';
-
-      for (let i = 0; i < 10; i++) {
-        const record = generateIdCard(provinceCode, gender, year, '', '');
-        if (generateNameFlag) {
-          record.name = generateName(provinceCode, gender);
-        }
-        record.address = generateAddress(provinceCode);
-        saveHistory(record);
-      }
-      
+      for (let i = 0; i < 10; i++) generate();
       const history = getHistory();
-      showResult(history[0]);
-      showToast('已批量生成 10 个身份证号');
+      if (history.length > 0) showResult(history[0]);
+      showToast('已批量生成 10 个证件号码');
     }
 
     function openHistory() {
       const history = getHistory();
       const list = document.getElementById('historyList');
       const countBadge = document.getElementById('countBadge');
-
       if (history.length === 0) {
         list.innerHTML = '<div class="empty-state">暂无生成记录</div>';
         countBadge.textContent = '';
       } else {
-        list.innerHTML = history.map(item => `
-          <div class="history-item" onclick="copyId('${item.id}')">
-            <div class="id-number">${item.id}</div>
-            <div class="id-detail">
-              <span>📍 ${item.region}</span>
-              <span>📅 ${item.year}-${item.month}-${item.day}</span>
-              <span>👤 ${item.gender}</span>
-              ${item.name ? `<span>👤 ${item.name}</span>` : ''}
-              <span>🎂 ${item.age}岁</span>
+        list.innerHTML = history.map(item => {
+          const config = typeConfig[item.docType || item.type];
+          return `
+            <div class="history-item" onclick="copyId('${item.id}')">
+              <div style="margin-bottom: 6px;">
+                <span class="type-badge ${config.badgeClass}" style="font-size: 0.75rem; padding: 2px 8px;">${config.icon} ${config.label}</span>
+              </div>
+              <div class="result-number">${item.id}</div>
+              <div class="result-detail">
+                <span>📅 ${item.year}-${item.month}-${item.day}</span>
+                <span>👤 ${item.gender}</span>
+                ${item.name ? `<span>👤 ${item.name}</span>` : ''}
+                <span>🎂 ${item.age}岁</span>
+              </div>
             </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
         countBadge.textContent = `共 ${history.length} 条记录`;
       }
-
       document.getElementById('modalOverlay').classList.add('active');
     }
 
-    function closeHistory() {
-      document.getElementById('modalOverlay').classList.remove('active');
-    }
-
-    function closeModal(event) {
-      if (event.target === document.getElementById('modalOverlay')) {
-        closeHistory();
-      }
-    }
-
+    function closeHistory() { document.getElementById('modalOverlay').classList.remove('active'); }
+    function closeModal(event) { if (event.target === document.getElementById('modalOverlay')) closeHistory(); }
     function clearHistory() {
       if (confirm('确定要清空所有生成记录吗？')) {
         localStorage.removeItem(STORAGE_KEY);
@@ -905,12 +831,8 @@
         showToast('已复制到剪贴板');
       } catch (e) {
         const ta = document.createElement('textarea');
-        ta.value = id;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
+        ta.value = id; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
         document.body.removeChild(ta);
         showToast('已复制到剪贴板');
       }
@@ -918,14 +840,12 @@
 
     function showToast(msg) {
       const toast = document.getElementById('copyToast');
-      toast.textContent = msg;
-      toast.classList.add('show');
+      toast.textContent = msg; toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 2000);
     }
 
     document.getElementById('birthYear').addEventListener('change', initBirthDays);
     document.getElementById('birthMonth').addEventListener('change', initBirthDays);
-
     document.addEventListener('click', function(e) {
       if (!e.target.closest('.search-box')) {
         document.getElementById('provinceDropdown').classList.add('hidden');

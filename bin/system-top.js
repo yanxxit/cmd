@@ -10,7 +10,9 @@ import {
     getLoadAverage,
     formatProcessTable,
     formatSystemInfo,
-    formatAsJson
+    formatAsJson,
+    formatResourceStats,
+    getResourceStats
 } from '../src/command/system-top.js';
 
 // 日志文件路径
@@ -37,11 +39,15 @@ program
     .version('1.0.0')
     .description('查询系统资源占用前列的进程（类似 top 命令）')
     .option('-n, --number <number>', '显示进程数量', '10')
-    .option('-s, --sort <field>', '排序方式：cpu, memory, pid', 'memory')
+    .option('-s, --sort <field>', '排序方式：cpu, memory, pid, time', 'memory')
     .option('-j, --json', '以 JSON 格式输出')
     .option('--no-header', '不显示系统信息头部')
     .option('--no-log', '不记录日志')
     .option('-f, --file <path>', '将结果保存到文件')
+    .option('-d, --detailed', '显示详细进程信息（包含 PPID、启动时间等）')
+    .option('-a, --analysis', '显示进程分析信息（分类、类型等）')
+    .option('--stats', '显示资源统计汇总')
+    .option('-v, --verbose', '启用详细日志模式（方便排查问题）')
     .action((options) => {
         const startTime = Date.now();
         
@@ -55,8 +61,8 @@ program
         const limit = parseInt(options.number) || 10;
         const sortBy = options.sort.toLowerCase();
         
-        if (!['cpu', 'memory', 'pid'].includes(sortBy)) {
-            console.error(chalk.red('❌ 错误：排序方式必须是 cpu, memory 或 pid'));
+        if (!['cpu', 'memory', 'pid', 'time'].includes(sortBy)) {
+            console.error(chalk.red('❌ 错误：排序方式必须是 cpu, memory, pid 或 time'));
             process.exit(1);
         }
         
@@ -66,7 +72,7 @@ program
         const loadInfo = getLoadAverage();
         
         // 获取进程列表
-        const processes = getProcessList(sortBy, limit);
+        const processes = getProcessList(sortBy, limit, options.detailed || false);
         
         const scanTime = ((Date.now() - startTime) / 1000).toFixed(3);
         
@@ -81,17 +87,12 @@ program
         
         if (options.json) {
             // JSON 模式
-            const jsonData = {
-                timestamp: new Date().toISOString(),
-                system: {
-                    memory: memoryInfo,
-                    cpu: cpuInfo,
-                    load: loadInfo
-                },
-                processes,
-                queryTime: scanTime
-            };
-            outputContent = JSON.stringify(jsonData, null, 2);
+            const jsonData = formatAsJson(processes, {
+                memory: memoryInfo,
+                cpu: cpuInfo,
+                load: loadInfo
+            });
+            outputContent = jsonData;
             console.log(outputContent);
         } else {
             // 表格模式
@@ -103,10 +104,19 @@ program
             
             const table = formatProcessTable(processes, { 
                 showRank: true, 
-                colorize: true 
+                colorize: true,
+                showAnalysis: options.analysis || false
             });
             console.log(table);
             outputContent += table;
+            
+            // 显示资源统计
+            if (options.stats) {
+                const stats = getResourceStats(options.verbose || false);
+                const statsTable = formatResourceStats(stats);
+                console.log(statsTable);
+                outputContent += statsTable;
+            }
             
             console.log(chalk.gray(`⏱️  查询耗时：${scanTime}s\n`));
         }
