@@ -27,11 +27,13 @@
     "x-key-listen": "bin/key-listen.js",
     "key-listen": "bin/key-listen.js",
     "x-gen": "bin/generate-large-file.js",
-    "x-harness": "bin/harness.js"
+    "x-harness": "bin/harness.js",
+    "aedev": "bin/aedev.js"
   },
   "scripts": {
     "clear": "npm unlink",
     "local": "npm link",
+    "local_install": "npm run clear && npm run local",
     "test": "vitest run",
     "test:fast": "vitest run --exclude='test/performance/**'",
     "test:watch": "vitest",
