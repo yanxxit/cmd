@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UUID/ID 生成器 - 支持 UUID v4/v7、雪花 ID、NanoID</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 15px;
+    }
+
+    .tab {
+      padding: 12px 24px;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .tab:hover:not(.active) {
+      background: #e5e7eb;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .generator-section {
+      background: #f9fafb;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .form-group input,
+    .form-group select {
+      padding: 10px 14px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .result-section {
+      background: #1e1e1e;
+      border-radius: 15px;
+      padding: 25px;
+      margin-top: 25px;
+    }
+
+    .result-title {
+      color: #4ec9b0;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result-output {
+      background: #000;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #d4d4d4;
+      word-break: break-all;
+      margin-bottom: 15px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .result-item {
+      padding: 8px 0;
+      border-bottom: 1px solid #3e3e3e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .result-item:last-child {
+      border-bottom: none;
+    }
+
+    .result-id {
+      flex: 1;
+      color: #9cdcfe;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    .parse-section {
+      background: #f0f9ff;
+      border-left: 4px solid #667eea;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .parse-title {
+      color: #667eea;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .parse-form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .parse-form input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .parse-result {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .parse-field {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .parse-field:last-child {
+      border-bottom: none;
+    }
+
+    .parse-label {
+      color: #6b7280;
+      font-weight: 600;
+    }
+
+    .parse-value {
+      color: #111827;
+      font-family: 'Courier New', monospace;
+    }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: bold;
+      color: #667eea;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 0;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .checkbox-group label {
+      font-size: 14px;
+      color: #374151;
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        padding: 20px;
+      }
+
+      .tabs {
+        flex-wrap: wrap;
+      }
+
+      .tab {
+        flex: 1;
+        min-width: 120px;
+      }
+
+      .parse-form {
+        flex-direction: column;
+      }
+
+      .btn-group {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>
+        <span>🔑</span>
+        <span>UUID/ID 生成器</span>
+      </h1>
+      <p>支持 UUID v4/v7、Twitter Snowflake、NanoID，批量生成与解析</p>
+    </header>
+
+    <div class="content">
+      <!-- 统计栏 -->
+      <div class="stats-bar">
+        <div class="stat-card">
+          <span class="stat-number" id="totalCount">0</span>
+          <span class="stat-label">已生成 ID 总数</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="todayCount">0</span>
+          <span class="stat-label">今日生成</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="historyCount">0</span>
+          <span class="stat-label">历史记录</span>
+        </div>
+      </div>
+
+      <!-- 标签页切换 -->
+      <div class="tabs">
+        <button class="tab active" data-tab="uuid4">UUID v4</button>
+        <button class="tab" data-tab="uuid7">UUID v7</button>
+        <button class="tab" data-tab="snowflake">雪花 ID</button>
+        <button class="tab" data-tab="nanoid">NanoID</button>
+      </div>
+
+      <!-- UUID v4 -->
+      <div class="tab-content active" id="uuid4">
+        <div class="generator-section">
+          <h2 class="section-title">🎲 UUID v4 生成器</h2>
+          <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+            基于随机数的 UUID，碰撞概率极低（1/2^122），适用于分布式系统唯一标识
+          </p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>生成数量</label>
+              <input type="number" id="uuid4Count" value="1" min="1" max="100">
+            </div>
+            <div class="form-group">
+              <label>格式</label>
+              <select id="uuid4Format">
+                <option value="standard">标准格式 (带连字符)</option>
+                <option value="no-dash">无连字符</option>
+                <option value="urn">URN 格式</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="generateUUIDv4()">
+              <span>⚡</span>
+              <span>立即生成</span>
+            </button>
+            <button class="btn btn-secondary" onclick="copyAll('uuid4Result')">
+              <span>📋</span>
+              <span>复制全部</span>
+            </button>
+            <button class="btn btn-secondary" onclick="clearResult('uuid4Result')">
+              <span>🗑️</span>
+              <span>清空结果</span>
+            </button>
+          </div>
+
+          <div class="result-section" id="uuid4Result" style="display: none;">
+            <h3 class="result-title">📊 生成结果</h3>
+            <div class="result-output" id="uuid4Output"></div>
+          </div>
+        </div>
+
+        <div class="parse-section">
+          <h3 class="parse-title">🔍 UUID v4 解析</h3>
+          <div class="parse-form">
+            <input type="text" id="uuid4ParseInput" placeholder="输入 UUID v4 进行解析...">
+            <button class="btn btn-primary" onclick="parseUUIDv4()">解析</button>
+          </div>
+          <div class="parse-result" id="uuid4ParseResult" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- UUID v7 -->
+      <div class="tab-content" id="uuid7">
+        <div class="generator-section">
+          <h2 class="section-title">🕐 UUID v7 生成器</h2>
+          <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+            基于时间戳的 UUID，可按时间排序，适用于需要时间顺序的场景
+          </p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>生成数量</label>
+              <input type="number" id="uuid7Count" value="1" min="1" max="100">
+            </div>
+            <div class="form-group">
+              <label>时间戳来源</label>
+              <select id="uuid7Timestamp">
+                <option value="now">当前时间</option>
+                <option value="custom">自定义时间</option>
+              </select>
+            </div>
+            <div class="form-group" id="uuid7CustomTime" style="display: none;">
+              <label>自定义时间</label>
+              <input type="datetime-local" id="uuid7CustomTimeInput">
+            </div>
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="uuid7ShowParse" checked>
+            <label for="uuid7ShowParse">显示解析信息（时间戳、随机部分）</label>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="generateUUIDv7()">
+              <span>⚡</span>
+              <span>立即生成</span>
+            </button>
+            <button class="btn btn-secondary" onclick="copyAll('uuid7Result')">
+              <span>📋</span>
+              <span>复制全部</span>
+            </button>
+            <button class="btn btn-secondary" onclick="clearResult('uuid7Result')">
+              <span>🗑️</span>
+              <span>清空结果</span>
+            </button>
+          </div>
+
+          <div class="result-section" id="uuid7Result" style="display: none;">
+            <h3 class="result-title">📊 生成结果</h3>
+            <div class="result-output" id="uuid7Output"></div>
+          </div>
+        </div>
+
+        <div class="parse-section">
+          <h3 class="parse-title">🔍 UUID v7 解析（提取时间戳）</h3>
+          <div class="parse-form">
+            <input type="text" id="uuid7ParseInput" placeholder="输入 UUID v7 进行解析...">
+            <button class="btn btn-primary" onclick="parseUUIDv7()">解析</button>
+          </div>
+          <div class="parse-result" id="uuid7ParseResult" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- Snowflake -->
+      <div class="tab-content" id="snowflake">
+        <div class="generator-section">
+          <h2 class="section-title">❄️ Twitter Snowflake 雪花 ID 生成器</h2>
+          <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+            64 位分布式 ID 生成算法：符号位 (1) + 时间戳 (41) + 工作节点 ID (10) + 序列号 (12)
+          </p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>生成数量</label>
+              <input type="number" id="snowflakeCount" value="1" min="1" max="100">
+            </div>
+            <div class="form-group">
+              <label>工作节点 ID (0-1023)</label>
+              <input type="number" id="snowflakeWorkerId" value="0" min="0" max="1023">
+            </div>
+            <div class="form-group">
+              <label>起始时间戳</label>
+              <input type="number" id="snowflakeEpoch" value="1288834974657" placeholder="Twitter 默认起始时间">
+            </div>
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="snowflakeShowBinary" checked>
+            <label for="snowflakeShowBinary">显示二进制结构</label>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="generateSnowflake()">
+              <span>⚡</span>
+              <span>立即生成</span>
+            </button>
+            <button class="btn btn-secondary" onclick="copyAll('snowflakeResult')">
+              <span>📋</span>
+              <span>复制全部</span>
+            </button>
+            <button class="btn btn-secondary" onclick="clearResult('snowflakeResult')">
+              <span>🗑️</span>
+              <span>清空结果</span>
+            </button>
+          </div>
+
+          <div class="result-section" id="snowflakeResult" style="display: none;">
+            <h3 class="result-title">📊 生成结果</h3>
+            <div class="result-output" id="snowflakeOutput"></div>
+          </div>
+        </div>
+
+        <div class="parse-section">
+          <h3 class="parse-title">🔍 雪花 ID 解析（64 位结构）</h3>
+          <div class="parse-form">
+            <input type="text" id="snowflakeParseInput" placeholder="输入雪花 ID 进行解析...">
+            <button class="btn btn-primary" onclick="parseSnowflake()">解析</button>
+          </div>
+          <div class="parse-result" id="snowflakeParseResult" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- NanoID -->
+      <div class="tab-content" id="nanoid">
+        <div class="generator-section">
+          <h2 class="section-title">🎯 NanoID 生成器</h2>
+          <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+            小巧、安全、URL 友好的唯一 ID 生成器，支持自定义字母表和长度
+          </p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>生成数量</label>
+              <input type="number" id="nanoidCount" value="1" min="1" max="100">
+            </div>
+            <div class="form-group">
+              <label>ID 长度</label>
+              <input type="number" id="nanoidSize" value="21" min="1" max="255">
+            </div>
+            <div class="form-group">
+              <label>字母表</label>
+              <select id="nanoidAlphabet">
+                <option value="default">默认 (大小写字母 + 数字 + _-)</option>
+                <option value="hex">十六进制 (0-9a-f)</option>
+                <option value="lowercase">小写字母 + 数字</option>
+                <option value="uppercase">大写字母 + 数字</option>
+                <option value="custom">自定义</option>
+              </select>
+            </div>
+            <div class="form-group" id="nanoidCustomAlphabet" style="display: none;">
+              <label>自定义字母表</label>
+              <input type="text" id="nanoidCustomInput" placeholder="输入自定义字符集...">
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="generateNanoID()">
+              <span>⚡</span>
+              <span>立即生成</span>
+            </button>
+            <button class="btn btn-secondary" onclick="copyAll('nanoidResult')">
+              <span>📋</span>
+              <span>复制全部</span>
+            </button>
+            <button class="btn btn-secondary" onclick="clearResult('nanoidResult')">
+              <span>🗑️</span>
+              <span>清空结果</span>
+            </button>
+          </div>
+
+          <div class="result-section" id="nanoidResult" style="display: none;">
+            <h3 class="result-title">📊 生成结果</h3>
+            <div class="result-output" id="nanoidOutput"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== 工具函数 ====================
+    
+    // 生成随机字节
+    function getRandomValues(length) {
+      const array = new Uint8Array(length);
+      crypto.getRandomValues(array);
+      return array;
+    }
+
+    // 复制文本到剪贴板
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('✅ 已复制到剪贴板');
+        return true;
+      } catch (e) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('✅ 已复制');
+        return true;
+      }
+    }
+
+    // 显示提示
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    }
+
+    // 更新统计
+    function updateStats(count = 1) {
+      let stats = JSON.parse(localStorage.getItem('idGeneratorStats') || '{}');
+      stats.total = (stats.total || 0) + count;
+      
+      const today = new Date().toDateString();
+      if (stats.lastDate !== today) {
+        stats.today = count;
+        stats.lastDate = today;
+      } else {
+        stats.today = (stats.today || 0) + count;
+      }
+      
+      localStorage.setItem('idGeneratorStats', JSON.stringify(stats));
+      document.getElementById('totalCount').textContent = stats.total.toLocaleString();
+      document.getElementById('todayCount').textContent = stats.today.toLocaleString();
+    }
+
+    // 保存到历史记录
+    function saveToHistory(type, ids) {
+      const history = JSON.parse(localStorage.getItem('idGeneratorHistory') || '[]');
+      const record = {
+        id: Date.now(),
+        type,
+        ids,
+        count: ids.length,
+        timestamp: new Date().toISOString()
+      };
+      history.unshift(record);
+      if (history.length > 100) history.pop();
+      localStorage.setItem('idGeneratorHistory', JSON.stringify(history));
+      document.getElementById('historyCount').textContent = history.length;
+    }
+
+    // 格式化日期
+    function formatDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      const s = String(date.getSeconds()).padStart(2, '0');
+      const ms = String(date.getMilliseconds()).padStart(3, '0');
+      return `${y}-${m}-${d} ${h}:${min}:${s}.${ms}`;
+    }
+
+    // ==================== UUID v4 ====================
+    
+    function generateUUIDv4() {
+      const count = parseInt(document.getElementById('uuid4Count').value) || 1;
+      const format = document.getElementById('uuid4Format').value;
+      const results = [];
+
+      for (let i = 0; i < count; i++) {
+        const bytes = getRandomValues(16);
+        
+        // 设置版本 (v4) 和变体
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+        let uuid;
+        if (format === 'no-dash') {
+          uuid = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        } else if (format === 'urn') {
+          const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+          uuid = `urn:uuid:${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+        } else {
+          const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0'));
+          uuid = `${hex.slice(0,8).join('')}-${hex.slice(8,10).join('')}${hex.slice(10,12).join('')}-${hex.slice(12,14).join('')}${hex.slice(14,16).join('')}-${hex.slice(16,18).join('')}${hex.slice(18,20).join('')}-${hex.slice(20).join('')}`;
+        }
+
+        results.push(uuid);
+      }
+
+      displayResults('uuid4Output', 'uuid4Result', results);
+      updateStats(count);
+      saveToHistory('UUID v4', results);
+    }
+
+    function parseUUIDv4() {
+      const input = document.getElementById('uuid4ParseInput').value.trim();
+      const resultDiv = document.getElementById('uuid4ParseResult');
+      
+      if (!input) {
+        showToast('❌ 请输入 UUID');
+        return;
+      }
+
+      const uuid = input.toLowerCase().replace(/urn:uuid:/i, '').replace(/-/g, '');
+      
+      if (!/^[0-9a-f]{32}$/.test(uuid)) {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div style="color: #ef4444;">❌ 无效的 UUID 格式</div>';
+        return;
+      }
+
+      const version = parseInt(uuid[12], 16);
+      const variant = parseInt(uuid[16], 16);
+      
+      let variantDesc;
+      if (variant >= 8 && variant <= 11) {
+        variantDesc = 'RFC 4122 (标准)';
+      } else if (variant >= 4 && variant <= 7) {
+        variantDesc = 'Microsoft 兼容';
+      } else {
+        variantDesc = '保留/未知';
+      }
+
+      const hex = uuid.match(/.{1,2}/g).join(' ');
+      const timeLow = uuid.slice(0, 8);
+      const timeMid = uuid.slice(8, 12);
+      const timeHi = uuid.slice(12, 16);
+      const clockSeq = uuid.slice(16, 20);
+      const node = uuid.slice(20);
+
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <div class="parse-field"><span class="parse-label">标准格式:</span><span class="parse-value">${timeLow}-${timeMid}-${timeHi}-${clockSeq}-${node}</span></div>
+        <div class="parse-field"><span class="parse-label">版本:</span><span class="parse-value">v${version} ${version === 4 ? '(随机生成)' : ''}</span></div>
+        <div class="parse-field"><span class="parse-label">变体:</span><span class="parse-value">${variantDesc}</span></div>
+        <div class="parse-field"><span class="parse-label">十六进制:</span><span class="parse-value">${hex}</span></div>
+        <div class="parse-field"><span class="parse-label">时间低位:</span><span class="parse-value">${timeLow}</span></div>
+        <div class="parse-field"><span class="parse-label">时间中位:</span><span class="parse-value">${timeMid}</span></div>
+        <div class="parse-field"><span class="parse-label">时间高位:</span><span class="parse-value">${timeHi}</span></div>
+        <div class="parse-field"><span class="parse-label">时钟序列:</span><span class="parse-value">${clockSeq}</span></div>
+        <div class="parse-field"><span class="parse-label">节点:</span><span class="parse-value">${node}</span></div>
+      `;
+    }
+
+    // ==================== UUID v7 ====================
+    
+    function generateUUIDv7() {
+      const count = parseInt(document.getElementById('uuid7Count').value) || 1;
+      const timestampSource = document.getElementById('uuid7Timestamp').value;
+      const showParse = document.getElementById('uuid7ShowParse').checked;
+      const results = [];
+
+      let timestamp;
+      if (timestampSource === 'custom') {
+        const customTime = document.getElementById('uuid7CustomTimeInput').value;
+        if (customTime) {
+          timestamp = new Date(customTime).getTime();
+        } else {
+          timestamp = Date.now();
+        }
+      } else {
+        timestamp = Date.now();
+      }
+
+      for (let i = 0; i < count; i++) {
+        const rand = getRandomValues(10);
+        
+        // UUID v7 结构：48 位时间戳 + 4 位版本 + 62 位随机
+        const timestampHex = timestamp.toString(16).padStart(12, '0');
+        const randHex = Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        const uuid = `${timestampHex.slice(0,8)}-${timestampHex.slice(8,12)}-7${randHex.slice(2,5)}-${((parseInt(randHex.slice(6,8), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0')}${randHex.slice(8,10)}-${randHex.slice(10)}`;
+
+        if (showParse) {
+          const date = new Date(timestamp);
+          results.push(`${uuid} (${formatDate(date)})`);
+        } else {
+          results.push(uuid);
+        }
+      }
+
+      displayResults('uuid7Output', 'uuid7Result', results);
+      updateStats(count);
+      saveToHistory('UUID v7', results);
+    }
+
+    function parseUUIDv7() {
+      const input = document.getElementById('uuid7ParseInput').value.trim();
+      const resultDiv = document.getElementById('uuid7ParseResult');
+      
+      if (!input) {
+        showToast('❌ 请输入 UUID v7');
+        return;
+      }
+
+      // 清理输入：转小写，移除连字符和空格
+      const uuid = input.toLowerCase().replace(/[\s-]/g, '');
+      
+      // 验证格式：32 位十六进制且第 13 位（索引 12）为 7
+      if (!/^[0-9a-f]{32}$/.test(uuid)) {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+          <div style="color: #ef4444; margin-bottom: 10px;">❌ 无效的 UUID v7 格式</div>
+          <div style="color: #808080; font-size: 13px;">
+            💡 提示：UUID v7 应为 32 位十六进制字符（可带连字符），且第 13 位必须是 "7"<br>
+            示例：019db762-ae93-7050-ad37-8fe6cfaec5ab 或 019db762ae937050ad378fe6cfaec5ab
+          </div>
+        `;
+        return;
+      }
+      
+      // 检查版本号
+      if (uuid[12] !== '7') {
+        const version = uuid[12];
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+          <div style="color: #ef4444; margin-bottom: 10px;">❌ 不是 UUID v7 格式</div>
+          <div style="color: #808080; font-size: 13px;">
+            检测到的版本号：v${version.toUpperCase()}<br>
+            UUID v7 的第 13 位必须是 "7"（当前为 "${version.toUpperCase()}")
+          </div>
+        `;
+        return;
+      }
+
+      // 提取 48 位时间戳（前 12 个字符）
+      const timestampHex = uuid.slice(0, 12);
+      const timestamp = parseInt(timestampHex, 16);
+      const date = new Date(timestamp);
+
+      // 格式化时间为 YYYY-MM-DD HH:mm:ss
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+      
+      const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      const formattedTimeWithMs = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+
+      // 提取随机部分（第 13 位之后）
+      const randomPart = uuid.slice(13);
+
+      // 格式化标准 UUID（带连字符）
+      const standardFormat = `${uuid.slice(0,8)}-${uuid.slice(8,12)}-${uuid.slice(12,16)}-${uuid.slice(16,20)}-${uuid.slice(20)}`;
+
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <div class="parse-field"><span class="parse-label">提取时间:</span><span class="parse-value" style="color: #4caf50; font-weight: 600;">${formattedTime}</span></div>
+        <div class="parse-field"><span class="parse-label">完整时间:</span><span class="parse-value">${formattedTimeWithMs}</span></div>
+        <div class="parse-field"><span class="parse-label">时间戳:</span><span class="parse-value">${timestamp.toLocaleString()} ms</span></div>
+        <div class="parse-field"><span class="parse-label">标准格式:</span><span class="parse-value" style="font-size: 12px;">${standardFormat}</span></div>
+        <div class="parse-field"><span class="parse-label">版本:</span><span class="parse-value">v7 (时间排序)</span></div>
+        <div class="parse-field"><span class="parse-label">随机部分:</span><span class="parse-value" style="font-size: 12px;">${randomPart}</span></div>
+      `;
+    }
+
+    // ==================== Snowflake ====================
+    
+    class Snowflake {
+      constructor(workerId = 0, epoch = 1288834974657) {
+        this.workerId = workerId & 0x3ff; // 10 bits
+        this.epoch = epoch;
+        this.sequence = 0;
+        this.lastTimestamp = -1;
+      }
+
+      nextId() {
+        let timestamp = Date.now();
+        
+        if (timestamp < this.lastTimestamp) {
+          throw new Error('时钟回拨');
+        }
+
+        if (timestamp === this.lastTimestamp) {
+          this.sequence = (this.sequence + 1) & 0xfff; // 12 bits
+          if (this.sequence === 0) {
+            // 等待下一毫秒
+            while (timestamp <= this.lastTimestamp) {
+              timestamp = Date.now();
+            }
+          }
+        } else {
+          this.sequence = 0;
+        }
+
+        this.lastTimestamp = timestamp;
+
+        // 64 位结构：1 位符号 + 41 位时间戳 + 10 位工作节点 + 12 位序列号
+        const timestampPart = ((timestamp - this.epoch) << 22) & 0x1ffffffffff;
+        const workerPart = (this.workerId << 12) & 0xffc000;
+        const sequencePart = this.sequence & 0xfff;
+
+        return (timestampPart | workerPart | sequencePart) >>> 0;
+      }
+
+      parse(id) {
+        const binary = BigInt(id).toString(2).padStart(64, '0');
+        
+        const timestampPart = binary.slice(0, 22);
+        const workerPart = binary.slice(22, 32);
+        const sequencePart = binary.slice(32);
+
+        const timestamp = (parseInt(timestampPart, 2) + this.epoch);
+        const workerId = parseInt(workerPart, 2);
+        const sequence = parseInt(sequencePart, 2);
+
+        return {
+          timestamp,
+          date: new Date(timestamp),
+          workerId,
+          sequence,
+          binary
+        };
+      }
+    }
+
+    let snowflakeInstance = null;
+
+    function generateSnowflake() {
+      const count = parseInt(document.getElementById('snowflakeCount').value) || 1;
+      const workerId = parseInt(document.getElementById('snowflakeWorkerId').value) || 0;
+      const epoch = parseInt(document.getElementById('snowflakeEpoch').value) || 1288834974657;
+      const showBinary = document.getElementById('snowflakeShowBinary').checked;
+
+      if (!snowflakeInstance || snowflakeInstance.workerId !== workerId) {
+        snowflakeInstance = new Snowflake(workerId, epoch);
+      }
+
+      const results = [];
+      for (let i = 0; i < count; i++) {
+        const id = snowflakeInstance.nextId();
+        if (showBinary) {
+          const binary = BigInt(id).toString(2).padStart(64, '0');
+          results.push(`${id} (${binary.match(/.{1,8}/g).join(' ')})`);
+        } else {
+          results.push(id.toString());
+        }
+      }
+
+      displayResults('snowflakeOutput', 'snowflakeResult', results);
+      updateStats(count);
+      saveToHistory('Snowflake', results);
+    }
+
+    function parseSnowflake() {
+      const input = document.getElementById('snowflakeParseInput').value.trim();
+      const resultDiv = document.getElementById('snowflakeParseResult');
+      
+      if (!input) {
+        showToast('❌ 请输入雪花 ID');
+        return;
+      }
+
+      const id = BigInt(input);
+      const epoch = 1288834974657; // Twitter 默认
+
+      const binary = id.toString(2).padStart(64, '0');
+      
+      // 分割各部分
+      const signBit = binary[0];
+      const timestampBits = binary.slice(1, 42);
+      const workerBits = binary.slice(42, 52);
+      const sequenceBits = binary.slice(52);
+
+      const timestamp = parseInt(timestampBits, 2) + epoch;
+      const workerId = parseInt(workerBits, 2);
+      const sequence = parseInt(sequenceBits, 2);
+
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <div class="parse-field"><span class="parse-label">十进制 ID:</span><span class="parse-value">${id.toString()}</span></div>
+        <div class="parse-field"><span class="parse-label">64 位二进制:</span><span class="parse-value" style="font-size: 11px;">${binary.match(/.{1,8}/g).join(' ')}</span></div>
+        <div class="parse-field"><span class="parse-label">符号位 (1):</span><span class="parse-value">${signBit} (正数)</span></div>
+        <div class="parse-field"><span class="parse-label">时间戳 (41 位):</span><span class="parse-value">${parseInt(timestampBits, 2)} ms</span></div>
+        <div class="parse-field"><span class="parse-label">日期时间:</span><span class="parse-value">${formatDate(new Date(timestamp))}</span></div>
+        <div class="parse-field"><span class="parse-label">工作节点 ID (10 位):</span><span class="parse-value">${workerId}</span></div>
+        <div class="parse-field"><span class="parse-label">序列号 (12 位):</span><span class="parse-value">${sequence}</span></div>
+        <div class="parse-field"><span class="parse-label">结构可视化:</span><span class="parse-value" style="font-size: 11px;">
+          <span style="color: #569cd6;">${signBit}</span> | 
+          <span style="color: #4ec9b0;">${timestampBits.match(/.{1,8}/g).join(' ')}</span> | 
+          <span style="color: #ce9178;">${workerBits}</span> | 
+          <span style="color: #dcdcaa;">${sequenceBits}</span>
+        </span></div>
+      `;
+    }
+
+    // ==================== NanoID ====================
+    
+    function generateNanoID() {
+      const count = parseInt(document.getElementById('nanoidCount').value) || 1;
+      const size = parseInt(document.getElementById('nanoidSize').value) || 21;
+      const alphabetType = document.getElementById('nanoidAlphabet').value;
+
+      let alphabet = 'ModuleABCDEFabcdef0123456789_-';
+      if (alphabetType === 'hex') {
+        alphabet = '0123456789abcdef';
+      } else if (alphabetType === 'lowercase') {
+        alphabet = '0123456789abcdefghijklmnopqrstuvwxyz';
+      } else if (alphabetType === 'uppercase') {
+        alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      } else if (alphabetType === 'custom') {
+        const custom = document.getElementById('nanoidCustomInput').value;
+        if (custom) alphabet = custom;
+      }
+
+      const results = [];
+      for (let i = 0; i < count; i++) {
+        let id = '';
+        const randomValues = getRandomValues(size);
+        for (let j = 0; j < size; j++) {
+          id += alphabet[randomValues[j] % alphabet.length];
+        }
+        results.push(id);
+      }
+
+      displayResults('nanoidOutput', 'nanoidResult', results);
+      updateStats(count);
+      saveToHistory('NanoID', results);
+    }
+
+    // ==================== 通用函数 ====================
+    
+    function displayResults(outputId, sectionId, results) {
+      const output = document.getElementById(outputId);
+      const section = document.getElementById(sectionId);
+      
+      output.innerHTML = results.map((result, index) => `
+        <div class="result-item">
+          <span class="result-id">${index + 1}. ${result}</span>
+          <div class="result-actions">
+            <button class="btn btn-sm btn-secondary" onclick="copyToClipboard('${result.replace(/'/g, "\\'")}')">📋 复制</button>
+          </div>
+        </div>
+      `).join('');
+      
+      section.style.display = 'block';
+    }
+
+    function copyAll(outputId) {
+      const output = document.getElementById(outputId.replace('Result', 'Output'));
+      if (!output) return;
+      
+      const text = Array.from(output.querySelectorAll('.result-id'))
+        .map(el => el.textContent.replace(/^\d+\.\s*/, ''))
+        .join('\n');
+      
+      copyToClipboard(text);
+    }
+
+    function clearResult(sectionId) {
+      const section = document.getElementById(sectionId);
+      const output = document.getElementById(sectionId.replace('Result', 'Output'));
+      if (output) output.innerHTML = '';
+      if (section) section.style.display = 'none';
+    }
+
+    // ==================== 事件监听 ====================
+    
+    // 标签页切换
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        this.classList.add('active');
+        document.getElementById(this.dataset.tab).classList.add('active');
+      });
+    });
+
+    // UUID v7 自定义时间显示
+    document.getElementById('uuid7Timestamp').addEventListener('change', function() {
+      const customDiv = document.getElementById('uuid7CustomTime');
+      customDiv.style.display = this.value === 'custom' ? 'block' : 'none';
+    });
+
+    // NanoID 自定义字母表显示
+    document.getElementById('nanoidAlphabet').addEventListener('change', function() {
+      const customDiv = document.getElementById('nanoidCustomAlphabet');
+      customDiv.style.display = this.value === 'custom' ? 'block' : 'none';
+    });
+
+    // 初始化统计
+    function initStats() {
+      const stats = JSON.parse(localStorage.getItem('idGeneratorStats') || '{}');
+      const history = JSON.parse(localStorage.getItem('idGeneratorHistory') || '[]');
+      
+      document.getElementById('totalCount').textContent = (stats.total || 0).toLocaleString();
+      document.getElementById('todayCount').textContent = (stats.today || 0).toLocaleString();
+      document.getElementById('historyCount').textContent = history.length;
+    }
+
+    // 页面加载时初始化
+    initStats();
+
+    // 添加动画样式
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文本加解密工具 - MD5/Base64/AES</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .tabs {
+      display: flex;
+      background: #f3f4f6;
+      padding: 0;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 16px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #6b7280;
+      transition: all 0.3s;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab-btn:hover {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .tab-btn.active {
+      color: #667eea;
+      background: white;
+      border-bottom-color: #667eea;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .input-group {
+      margin-bottom: 25px;
+    }
+
+    .input-group label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    textarea, input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 15px;
+      transition: all 0.3s;
+      font-family: inherit;
+    }
+
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .output-section {
+      margin-top: 25px;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 12px;
+      border: 2px solid #e5e7eb;
+    }
+
+    .output-section label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+
+    .output-box {
+      width: 100%;
+      padding: 14px 16px;
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      line-height: 1.6;
+      word-break: break-all;
+      min-height: 100px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn-small {
+      padding: 8px 16px;
+      font-size: 13px;
+      border-radius: 8px;
+    }
+
+    .success-message {
+      color: #10b981;
+      font-weight: 600;
+      margin-left: 10px;
+      animation: fadeInOut 2s;
+    }
+
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+    .error-message {
+      color: #ef4444;
+      font-weight: 600;
+      margin-top: 10px;
+      padding: 10px;
+      background: #fee2e2;
+      border-radius: 8px;
+    }
+
+    .key-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .tabs {
+        flex-wrap: wrap;
+      }
+
+      .tab-btn {
+        flex: 0 0 50%;
+      }
+
+      .key-group {
+        grid-template-columns: 1fr;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>
+        <span>🔐</span>
+        <span>文本加解密工具</span>
+      </h1>
+      <p>支持 MD5、Base64、AES、SHA、Hmac、Rabbit 等多种加解密算法</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="md5">MD5</button>
+      <button class="tab-btn" data-tab="base64">Base64</button>
+      <button class="tab-btn" data-tab="aes">AES</button>
+      <button class="tab-btn" data-tab="sha">SHA</button>
+      <button class="tab-btn" data-tab="hmac">Hmac</button>
+      <button class="tab-btn" data-tab="rabbit">Rabbit</button>
+    </div>
+
+    <div class="content">
+      <!-- MD5 Tab -->
+      <div class="tab-content active" id="md5">
+        <div class="input-group">
+          <label for="md5Input">输入文本：</label>
+          <textarea id="md5Input" placeholder="请输入要加密的文本..."></textarea>
+        </div>
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="md5Encrypt()">
+            <span>🔒</span>
+            <span>MD5 加密</span>
+          </button>
+        </div>
+        <div class="output-section">
+          <label>加密结果：</label>
+          <div class="output-box" id="md5Output"></div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary btn-small" onclick="copyToClipboard('md5Output')">
+              📋 复制
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="clearOutput('md5Output')">
+              🗑️ 清空
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Base64 Tab -->
+      <div class="tab-content" id="base64">
+        <div class="input-group">
+          <label for="base64Input">输入文本：</label>
+          <textarea id="base64Input" placeholder="请输入要编码/解码的文本..."></textarea>
+        </div>
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="base64Encode()">
+            <span>🔒</span>
+            <span>Base64 编码</span>
+          </button>
+          <button class="btn btn-primary" onclick="base64Decode()">
+            <span>🔓</span>
+            <span>Base64 解码</span>
+          </button>
+        </div>
+        <div class="output-section">
+          <label>结果：</label>
+          <div class="output-box" id="base64Output"></div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary btn-small" onclick="copyToClipboard('base64Output')">
+              📋 复制
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="clearOutput('base64Output')">
+              🗑️ 清空
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AES Tab -->
+      <div class="tab-content" id="aes">
+        <div class="key-group">
+          <div class="input-group">
+            <label for="aesKey">密钥（Key）：</label>
+            <input type="text" id="aesKey" placeholder="请输入密钥（建议 16/24/32 位）">
+          </div>
+          <div class="input-group">
+            <label for="aesIv">偏移量（IV）：</label>
+            <input type="text" id="aesIv" placeholder="请输入偏移量（16 位，可选）">
+          </div>
+        </div>
+        <div class="button-group" style="margin-bottom: 20px;">
+          <button class="btn btn-secondary" onclick="generateAESKey()">
+            <span>🎲</span>
+            <span>自动生成密钥</span>
+          </button>
+          <button class="btn btn-secondary" onclick="generateAESIV()">
+            <span>🎲</span>
+            <span>自动生成偏移量</span>
+          </button>
+          <button class="btn btn-secondary" onclick="generateAESKeyAndIV()">
+            <span>🎲</span>
+            <span>生成密钥和偏移量</span>
+          </button>
+        </div>
+        <div class="input-group">
+          <label for="aesInput">输入文本：</label>
+          <textarea id="aesInput" placeholder="请输入要加密/解密的文本..."></textarea>
+        </div>
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="aesEncrypt()">
+            <span>🔒</span>
+            <span>AES 加密</span>
+          </button>
+          <button class="btn btn-primary" onclick="aesDecrypt()">
+            <span>🔓</span>
+            <span>AES 解密</span>
+          </button>
+        </div>
+        <div class="output-section">
+          <label>结果：</label>
+          <div class="output-box" id="aesOutput"></div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary btn-small" onclick="copyToClipboard('aesOutput')">
+              📋 复制
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="clearOutput('aesOutput')">
+              🗑️ 清空
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHA Tab -->
+      <div class="tab-content" id="sha">
+        <div class="input-group">
+          <label for="shaInput">输入文本：</label>
+          <textarea id="shaInput" placeholder="请输入要加密的文本..."></textarea>
+        </div>
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="shaEncrypt('SHA1')">SHA-1</button>
+          <button class="btn btn-primary" onclick="shaEncrypt('SHA256')">SHA-256</button>
+          <button class="btn btn-primary" onclick="shaEncrypt('SHA512')">SHA-512</button>
+        </div>
+        <div class="output-section">
+          <label>加密结果：</label>
+          <div class="output-box" id="shaOutput"></div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary btn-small" onclick="copyToClipboard('shaOutput')">
+              📋 复制
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="clearOutput('shaOutput')">
+              🗑️ 清空
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hmac Tab -->
+      <div class="tab-content" id="hmac">
+        <div class="input-group">
+          <label for="hmacKey">密钥（Key）：</label>
+          <input type="text" id="hmacKey" placeholder="请输入密钥">
+        </div>
+        <div class="input-group">
+          <label for="hmacInput">输入文本：</label>
+          <textarea id="hmacInput" placeholder="请输入要加密的文本..."></textarea>
+        </div>
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="hmacEncrypt('MD5')">Hmac-MD5</button>
+          <button class="btn btn-primary" onclick="hmacEncrypt('SHA1')">Hmac-SHA1</button>
+          <button class="btn btn-primary" onclick="hmacEncrypt('SHA256')">Hmac-SHA256</button>
+          <button class="btn btn-primary" onclick="hmacEncrypt('SHA512')">Hmac-SHA512</button>
+        </div>
+        <div class="output-section">
+          <label>加密结果：</label>
+          <div class="output-box" id="hmacOutput"></div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary btn-small" onclick="copyToClipboard('hmacOutput')">
+              📋 复制
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="clearOutput('hmacOutput')">
+              🗑️ 清空
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rabbit Tab -->
+      <div class="tab-content" id="rabbit">
+        <div class="input-group">
+          <label for="rabbitKey">密钥（Key）：</label>
+          <input type="text" id="rabbitKey" placeholder="请输入密钥">
+        </div>
+        <div class="input-group">
+          <label for="rabbitInput">输入文本：</label>
+          <textarea id="rabbitInput" placeholder="请输入要加密/解密的文本..."></textarea>
+        </div>
+        <div class="button-group">
+          <button class="btn btn-primary" onclick="rabbitEncrypt()">
+            <span>🔒</span>
+            <span>Rabbit 加密</span>
+          </button>
+          <button class="btn btn-primary" onclick="rabbitDecrypt()">
+            <span>🔓</span>
+            <span>Rabbit 解密</span>
+          </button>
+        </div>
+        <div class="output-section">
+          <label>结果：</label>
+          <div class="output-box" id="rabbitOutput"></div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary btn-small" onclick="copyToClipboard('rabbitOutput')">
+              📋 复制
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="clearOutput('rabbitOutput')">
+              🗑️ 清空
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tab 切换
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const tabId = this.dataset.tab;
+        
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        this.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+
+    // 复制到剪贴板
+    function copyToClipboard(outputId) {
+      const output = document.getElementById(outputId);
+      const text = output.textContent;
+      
+      if (!text) {
+        alert('没有可复制的内容！');
+        return;
+      }
+
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="success-message">✅ 已复制</span>';
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+        }, 2000);
+      }).catch(err => {
+        alert('复制失败，请手动复制');
+      });
+    }
+
+    // 清空输出
+    function clearOutput(outputId) {
+      document.getElementById(outputId).textContent = '';
+    }
+
+    // 显示错误
+    function showError(outputId, message) {
+      const output = document.getElementById(outputId);
+      output.innerHTML = `<div class="error-message">${message}</div>`;
+    }
+
+    // MD5 加密
+    function md5Encrypt() {
+      const input = document.getElementById('md5Input').value;
+      if (!input) {
+        alert('请输入要加密的文本！');
+        return;
+      }
+
+      const hash = CryptoJS.MD5(input).toString();
+      document.getElementById('md5Output').textContent = hash;
+    }
+
+    // Base64 编码
+    function base64Encode() {
+      const input = document.getElementById('base64Input').value;
+      if (!input) {
+        alert('请输入要编码的文本！');
+        return;
+      }
+
+      const encoded = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(input));
+      document.getElementById('base64Output').textContent = encoded;
+    }
+
+    // Base64 解码
+    function base64Decode() {
+      const input = document.getElementById('base64Input').value;
+      if (!input) {
+        alert('请输入要解码的文本！');
+        return;
+      }
+
+      try {
+        const decoded = CryptoJS.enc.Base64.parse(input).toString(CryptoJS.enc.Utf8);
+        document.getElementById('base64Output').textContent = decoded;
+      } catch (err) {
+        showError('base64Output', '解码失败：无效的 Base64 字符串');
+      }
+    }
+
+    // 生成随机字符串
+    function generateRandomString(length) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    // 生成 AES 密钥
+    function generateAESKey() {
+      const keyLength = 32; // 256 位
+      const key = generateRandomString(keyLength);
+      document.getElementById('aesKey').value = key;
+      
+      // 显示成功提示
+      const btn = event.target;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="success-message">✅ 已生成</span>';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+      }, 2000);
+    }
+
+    // 生成 AES 偏移量
+    function generateAESIV() {
+      const ivLength = 16; // 128 位
+      const iv = generateRandomString(ivLength);
+      document.getElementById('aesIv').value = iv;
+      
+      // 显示成功提示
+      const btn = event.target;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="success-message">✅ 已生成</span>';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+      }, 2000);
+    }
+
+    // 生成 AES 密钥和偏移量
+    function generateAESKeyAndIV() {
+      const key = generateRandomString(32); // 256 位
+      const iv = generateRandomString(16); // 128 位
+      document.getElementById('aesKey').value = key;
+      document.getElementById('aesIv').value = iv;
+      
+      // 显示成功提示
+      const btn = event.target;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="success-message">✅ 已生成</span>';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+      }, 2000);
+    }
+
+    // AES 加密
+    function aesEncrypt() {
+      const input = document.getElementById('aesInput').value;
+      const key = document.getElementById('aesKey').value;
+      const iv = document.getElementById('aesIv').value;
+
+      if (!input) {
+        alert('请输入要加密的文本！');
+        return;
+      }
+
+      if (!key) {
+        alert('请输入密钥！');
+        return;
+      }
+
+      try {
+        const keyUtf8 = CryptoJS.enc.Utf8.parse(key);
+        let config = {
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7
+        };
+
+        if (iv) {
+          config.iv = CryptoJS.enc.Utf8.parse(iv);
+        }
+
+        const encrypted = CryptoJS.AES.encrypt(input, keyUtf8, config);
+        document.getElementById('aesOutput').textContent = encrypted.toString();
+      } catch (err) {
+        showError('aesOutput', '加密失败：' + err.message);
+      }
+    }
+
+    // AES 解密
+    function aesDecrypt() {
+      const input = document.getElementById('aesInput').value;
+      const key = document.getElementById('aesKey').value;
+      const iv = document.getElementById('aesIv').value;
+
+      if (!input) {
+        alert('请输入要解密的文本！');
+        return;
+      }
+
+      if (!key) {
+        alert('请输入密钥！');
+        return;
+      }
+
+      try {
+        const keyUtf8 = CryptoJS.enc.Utf8.parse(key);
+        let config = {
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7
+        };
+
+        if (iv) {
+          config.iv = CryptoJS.enc.Utf8.parse(iv);
+        }
+
+        const decrypted = CryptoJS.AES.decrypt(input, keyUtf8, config);
+        const result = decrypted.toString(CryptoJS.enc.Utf8);
+        
+        if (!result) {
+          showError('aesOutput', '解密失败：密钥错误或数据已损坏');
+        } else {
+          document.getElementById('aesOutput').textContent = result;
+        }
+      } catch (err) {
+        showError('aesOutput', '解密失败：' + err.message);
+      }
+    }
+
+    // SHA 加密
+    function shaEncrypt(algorithm) {
+      const input = document.getElementById('shaInput').value;
+      if (!input) {
+        alert('请输入要加密的文本！');
+        return;
+      }
+
+      let hash;
+      switch(algorithm) {
+        case 'SHA1':
+          hash = CryptoJS.SHA1(input).toString();
+          break;
+        case 'SHA256':
+          hash = CryptoJS.SHA256(input).toString();
+          break;
+        case 'SHA512':
+          hash = CryptoJS.SHA512(input).toString();
+          break;
+      }
+
+      document.getElementById('shaOutput').textContent = hash;
+    }
+
+    // Hmac 加密
+    function hmacEncrypt(algorithm) {
+      const input = document.getElementById('hmacInput').value;
+      const key = document.getElementById('hmacKey').value;
+
+      if (!input) {
+        alert('请输入要加密的文本！');
+        return;
+      }
+
+      if (!key) {
+        alert('请输入密钥！');
+        return;
+      }
+
+      const keyUtf8 = CryptoJS.enc.Utf8.parse(key);
+      let hash;
+
+      switch(algorithm) {
+        case 'MD5':
+          hash = CryptoJS.HmacMD5(input, keyUtf8).toString();
+          break;
+        case 'SHA1':
+          hash = CryptoJS.HmacSHA1(input, keyUtf8).toString();
+          break;
+        case 'SHA256':
+          hash = CryptoJS.HmacSHA256(input, keyUtf8).toString();
+          break;
+        case 'SHA512':
+          hash = CryptoJS.HmacSHA512(input, keyUtf8).toString();
+          break;
+      }
+
+      document.getElementById('hmacOutput').textContent = hash;
+    }
+
+    // Rabbit 加密
+    function rabbitEncrypt() {
+      const input = document.getElementById('rabbitInput').value;
+      const key = document.getElementById('rabbitKey').value;
+
+      if (!input) {
+        alert('请输入要加密的文本！');
+        return;
+      }
+
+      if (!key) {
+        alert('请输入密钥！');
+        return;
+      }
+
+      try {
+        const keyUtf8 = CryptoJS.enc.Utf8.parse(key);
+        const encrypted = CryptoJS.Rabbit.encrypt(input, keyUtf8);
+        document.getElementById('rabbitOutput').textContent = encrypted.toString();
+      } catch (err) {
+        showError('rabbitOutput', '加密失败：' + err.message);
+      }
+    }
+
+    // Rabbit 解密
+    function rabbitDecrypt() {
+      const input = document.getElementById('rabbitInput').value;
+      const key = document.getElementById('rabbitKey').value;
+
+      if (!input) {
+        alert('请输入要解密的文本！');
+        return;
+      }
+
+      if (!key) {
+        alert('请输入密钥！');
+        return;
+      }
+
+      try {
+        const keyUtf8 = CryptoJS.enc.Utf8.parse(key);
+        const decrypted = CryptoJS.Rabbit.decrypt(input, keyUtf8);
+        const result = decrypted.toString(CryptoJS.enc.Utf8);
+        
+        if (!result) {
+          showError('rabbitOutput', '解密失败：密钥错误或数据已损坏');
+        } else {
+          document.getElementById('rabbitOutput').textContent = result;
+        }
+      } catch (err) {
+        showError('rabbitOutput', '解密失败：' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

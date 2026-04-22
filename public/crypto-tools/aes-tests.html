@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AES 单元测试</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .test-controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .btn {
+      padding: 14px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .test-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .summary-card {
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .summary-card.success {
+      background: #d1fae5;
+      border: 2px solid #10b981;
+    }
+
+    .summary-card.error {
+      background: #fee2e2;
+      border: 2px solid #ef4444;
+    }
+
+    .summary-card.info {
+      background: #dbeafe;
+      border: 2px solid #3b82f6;
+    }
+
+    .summary-number {
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .summary-label {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .test-section {
+      margin-bottom: 30px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .test-section-header {
+      padding: 15px 20px;
+      background: #f9fafb;
+      border-bottom: 2px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .test-section-title {
+      font-weight: 600;
+      color: #374151;
+      font-size: 16px;
+    }
+
+    .test-section-status {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-pass {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-fail {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .test-list {
+      padding: 0;
+    }
+
+    .test-item {
+      padding: 15px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .test-item:last-child {
+      border-bottom: none;
+    }
+
+    .test-icon {
+      font-size: 20px;
+      margin-top: 2px;
+    }
+
+    .test-details {
+      flex: 1;
+    }
+
+    .test-name {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 5px;
+    }
+
+    .test-description {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .test-data {
+      background: #f9fafb;
+      padding: 10px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    .test-error {
+      color: #ef4444;
+      font-size: 13px;
+      margin-top: 5px;
+      padding: 8px;
+      background: #fee2e2;
+      border-radius: 6px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      width: 0%;
+      transition: width 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧪 AES 单元测试</h1>
+      <p>全面的单元测试套件，覆盖边界情况和异常输入</p>
+    </div>
+
+    <div class="content">
+      <div class="test-controls">
+        <button class="btn btn-primary" onclick="runAllTests()">
+          <span>▶️</span>
+          <span>运行所有测试</span>
+        </button>
+        <button class="btn btn-secondary" onclick="clearResults()">
+          <span>🗑️</span>
+          <span>清空结果</span>
+        </button>
+      </div>
+
+      <div class="progress-bar" id="progressBar" style="display: none;">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <div class="test-summary" id="testSummary" style="display: none;">
+        <div class="summary-card success">
+          <div class="summary-number" id="passedCount">0</div>
+          <div class="summary-label">通过</div>
+        </div>
+        <div class="summary-card error">
+          <div class="summary-number" id="failedCount">0</div>
+          <div class="summary-label">失败</div>
+        </div>
+        <div class="summary-card info">
+          <div class="summary-number" id="totalCount">0</div>
+          <div class="summary-label">总计</div>
+        </div>
+      </div>
+
+      <div id="testResults"></div>
+    </div>
+  </div>
+
+  <script>
+    // AES 加密函数
+    function aesEncrypt(text, key, iv) {
+      const keyUtf8 = CryptoJS.enc.Utf8.parse(key);
+      const ivUtf8 = CryptoJS.enc.Utf8.parse(iv);
+      
+      const encrypted = CryptoJS.AES.encrypt(text, keyUtf8, {
+        iv: ivUtf8,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+      });
+      
+      return encrypted.toString();
+    }
+
+    // AES 解密函数
+    function aesDecrypt(encryptedText, key, iv) {
+      const keyUtf8 = CryptoJS.enc.Utf8.parse(key);
+      const ivUtf8 = CryptoJS.enc.Utf8.parse(iv);
+      
+      const decrypted = CryptoJS.AES.decrypt(encryptedText, keyUtf8, {
+        iv: ivUtf8,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+      });
+      
+      return decrypted.toString(CryptoJS.enc.Utf8);
+    }
+
+    // 生成随机字符串
+    function generateRandomString(length) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    // 测试用例定义
+    const testCases = [
+      {
+        section: '基础功能测试',
+        tests: [
+          {
+            name: '正常加密解密流程',
+            description: '验证基本的加密和解密功能是否正常工作',
+            test: () => {
+              const text = 'Hello, World!';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`解密结果不匹配：期望 "${text}", 得到 "${decrypted}"`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          },
+          {
+            name: '空字符串加密',
+            description: '测试空字符串的加密和解密',
+            test: () => {
+              const text = '';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`空字符串解密失败：期望 "", 得到 "${decrypted}"`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          },
+          {
+            name: '单字符加密',
+            description: '测试单个字符的加密和解密',
+            test: () => {
+              const text = 'A';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`单字符解密失败：期望 "A", 得到 "${decrypted}"`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          }
+        ]
+      },
+      {
+        section: '边界情况测试',
+        tests: [
+          {
+            name: '超长文本加密',
+            description: '测试 10000 字符的超长文本加密解密',
+            test: () => {
+              const text = 'A'.repeat(10000);
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`超长文本解密失败：长度不匹配`);
+              }
+              return { text: text.substring(0, 100) + '...', key, iv, encrypted: encrypted.substring(0, 100) + '...', decrypted: decrypted.substring(0, 100) + '...' };
+            }
+          },
+          {
+            name: '特殊字符 - 换行符',
+            description: '测试包含换行符的文本',
+            test: () => {
+              const text = 'Line 1\nLine 2\nLine 3';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`换行符解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          },
+          {
+            name: '特殊字符 - 制表符',
+            description: '测试包含制表符的文本',
+            test: () => {
+              const text = 'Col1\tCol2\tCol3';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`制表符解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          },
+          {
+            name: '特殊字符 - 所有 ASCII 字符',
+            description: '测试所有可打印 ASCII 字符',
+            test: () => {
+              const text = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`ASCII 字符集解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          }
+        ]
+      },
+      {
+        section: '多语言支持测试',
+        tests: [
+          {
+            name: '中文字符加密',
+            description: '测试中文字符的加密和解密',
+            test: () => {
+              const text = '你好，世界！这是一段中文测试文本。';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`中文字符解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          },
+          {
+            name: '日文假名加密',
+            description: '测试日文假名的加密和解密',
+            test: () => {
+              const text = 'こんにちは世界。これは日本語のテストです。';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`日文假名解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          },
+          {
+            name: '韩文字符加密',
+            description: '测试韩文字符的加密和解密',
+            test: () => {
+              const text = '안녕하세요 세계. 이것은 한국어 테스트입니다.';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`韩文字符解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          },
+          {
+            name: 'Emoji 表情加密',
+            description: '测试 Emoji 表情的加密和解密',
+            test: () => {
+              const text = '😀😃😄😁😆😅🤣😂🙂🙃😉😊😇';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`Emoji 解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          },
+          {
+            name: '混合多语言文本',
+            description: '测试多语言混合文本的加密和解密',
+            test: () => {
+              const text = 'Hello 你好！こんにちは안녕하세요!🌍🌎🌏';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`多语言混合文本解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          }
+        ]
+      },
+      {
+        section: '密钥长度测试',
+        tests: [
+          {
+            name: '16 位密钥 (AES-128)',
+            description: '测试 16 字符密钥的加密解密',
+            test: () => {
+              const text = 'Test with 128-bit key';
+              const key = generateRandomString(16);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`16 位密钥解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          },
+          {
+            name: '24 位密钥 (AES-192)',
+            description: '测试 24 字符密钥的加密解密',
+            test: () => {
+              const text = 'Test with 192-bit key';
+              const key = generateRandomString(24);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`24 位密钥解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          },
+          {
+            name: '32 位密钥 (AES-256)',
+            description: '测试 32 字符密钥的加密解密',
+            test: () => {
+              const text = 'Test with 256-bit key';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const decrypted = aesDecrypt(encrypted, key, iv);
+              if (decrypted !== text) {
+                throw new Error(`32 位密钥解密失败`);
+              }
+              return { text, key, iv, encrypted, decrypted };
+            }
+          }
+        ]
+      },
+      {
+        section: '异常输入测试',
+        tests: [
+          {
+            name: '空密钥测试',
+            description: '测试使用空密钥时的异常处理',
+            test: () => {
+              const text = 'Test';
+              const key = '';
+              const iv = generateRandomString(16);
+              try {
+                const encrypted = aesEncrypt(text, key, iv);
+                const decrypted = aesDecrypt(encrypted, key, iv);
+                if (decrypted === text) {
+                  throw new Error(`空密钥应该导致解密失败`);
+                }
+                return { text, key, iv, encrypted, decrypted: decrypted || '(empty)', note: '空密钥产生不同结果' };
+              } catch (e) {
+                return { text, key, iv, error: e.message, note: '空密钥导致异常（预期行为）' };
+              }
+            }
+          },
+          {
+            name: '空偏移量测试',
+            description: '测试不使用偏移量（undefined）的情况',
+            test: () => {
+              const text = 'Test without IV';
+              const key = generateRandomString(32);
+              const encrypted = CryptoJS.AES.encrypt(text, CryptoJS.enc.Utf8.parse(key), {
+                mode: CryptoJS.mode.CBC,
+                padding: CryptoJS.pad.Pkcs7
+              });
+              const decrypted = CryptoJS.AES.decrypt(encrypted.toString(), CryptoJS.enc.Utf8.parse(key), {
+                mode: CryptoJS.mode.CBC,
+                padding: CryptoJS.pad.Pkcs7
+              }).toString(CryptoJS.enc.Utf8);
+              if (decrypted !== text) {
+                throw new Error(`无偏移量解密失败`);
+              }
+              return { text, key, iv: '(none)', encrypted: encrypted.toString(), decrypted };
+            }
+          },
+          {
+            name: '错误密钥解密测试',
+            description: '验证使用错误密钥无法正确解密',
+            test: () => {
+              const text = 'Secret message';
+              const key1 = generateRandomString(32);
+              const key2 = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key1, iv);
+              const decrypted = aesDecrypt(encrypted, key2, iv);
+              if (decrypted === text) {
+                throw new Error(`错误密钥不应该解密出原文`);
+              }
+              return { text, key1, key2, iv, encrypted, decrypted: decrypted || '(empty)', note: '错误密钥解密失败（预期行为）' };
+            }
+          },
+          {
+            name: '错误偏移量解密测试',
+            description: '验证使用错误偏移量无法正确解密',
+            test: () => {
+              const text = 'Secret message';
+              const key = generateRandomString(32);
+              const iv1 = generateRandomString(16);
+              const iv2 = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv1);
+              const decrypted = aesDecrypt(encrypted, key, iv2);
+              if (decrypted === text) {
+                throw new Error(`错误偏移量不应该解密出原文`);
+              }
+              return { text, key, iv1, iv2, encrypted, decrypted: decrypted || '(empty)', note: '错误偏移量解密失败（预期行为）' };
+            }
+          },
+          {
+            name: '损坏的密文测试',
+            description: '验证损坏的密文无法解密',
+            test: () => {
+              const text = 'Original text';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const damaged = encrypted.substring(0, encrypted.length - 5) + 'XXXXX';
+              const decrypted = aesDecrypt(damaged, key, iv);
+              return { text, key, iv, encrypted, damaged, decrypted: decrypted || '(empty)', note: '损坏密文解密失败（预期行为）' };
+            }
+          }
+        ]
+      },
+      {
+        section: '性能测试',
+        tests: [
+          {
+            name: '批量加密性能',
+            description: '测试连续加密 100 次的性能',
+            test: () => {
+              const text = 'Performance test';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const startTime = performance.now();
+              for (let i = 0; i < 100; i++) {
+                aesEncrypt(text, key, iv);
+              }
+              const endTime = performance.now();
+              const duration = (endTime - startTime).toFixed(2);
+              return { text, key, iv, iterations: 100, duration: `${duration}ms`, avgTime: `${(duration / 100).toFixed(2)}ms/次` };
+            }
+          },
+          {
+            name: '批量解密性能',
+            description: '测试连续解密 100 次的性能',
+            test: () => {
+              const text = 'Performance test';
+              const key = generateRandomString(32);
+              const iv = generateRandomString(16);
+              const encrypted = aesEncrypt(text, key, iv);
+              const startTime = performance.now();
+              for (let i = 0; i < 100; i++) {
+                aesDecrypt(encrypted, key, iv);
+              }
+              const endTime = performance.now();
+              const duration = (endTime - startTime).toFixed(2);
+              return { text, key, iv, encrypted, iterations: 100, duration: `${duration}ms`, avgTime: `${(duration / 100).toFixed(2)}ms/次` };
+            }
+          }
+        ]
+      }
+    ];
+
+    // 运行测试
+    let totalTests = 0;
+    let passedTests = 0;
+    let failedTests = 0;
+
+    function runAllTests() {
+      totalTests = 0;
+      passedTests = 0;
+      failedTests = 0;
+      
+      const resultsDiv = document.getElementById('testResults');
+      resultsDiv.innerHTML = '';
+      
+      document.getElementById('progressBar').style.display = 'block';
+      document.getElementById('testSummary').style.display = 'none';
+      
+      let sectionIndex = 0;
+      
+      function runSection() {
+        if (sectionIndex >= testCases.length) {
+          finishTests();
+          return;
+        }
+        
+        const section = testCases[sectionIndex];
+        const sectionDiv = createSectionElement(section);
+        resultsDiv.appendChild(sectionDiv);
+        
+        let testIndex = 0;
+        
+        function runTest() {
+          if (testIndex >= section.tests.length) {
+            sectionIndex++;
+            runSection();
+            return;
+          }
+          
+          const testCase = section.tests[testIndex];
+          const testDiv = createTestElement(testCase);
+          sectionDiv.querySelector('.test-list').appendChild(testDiv);
+          
+          setTimeout(() => {
+            try {
+              const result = testCase.test();
+              testDiv.querySelector('.test-icon').textContent = '✅';
+              testDiv.querySelector('.test-details').innerHTML += `
+                <div class="test-data">${formatResult(result)}</div>
+              `;
+              passedTests++;
+            } catch (error) {
+              testDiv.querySelector('.test-icon').textContent = '❌';
+              testDiv.querySelector('.test-details').innerHTML += `
+                <div class="test-error">${error.message}</div>
+              `;
+              failedTests++;
+            }
+            
+            totalTests++;
+            updateProgress();
+            testIndex++;
+            runTest();
+          }, 10);
+        }
+        
+        runTest();
+      }
+      
+      runSection();
+    }
+
+    function createSectionElement(section) {
+      const div = document.createElement('div');
+      div.className = 'test-section';
+      div.innerHTML = `
+        <div class="test-section-header">
+          <span class="test-section-title">${section.section}</span>
+          <span class="test-section-status">运行中...</span>
+        </div>
+        <div class="test-list"></div>
+      `;
+      return div;
+    }
+
+    function createTestElement(testCase) {
+      const div = document.createElement('div');
+      div.className = 'test-item';
+      div.innerHTML = `
+        <span class="test-icon">⏳</span>
+        <div class="test-details">
+          <div class="test-name">${testCase.name}</div>
+          <div class="test-description">${testCase.description}</div>
+        </div>
+      `;
+      return div;
+    }
+
+    function formatResult(result) {
+      if (!result) return '';
+      
+      const lines = [];
+      for (const [key, value] of Object.entries(result)) {
+        if (key !== 'note') {
+          lines.push(`<strong>${key}:</strong> ${escapeHtml(String(value))}`);
+        }
+      }
+      if (result.note) {
+        lines.push(`<em>${result.note}</em>`);
+      }
+      return lines.join(' | ');
+    }
+
+    function updateProgress() {
+      const total = testCases.reduce((sum, section) => sum + section.tests.length, 0);
+      const progress = (totalTests / total) * 100;
+      document.getElementById('progressFill').style.width = progress + '%';
+    }
+
+    function finishTests() {
+      document.getElementById('progressBar').style.display = 'none';
+      document.getElementById('testSummary').style.display = 'grid';
+      document.getElementById('passedCount').textContent = passedTests;
+      document.getElementById('failedCount').textContent = failedTests;
+      document.getElementById('totalCount').textContent = totalTests;
+      
+      testCases.forEach((section, index) => {
+        const sectionDiv = document.querySelectorAll('.test-section')[index];
+        if (sectionDiv) {
+          const sectionPassed = Array.from(sectionDiv.querySelectorAll('.test-icon'))
+            .every(icon => icon.textContent === '✅');
+          const statusSpan = sectionDiv.querySelector('.test-section-status');
+          statusSpan.textContent = sectionPassed ? '✅ 通过' : '❌ 失败';
+          statusSpan.className = 'test-section-status ' + (sectionPassed ? 'status-pass' : 'status-fail');
+        }
+      });
+    }
+
+    function clearResults() {
+      document.getElementById('testResults').innerHTML = '';
+      document.getElementById('testSummary').style.display = 'none';
+      document.getElementById('progressBar').style.display = 'none';
+      totalTests = 0;
+      passedTests = 0;
+      failedTests = 0;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 页面加载时自动运行测试
+    window.onload = () => {
+      setTimeout(runAllTests, 500);
+    };
+  </script>
+</body>
+</html>

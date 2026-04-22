@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>农历转换算法 - 交互式调试器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #569cd6;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    h2 {
+      color: #4ec9b0;
+      margin: 20px 0 15px;
+      font-size: 18px;
+      border-bottom: 1px solid #3e3e3e;
+      padding-bottom: 8px;
+    }
+
+    .input-section {
+      background: #252526;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 15px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .input-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    label {
+      font-size: 12px;
+      color: #9cdcfe;
+    }
+
+    input, select {
+      padding: 8px 12px;
+      background: #1e1e1e;
+      border: 1px solid #3e3e3e;
+      color: #d4d4d4;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #569cd6;
+    }
+
+    button {
+      padding: 8px 20px;
+      background: linear-gradient(135deg, #569cd6, #4a8ac7);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(86, 156, 214, 0.4);
+    }
+
+    .output-section {
+      background: #252526;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .result-card {
+      background: #1e1e1e;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 3px solid #569cd6;
+    }
+
+    .result-label {
+      font-size: 12px;
+      color: #808080;
+      margin-bottom: 5px;
+    }
+
+    .result-value {
+      font-size: 20px;
+      color: #d4d4d4;
+      font-weight: 600;
+    }
+
+    .step-by-step {
+      background: #1e1e1e;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+    }
+
+    .step {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #3e3e3e;
+    }
+
+    .step:last-child {
+      border-bottom: none;
+    }
+
+    .step-title {
+      color: #4ec9b0;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .step-detail {
+      font-size: 13px;
+      color: #9cdcfe;
+      margin-left: 20px;
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 13px;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #3e3e3e;
+    }
+
+    .comparison-table th {
+      background: #2d2d30;
+      color: #569cd6;
+    }
+
+    .comparison-table tr:hover {
+      background: #2d2d30;
+    }
+
+    .diff-highlight {
+      background: #5a1a1a;
+      color: #f44336;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .match-highlight {
+      background: #1a3a1a;
+      color: #4caf50;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .visualization {
+      background: #1e1e1e;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+    }
+
+    .timeline {
+      position: relative;
+      height: 60px;
+      background: #2d2d30;
+      border-radius: 4px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+
+    .timeline-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #569cd6;
+    }
+
+    .timeline-label {
+      position: absolute;
+      top: -20px;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: #808080;
+      white-space: nowrap;
+    }
+
+    .console-output {
+      background: #000;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin: 15px 0;
+    }
+
+    .console-line {
+      margin-bottom: 5px;
+    }
+
+    .console-error {
+      color: #f44336;
+    }
+
+    .console-success {
+      color: #4caf50;
+    }
+
+    .console-warning {
+      color: #ff9800;
+    }
+
+    .console-info {
+      color: #2196f3;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 15px;
+    }
+
+    .tab {
+      padding: 8px 16px;
+      background: #2d2d30;
+      border: none;
+      color: #808080;
+      cursor: pointer;
+      border-radius: 4px 4px 0 0;
+      transition: all 0.3s;
+    }
+
+    .tab.active {
+      background: #252526;
+      color: #d4d4d4;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .preset-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 15px 0;
+    }
+
+    .preset-btn {
+      padding: 6px 12px;
+      background: #2d2d30;
+      font-size: 12px;
+    }
+
+    .preset-btn:hover {
+      background: #3e3e3e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 农历转换算法 - 交互式调试器</h1>
+
+    <!-- 输入区域 -->
+    <div class="input-section">
+      <h2>1️⃣ 输入测试数据</h2>
+      <div class="input-group">
+        <div class="input-field">
+          <label>公历年份</label>
+          <input type="number" id="solarYear" value="2024" min="1900" max="2100">
+        </div>
+        <div class="input-field">
+          <label>公历月份</label>
+          <input type="number" id="solarMonth" value="2" min="1" max="12">
+        </div>
+        <div class="input-field">
+          <label>公历日期</label>
+          <input type="number" id="solarDay" value="10" min="1" max="31">
+        </div>
+        <button onclick="runConversion()">▶️ 开始转换</button>
+      </div>
+
+      <div class="preset-buttons">
+        <button class="preset-btn" onclick="setPreset(2024, 2, 10)">春节 (2024-02-10)</button>
+        <button class="preset-btn" onclick="setPreset(2024, 2, 9)">除夕 (2024-02-09)</button>
+        <button class="preset-btn" onclick="setPreset(2020, 5, 23)">闰四月 (2020-05-23)</button>
+        <button class="preset-btn" onclick="setPreset(2000, 2, 5)">龙年春节 (2000-02-05)</button>
+        <button class="preset-btn" onclick="setPreset(1990, 5, 15)">普通日期 (1990-05-15)</button>
+      </div>
+    </div>
+
+    <!-- 结果区域 -->
+    <div class="output-section" id="outputSection" style="display: none;">
+      <h2>2️⃣ 转换结果</h2>
+      <div class="result-grid">
+        <div class="result-card">
+          <div class="result-label">📅 农历年份</div>
+          <div class="result-value" id="lunarYearResult">-</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">🌙 农历月份</div>
+          <div class="result-value" id="lunarMonthResult">-</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">📆 农历日期</div>
+          <div class="result-value" id="lunarDayResult">-</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">🐉 生肖</div>
+          <div class="result-value" id="zodiacResult">-</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">☯️ 干支</div>
+          <div class="result-value" id="ganzhiResult">-</div>
+        </div>
+      </div>
+
+      <!-- 对比区域 -->
+      <h2>3️⃣ 预期对比</h2>
+      <div class="input-group" style="margin-bottom: 15px;">
+        <div class="input-field">
+          <label>预期农历年</label>
+          <input type="number" id="expectedYear" placeholder="如：2024">
+        </div>
+        <div class="input-field">
+          <label>预期农历月</label>
+          <input type="number" id="expectedMonth" placeholder="如：1">
+        </div>
+        <div class="input-field">
+          <label>预期农历日</label>
+          <input type="number" id="expectedDay" placeholder="如：1">
+        </div>
+        <div class="input-field">
+          <label>预期生肖</label>
+          <input type="text" id="expectedZodiac" placeholder="如：龙">
+        </div>
+        <button onclick="compareResult()">🔍 对比验证</button>
+      </div>
+
+      <div id="comparisonResult"></div>
+
+      <!-- 逐步调试 -->
+      <h2>4️⃣ 逐步调试</h2>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('steps')">逐步计算</button>
+        <button class="tab" onclick="switchTab('console')">控制台输出</button>
+        <button class="tab" onclick="switchTab('data')">数据验证</button>
+      </div>
+
+      <div class="tab-content active" id="steps">
+        <div class="step-by-step" id="stepByStep"></div>
+      </div>
+
+      <div class="tab-content" id="console">
+        <div class="console-output" id="consoleOutput"></div>
+      </div>
+
+      <div class="tab-content" id="data">
+        <div class="visualization" id="dataVisualization"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 农历算法数据
+    const lunarInfo = [
+      0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
+      0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,
+      0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970,
+      0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950,
+      0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557,
+      0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5b0, 0x14573, 0x052b0, 0x0a9a8, 0x0e950, 0x06aa0,
+      0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0,
+      0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b6a0, 0x195a6,
+      0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570,
+      0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x055c0, 0x0ab60, 0x096d5, 0x092e0,
+      0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5,
+      0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930,
+      0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530,
+      0x05aa0, 0x076a3, 0x096d0, 0x04afb, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45,
+      0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0,
+      0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0,
+      0x0a2e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4,
+      0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0,
+      0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160,
+      0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252,
+      0x0d520
+    ];
+
+    const Gan = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+    const Zhi = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+    const Animals = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"];
+    const lunarMonths = ["正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "冬", "腊"];
+    const lunarDays = ["初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十", "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十", "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"];
+
+    let consoleLog = [];
+
+    function log(message, type = 'info') {
+      consoleLog.push({ message, type });
+    }
+
+    function leapMonth(year) {
+      return lunarInfo[year - 1900] & 0xf;
+    }
+
+    function leapDays(year) {
+      if (leapMonth(year)) {
+        return (lunarInfo[year - 1900] & 0x10000) ? 30 : 29;
+      }
+      return 0;
+    }
+
+    function monthDays(year, month) {
+      return (lunarInfo[year - 1900] & (0x10000 >> month)) ? 30 : 29;
+    }
+
+    function getGanZhi(year) {
+      return Gan[(year - 4) % 10] + Zhi[(year - 4) % 12];
+    }
+
+    function solarToLunarDebug(solarYear, solarMonth, solarDay) {
+      consoleLog = [];
+      
+      log(`========== 开始转换：${solarYear}-${solarMonth}-${solarDay} ==========`, 'info');
+      
+      // 步骤 1: 计算基准日期差
+      const baseDate = new Date(1900, 0, 31);
+      const objDate = new Date(solarYear, solarMonth - 1, solarDay);
+      const offset = Math.floor((objDate - baseDate) / 86400000);
+      
+      log(`步骤 1: 计算日期差`, 'info');
+      log(`  基准日期：1900-01-31 (农历正月初一)`, 'info');
+      log(`  目标日期：${solarYear}-${solarMonth}-${solarDay}`, 'info');
+      log(`  相差天数：${offset} 天`, 'info');
+      
+      // 步骤 2: 计算农历年份
+      let lunarYear, lunarMonth, lunarDay;
+      let isLeap = false;
+      let testOffset = offset;
+      
+      log(`\n步骤 2: 计算农历年份`, 'info');
+      for (lunarYear = 1900; lunarYear < 2101 && testOffset > 0; lunarYear++) {
+        const daysInYear = 348 + leapDays(lunarYear);
+        log(`  检查${lunarYear}年：全年${daysInYear}天 (闰${leapMonth(lunarYear) || '无'}月), 剩余${testOffset}天`, 'info');
+        testOffset -= daysInYear;
+      }
+      
+      if (testOffset < 0) {
+        testOffset += 348 + leapDays(--lunarYear);
+        log(`  回退到${lunarYear}年，修正剩余天数：${testOffset}天`, 'warning');
+      }
+      
+      log(`  ✅ 农历年份：${lunarYear}年`, 'success');
+      
+      // 步骤 3: 计算农历月份
+      log(`\n步骤 3: 计算农历月份`, 'info');
+      const leap = leapMonth(lunarYear);
+      log(`  ${lunarYear}年闰月：${leap ? `闰${leap}月` : '无'}`, 'info');
+      
+      for (lunarMonth = 1; lunarMonth < 13 && testOffset > 0; lunarMonth++) {
+        const daysInMonth = monthDays(lunarYear, lunarMonth);
+        log(`  检查${lunarMonth}月：${daysInMonth}天，剩余${testOffset}天`, 'info');
+        testOffset -= daysInMonth;
+        
+        if (testOffset < 0) {
+          testOffset += daysInMonth;
+          log(`  回退到${lunarMonth}月，修正剩余天数：${testOffset}天`, 'warning');
+          break;
+        }
+        
+        // 检查闰月
+        if (leap === lunarMonth) {
+          const leapDaysCount = leapDays(lunarYear);
+          log(`  检查闰${lunarMonth}月：${leapDaysCount}天，剩余${testOffset}天`, 'info');
+          if (testOffset >= leapDaysCount) {
+            testOffset -= leapDaysCount;
+            lunarMonth++;
+            isLeap = true;
+            log(`  进入闰${lunarMonth - 1}月，剩余${testOffset}天`, 'warning');
+          } else {
+            isLeap = true;
+            log(`  在闰${lunarMonth}月内`, 'warning');
+            break;
+          }
+        }
+      }
+      
+      if (testOffset < 0) {
+        testOffset += monthDays(lunarYear, --lunarMonth);
+        isLeap = false;
+      }
+      
+      log(`  ✅ 农历月份：${isLeap ? '闰' : ''}${lunarMonth}月`, 'success');
+      
+      // 步骤 4: 计算农历日期
+      lunarDay = testOffset + 1;
+      log(`\n步骤 4: 计算农历日期`, 'info');
+      log(`  剩余天数：${testOffset}天`, 'info');
+      log(`  农历日期：${lunarDay}日 (${lunarDays[lunarDay - 1]})`, 'success');
+      
+      // 步骤 5: 计算干支和生肖
+      const ganzhi = getGanZhi(lunarYear);
+      const zodiac = Animals[(lunarYear - 4) % 12];
+      
+      log(`\n步骤 5: 计算干支和生肖`, 'info');
+      log(`  天干索引：(${lunarYear} - 4) % 10 = ${(lunarYear - 4) % 10} → ${Gan[(lunarYear - 4) % 10]}`, 'info');
+      log(`  地支索引：(${lunarYear} - 4) % 12 = ${(lunarYear - 4) % 12} → ${Zhi[(lunarYear - 4) % 12]}`, 'info');
+      log(`  干支：${ganzhi}`, 'success');
+      log(`  生肖索引：(${lunarYear} - 4) % 12 = ${(lunarYear - 4) % 12} → ${zodiac}`, 'success');
+      
+      log(`\n========== 转换完成 ==========`, 'success');
+      log(`结果：农历${lunarYear}年${isLeap ? '闰' : ''}${lunarMonth}月${lunarDay}日 (${ganzhi}年 ${zodiac})`, 'success');
+      
+      return {
+        year: lunarYear,
+        month: lunarMonth,
+        day: lunarDay,
+        isLeap,
+        ganZhi: ganzhi,
+        animal: zodiac
+      };
+    }
+
+    function runConversion() {
+      const solarYear = parseInt(document.getElementById('solarYear').value);
+      const solarMonth = parseInt(document.getElementById('solarMonth').value);
+      const solarDay = parseInt(document.getElementById('solarDay').value);
+      
+      const result = solarToLunarDebug(solarYear, solarMonth, solarDay);
+      
+      // 显示结果
+      document.getElementById('outputSection').style.display = 'block';
+      document.getElementById('lunarYearResult').textContent = `${result.year}年`;
+      document.getElementById('lunarMonthResult').textContent = `${result.isLeap ? '闰' : ''}${lunarMonths[result.month - 1]}月`;
+      document.getElementById('lunarDayResult').textContent = lunarDays[result.day - 1];
+      document.getElementById('zodiacResult').textContent = result.animal;
+      document.getElementById('ganzhiResult').textContent = result.ganZhi;
+      
+      // 显示逐步调试
+      renderStepByStep(solarYear, solarMonth, solarDay, result);
+      
+      // 显示控制台输出
+      renderConsoleOutput();
+      
+      // 显示数据验证
+      renderDataVisualization(solarYear, solarMonth, solarDay, result);
+    }
+
+    function renderStepByStep(solarYear, solarMonth, solarDay, result) {
+      const container = document.getElementById('stepByStep');
+      container.innerHTML = `
+        <div class="step">
+          <div class="step-title">步骤 1: 计算日期差</div>
+          <div class="step-detail">
+            基准日期：1900-01-31 (农历正月初一)<br>
+            目标日期：${solarYear}-${solarMonth}-${solarDay}<br>
+            相差天数：${Math.floor((new Date(solarYear, solarMonth - 1, solarDay) - new Date(1900, 0, 31)) / 86400000)} 天
+          </div>
+        </div>
+        
+        <div class="step">
+          <div class="step-title">步骤 2: 确定农历年份</div>
+          <div class="step-detail">
+            农历年份：${result.year}年<br>
+            干支：${result.ganZhi}<br>
+            生肖：${result.animal}
+          </div>
+        </div>
+        
+        <div class="step">
+          <div class="step-title">步骤 3: 确定农历月份</div>
+          <div class="step-detail">
+            闰月信息：${leapMonth(result.year) ? `闰${leapMonth(result.year)}月` : '无'}<br>
+            农历月份：${result.isLeap ? '闰' : ''}${lunarMonths[result.month - 1]}月
+          </div>
+        </div>
+        
+        <div class="step">
+          <div class="step-title">步骤 4: 确定农历日期</div>
+          <div class="step-detail">
+            农历日期：${lunarDays[result.day - 1]} (${result.day}日)
+          </div>
+        </div>
+        
+        <div class="step">
+          <div class="step-title">步骤 5: 计算干支生肖</div>
+          <div class="step-detail">
+            天干：${Gan[(result.year - 4) % 10]} (索引：${(result.year - 4) % 10})<br>
+            地支：${Zhi[(result.year - 4) % 12]} (索引：${(result.year - 4) % 12})<br>
+            生肖：${result.animal} (索引：${(result.year - 4) % 12})
+          </div>
+        </div>
+      `;
+    }
+
+    function renderConsoleOutput() {
+      const container = document.getElementById('consoleOutput');
+      container.innerHTML = consoleLog.map(log => 
+        `<div class="console-line console-${log.type}">${log.message}</div>`
+      ).join('');
+    }
+
+    function renderDataVisualization(solarYear, solarMonth, solarDay, result) {
+      const container = document.getElementById('dataVisualization');
+      const baseDate = new Date(1900, 0, 31);
+      const objDate = new Date(solarYear, solarMonth - 1, solarDay);
+      const totalDays = Math.floor((objDate - baseDate) / 86400000);
+      
+      let yearBreakdown = [];
+      let remaining = totalDays;
+      for (let y = 1900; y <= result.year; y++) {
+        const daysInYear = 348 + leapDays(y);
+        if (remaining > daysInYear) {
+          yearBreakdown.push({ year: y, days: daysInYear, remaining: remaining - daysInYear });
+          remaining -= daysInYear;
+        } else {
+          yearBreakdown.push({ year: y, days: remaining, remaining: 0, isFinal: true });
+          break;
+        }
+      }
+      
+      container.innerHTML = `
+        <h3>数据验证：${result.year}年</h3>
+        <table class="comparison-table">
+          <tr>
+            <th>属性</th>
+            <th>值</th>
+            <th>验证</th>
+          </tr>
+          <tr>
+            <td>lunarInfo 索引</td>
+            <td>${result.year - 1900}</td>
+            <td>${lunarInfo[result.year - 1900].toString(16).toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td>闰月</td>
+            <td>${leapMonth(result.year) || '无'}</td>
+            <td>${(lunarInfo[result.year - 1900] & 0xf) || 0}</td>
+          </tr>
+          <tr>
+            <td>全年天数</td>
+            <td>${348 + leapDays(result.year)}</td>
+            <td>348 + ${leapDays(result.year)} = ${348 + leapDays(result.year)}</td>
+          </tr>
+          <tr>
+            <td>总偏移天数</td>
+            <td>${totalDays}</td>
+            <td class="${totalDays >= 0 ? 'match-highlight' : 'diff-highlight'}">${totalDays >= 0 ? '✅ 正常' : '❌ 错误'}</td>
+          </tr>
+        </table>
+        
+        <h3>时间轴可视化</h3>
+        <div class="timeline" style="position: relative; height: 80px;">
+          ${yearBreakdown.slice(-5).map((item, i) => {
+            const left = (i / 5) * 100;
+            return `
+              <div class="timeline-marker" style="left: ${left}%">
+                <div class="timeline-label">${item.year}年<br>${item.isFinal ? '← 目标' : '经过'}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function compareResult() {
+      const result = {
+        year: parseInt(document.getElementById('lunarYearResult').textContent),
+        month: document.getElementById('lunarMonthResult').textContent,
+        day: document.getElementById('lunarDayResult').textContent,
+        zodiac: document.getElementById('zodiacResult').textContent
+      };
+      
+      const expected = {
+        year: parseInt(document.getElementById('expectedYear').value),
+        month: parseInt(document.getElementById('expectedMonth').value),
+        day: parseInt(document.getElementById('expectedDay').value),
+        zodiac: document.getElementById('expectedZodiac').value
+      };
+      
+      if (!expected.year || !expected.month || !expected.day || !expected.zodiac) {
+        alert('请填写完整的预期值');
+        return;
+      }
+      
+      const monthText = result.month.includes('闰') ? result.month : lunarMonths[expected.month - 1] + '月';
+      const dayText = lunarDays[expected.day - 1];
+      
+      const comparisons = [
+        { label: '年份', actual: result.year, expected: expected.year, match: result.year === expected.year },
+        { label: '月份', actual: result.month, expected: monthText, match: result.month.includes(lunarMonths[expected.month - 1]) },
+        { label: '日期', actual: result.day, expected: dayText, match: result.day === expected.day },
+        { label: '生肖', actual: result.zodiac, expected: expected.zodiac, match: result.zodiac === expected.zodiac }
+      ];
+      
+      const allMatch = comparisons.every(c => c.match);
+      
+      const html = `
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>项目</th>
+              <th>实际值</th>
+              <th>预期值</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${comparisons.map(c => `
+              <tr>
+                <td>${c.label}</td>
+                <td>${c.actual}</td>
+                <td>${c.expected}</td>
+                <td>${c.match ? '<span class="match-highlight">✅ 匹配</span>' : '<span class="diff-highlight">❌ 不匹配</span>'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div class="console-line console-${allMatch ? 'success' : 'error'}" style="margin-top: 15px; padding: 10px; background: ${allMatch ? '#1a3a1a' : '#5a1a1a'}; border-radius: 4px;">
+          ${allMatch ? '✅ 所有项目匹配！转换正确。' : '❌ 发现不匹配项，请检查上方调试信息定位问题。'}
+        </div>
+      `;
+      
+      document.getElementById('comparisonResult').innerHTML = html;
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tabName).classList.add('active');
+    }
+
+    function setPreset(year, month, day) {
+      document.getElementById('solarYear').value = year;
+      document.getElementById('solarMonth').value = month;
+      document.getElementById('solarDay').value = day;
+      runConversion();
+    }
+
+    // 初始化运行一次
+    runConversion();
+  </script>
+</body>
+</html>

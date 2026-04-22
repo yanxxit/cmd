@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UUID v7 时间戳验证测试</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #569cd6;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    h2 {
+      color: #4ec9b0;
+      margin: 30px 0 15px;
+      font-size: 22px;
+      border-bottom: 2px solid #3e3e3e;
+      padding-bottom: 10px;
+    }
+
+    .test-section {
+      background: #252526;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #569cd6, #4a8ac7);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(86, 156, 214, 0.4);
+    }
+
+    button.success {
+      background: linear-gradient(135deg, #4caf50, #45a049);
+    }
+
+    button.warning {
+      background: linear-gradient(135deg, #ff9800, #f57c00);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border: 1px solid #3e3e3e;
+    }
+
+    th {
+      background: #2d2d30;
+      color: #569cd6;
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background: #2d2d30;
+    }
+
+    .status {
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .status.pass {
+      background: #4caf50;
+      color: white;
+    }
+
+    .status.fail {
+      background: #f44336;
+      color: white;
+    }
+
+    .status.info {
+      background: #2196f3;
+      color: white;
+    }
+
+    .result-box {
+      background: #000;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .test-case {
+      background: #2d2d30;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      border-left: 4px solid #569cd6;
+    }
+
+    .test-case h3 {
+      color: #4ec9b0;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .diff {
+      margin: 10px 0;
+      padding: 10px;
+      background: #1e1e1e;
+      border-radius: 4px;
+    }
+
+    .diff-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid #3e3e3e;
+    }
+
+    .diff-item:last-child {
+      border-bottom: none;
+    }
+
+    .diff-label {
+      color: #808080;
+    }
+
+    .diff-value {
+      color: #d4d4d4;
+      font-family: 'Courier New', monospace;
+    }
+
+    .diff-error {
+      color: #f44336;
+    }
+
+    .diff-success {
+      color: #4caf50;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .summary-card {
+      background: #2d2d30;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .summary-number {
+      font-size: 36px;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .pass-count { color: #4caf50; }
+    .fail-count { color: #f44336; }
+    .total-count { color: #569cd6; }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+      align-items: center;
+    }
+
+    input[type="datetime-local"] {
+      padding: 8px 12px;
+      background: #1e1e1e;
+      border: 1px solid #3e3e3e;
+      color: #d4d4d4;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+
+    .uuid-display {
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      color: #9cdcfe;
+      word-break: break-all;
+    }
+
+    .timestamp-display {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #ce9178;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 UUID v7 时间戳验证测试平台</h1>
+    
+    <div class="summary">
+      <div class="summary-card">
+        <span class="summary-number total-count" id="totalCount">0</span>
+        <span>总测试数</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-number pass-count" id="passCount">0</span>
+        <span>✅ 通过</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-number fail-count" id="failCount">0</span>
+        <span>❌ 失败</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-number" id="accuracyCount">0</span>
+        <span>⏱️ 精度 (ms)</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button onclick="runPresetTests()">▶️ 运行预设测试</button>
+      <button onclick="runCurrentTimeTest()">⏰ 测试当前时间</button>
+      <button onclick="runRandomTests()">🎲 随机时间测试 (10 个)</button>
+      <button class="success" onclick="runBoundaryTests()">🔍 边界时间测试</button>
+      <button class="warning" onclick="clearResults()">🗑️ 清除结果</button>
+    </div>
+
+    <div class="input-group">
+      <label>自定义时间测试:</label>
+      <input type="datetime-local" id="customTimeInput">
+      <button onclick="runCustomTimeTest()">测试</button>
+    </div>
+
+    <!-- 预设测试用例 -->
+    <h2>📋 预设测试用例</h2>
+    <div class="test-section" id="presetTests"></div>
+
+    <!-- 当前时间测试 -->
+    <h2>⏰ 当前时间测试</h2>
+    <div class="test-section" id="currentTimeTest"></div>
+
+    <!-- 边界测试 -->
+    <h2>🔍 边界时间测试</h2>
+    <div class="test-section" id="boundaryTests"></div>
+
+    <!-- 详细结果 -->
+    <h2>📊 详细测试结果</h2>
+    <div class="result-box" id="detailedResults"></div>
+  </div>
+
+  <script>
+    // UUID v7 生成和解析核心算法
+    function generateUUIDv7(timestamp) {
+      const rand = new Uint8Array(10);
+      crypto.getRandomValues(rand);
+      
+      const timestampHex = timestamp.toString(16).padStart(12, '0');
+      const randHex = Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      const uuid = `${timestampHex.slice(0,8)}-${timestampHex.slice(8,12)}-7${randHex.slice(2,5)}-${((parseInt(randHex.slice(6,8), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0')}${randHex.slice(8,10)}-${randHex.slice(10)}`;
+      
+      return uuid;
+    }
+
+    function parseUUIDv7(uuid) {
+      const clean = uuid.toLowerCase().replace(/-/g, '');
+      
+      if (clean[12] !== '7') {
+        throw new Error('不是 UUID v7 格式');
+      }
+      
+      const timestampHex = clean.slice(0, 12);
+      const timestamp = parseInt(timestampHex, 16);
+      
+      return {
+        timestamp,
+        date: new Date(timestamp),
+        hex: timestampHex
+      };
+    }
+
+    function formatDate(ms) {
+      const date = new Date(ms);
+      return date.toISOString().replace('T', ' ').slice(0, 23) + ' UTC';
+    }
+
+    function formatDateTime(ms) {
+      const date = new Date(ms);
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      const s = String(date.getSeconds()).padStart(2, '0');
+      const msStr = String(date.getMilliseconds()).padStart(3, '0');
+      return `${y}-${m}-${d} ${h}:${min}:${s}.${msStr}`;
+    }
+
+    let testStats = {
+      total: 0,
+      pass: 0,
+      fail: 0,
+      maxError: 0
+    };
+
+    function updateStats(passed, error = 0) {
+      testStats.total++;
+      if (passed) {
+        testStats.pass++;
+      } else {
+        testStats.fail++;
+      }
+      testStats.maxError = Math.max(testStats.maxError, error);
+      
+      document.getElementById('totalCount').textContent = testStats.total;
+      document.getElementById('passCount').textContent = testStats.pass;
+      document.getElementById('failCount').textContent = testStats.fail;
+      document.getElementById('accuracyCount').textContent = testStats.maxError;
+    }
+
+    function createTestCase(title, inputTime, expectedTime) {
+      const uuid = generateUUIDv7(inputTime);
+      const parsed = parseUUIDv7(uuid);
+      
+      const timeDiff = Math.abs(parsed.timestamp - expectedTime);
+      const passed = timeDiff <= 1; // 允许 1ms 误差
+      
+      updateStats(passed, timeDiff);
+      
+      return `
+        <div class="test-case">
+          <h3>${title}</h3>
+          <div class="uuid-display">UUID v7: ${uuid}</div>
+          <div class="diff">
+            <div class="diff-item">
+              <span class="diff-label">输入时间戳:</span>
+              <span class="diff-value">${inputTime} ms</span>
+            </div>
+            <div class="diff-item">
+              <span class="diff-label">输入时间:</span>
+              <span class="diff-value">${formatDateTime(inputTime)}</span>
+            </div>
+            <div class="diff-item">
+              <span class="diff-label">预期时间戳:</span>
+              <span class="diff-value">${expectedTime} ms</span>
+            </div>
+            <div class="diff-item">
+              <span class="diff-label">解析时间戳:</span>
+              <span class="diff-value">${parsed.timestamp} ms</span>
+            </div>
+            <div class="diff-item">
+              <span class="diff-label">解析时间:</span>
+              <span class="diff-value">${formatDateTime(parsed.timestamp)}</span>
+            </div>
+            <div class="diff-item">
+              <span class="diff-label">时间戳误差:</span>
+              <span class="diff-value ${passed ? 'diff-success' : 'diff-error'}">
+                ${timeDiff} ms ${passed ? '✅' : '❌'}
+              </span>
+            </div>
+            <div class="diff-item">
+              <span class="diff-label">时间戳高位 (hex):</span>
+              <span class="diff-value">${parsed.hex.slice(0, 6)}</span>
+            </div>
+            <div class="diff-item">
+              <span class="diff-label">时间戳低位 (hex):</span>
+              <span class="diff-value">${parsed.hex.slice(6)}</span>
+            </div>
+            <div class="diff-item">
+              <span class="diff-label">状态:</span>
+              <span class="status ${passed ? 'pass' : 'fail'}">
+                ${passed ? '✅ 验证通过' : '❌ 验证失败'}
+              </span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function runPresetTests() {
+      const container = document.getElementById('presetTests');
+      const results = [];
+      
+      // 测试用例 1: 2024 年春节
+      results.push(createTestCase(
+        '测试 1: 2024 年春节 (2024-02-10 00:00:00.000)',
+        new Date('2024-02-10T00:00:00.000Z').getTime(),
+        new Date('2024-02-10T00:00:00.000Z').getTime()
+      ));
+      
+      // 测试用例 2: 2000 年千禧年
+      results.push(createTestCase(
+        '测试 2: 2000 年千禧年 (2000-01-01 00:00:00.000)',
+        new Date('2000-01-01T00:00:00.000Z').getTime(),
+        new Date('2000-01-01T00:00:00.000Z').getTime()
+      ));
+      
+      // 测试用例 3: 1970 年 Unix 纪元
+      results.push(createTestCase(
+        '测试 3: Unix 纪元后 1 小时 (1970-01-01 01:00:00.000)',
+        new Date('1970-01-01T01:00:00.000Z').getTime(),
+        new Date('1970-01-01T01:00:00.000Z').getTime()
+      ));
+      
+      // 测试用例 4: 2030 年未来时间
+      results.push(createTestCase(
+        '测试 4: 2030 年未来时间 (2030-06-15 12:30:45.123)',
+        new Date('2030-06-15T12:30:45.123Z').getTime(),
+        new Date('2030-06-15T12:30:45.123Z').getTime()
+      ));
+      
+      // 测试用例 5: 昨天
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      yesterday.setHours(0, 0, 0, 0);
+      results.push(createTestCase(
+        '测试 5: 昨天零点',
+        yesterday.getTime(),
+        yesterday.getTime()
+      ));
+      
+      // 测试用例 6: 特定时间
+      results.push(createTestCase(
+        '测试 6: 特定时间 (2025-12-25 15:30:00.500)',
+        new Date('2025-12-25T15:30:00.500Z').getTime(),
+        new Date('2025-12-25T15:30:00.500Z').getTime()
+      ));
+      
+      container.innerHTML = results.join('');
+      appendDetailedResults('预设测试', results);
+    }
+
+    function runCurrentTimeTest() {
+      const container = document.getElementById('currentTimeTest');
+      const results = [];
+      const detailedLogs = [];
+      
+      // 连续生成 5 个 UUID v7，验证时间递增
+      for (let i = 0; i < 5; i++) {
+        const now = Date.now();
+        const uuid = generateUUIDv7(now);
+        const parsed = parseUUIDv7(uuid);
+        const diff = Math.abs(parsed.timestamp - now);
+        const passed = diff <= 1;
+        
+        updateStats(passed, diff);
+        
+        detailedLogs.push(`[${i + 1}] 生成时间：${formatDateTime(now)} (${now} ms)`);
+        detailedLogs.push(`    UUID v7: ${uuid}`);
+        detailedLogs.push(`    解析时间：${formatDateTime(parsed.timestamp)} (${parsed.timestamp} ms)`);
+        detailedLogs.push(`    误差：${diff} ms ${passed ? '✅' : '❌'}`);
+        detailedLogs.push('');
+        
+        results.push(`
+          <div class="test-case">
+            <h3>当前时间测试 #${i + 1}</h3>
+            <div class="uuid-display">${uuid}</div>
+            <div class="diff">
+              <div class="diff-item">
+                <span class="diff-label">生成时间:</span>
+                <span class="diff-value">${formatDateTime(now)}</span>
+              </div>
+              <div class="diff-item">
+                <span class="diff-label">解析时间:</span>
+                <span class="diff-value">${formatDateTime(parsed.timestamp)}</span>
+              </div>
+              <div class="diff-item">
+                <span class="diff-label">误差:</span>
+                <span class="diff-value ${passed ? 'diff-success' : 'diff-error'}">${diff} ms</span>
+              </div>
+              <div class="diff-item">
+                <span class="diff-label">状态:</span>
+                <span class="status ${passed ? 'pass' : 'fail'}">${passed ? '✅' : '❌'}</span>
+              </div>
+            </div>
+          </div>
+        `);
+      }
+      
+      container.innerHTML = results.join('');
+      appendDetailedResults('当前时间测试', detailedLogs.join('\n'));
+    }
+
+    function runRandomTests() {
+      const container = document.getElementById('presetTests');
+      const results = [];
+      const detailedLogs = [];
+      
+      for (let i = 0; i < 10; i++) {
+        // 生成随机时间（过去 10 年到未来 10 年）
+        const now = Date.now();
+        const randomOffset = (Math.random() - 0.5) * 20 * 365 * 24 * 60 * 60 * 1000;
+        const randomTime = Math.floor(now + randomOffset);
+        
+        const uuid = generateUUIDv7(randomTime);
+        const parsed = parseUUIDv7(uuid);
+        const diff = Math.abs(parsed.timestamp - randomTime);
+        const passed = diff <= 1;
+        
+        updateStats(passed, diff);
+        
+        detailedLogs.push(`随机测试 #${i + 1}: ${formatDateTime(randomTime)}`);
+        detailedLogs.push(`  UUID: ${uuid}`);
+        detailedLogs.push(`  误差：${diff} ms ${passed ? '✅' : '❌'}`);
+        detailedLogs.push('');
+        
+        results.push(`
+          <div class="test-case">
+            <h3>随机测试 #${i + 1}</h3>
+            <div class="uuid-display">${uuid}</div>
+            <div class="diff">
+              <div class="diff-item">
+                <span class="diff-label">随机时间:</span>
+                <span class="diff-value">${formatDateTime(randomTime)}</span>
+              </div>
+              <div class="diff-item">
+                <span class="diff-label">解析时间:</span>
+                <span class="diff-value">${formatDateTime(parsed.timestamp)}</span>
+              </div>
+              <div class="diff-item">
+                <span class="diff-label">误差:</span>
+                <span class="diff-value ${passed ? 'diff-success' : 'diff-error'}">${diff} ms</span>
+              </div>
+            </div>
+          </div>
+        `);
+      }
+      
+      container.innerHTML = results.join('');
+      appendDetailedResults('随机时间测试', detailedLogs.join('\n'));
+    }
+
+    function runBoundaryTests() {
+      const container = document.getElementById('boundaryTests');
+      const results = [];
+      const detailedLogs = [];
+      
+      // 边界测试 1: 毫秒最大值
+      const maxMs = new Date('2024-06-15T12:30:45.999Z').getTime();
+      results.push(createTestCase('边界 1: 毫秒最大值 (.999)', maxMs, maxMs));
+      
+      // 边界测试 2: 毫秒最小值
+      const minMs = new Date('2024-06-15T12:30:45.000Z').getTime();
+      results.push(createTestCase('边界 2: 毫秒最小值 (.000)', minMs, minMs));
+      
+      // 边界测试 3: 秒边界
+      const secBoundary = new Date('2024-06-15T12:30:00.500Z').getTime();
+      results.push(createTestCase('边界 3: 秒边界 (:00)', secBoundary, secBoundary));
+      
+      // 边界测试 4: 分钟边界
+      const minBoundary = new Date('2024-06-15T12:00:30.250Z').getTime();
+      results.push(createTestCase('边界 4: 分钟边界 (:00)', minBoundary, minBoundary));
+      
+      // 边界测试 5: 小时边界
+      const hourBoundary = new Date('2024-06-15T00:15:30.750Z').getTime();
+      results.push(createTestCase('边界 5: 小时边界 (00:xx)', hourBoundary, hourBoundary));
+      
+      // 边界测试 6: 天边界
+      const dayBoundary = new Date('2024-06-01T12:30:45.123Z').getTime();
+      results.push(createTestCase('边界 6: 天边界 (01 日)', dayBoundary, dayBoundary));
+      
+      // 边界测试 7: 月末
+      const monthEnd = new Date('2024-01-31T23:59:59.999Z').getTime();
+      results.push(createTestCase('边界 7: 月末 (1 月 31 日)', monthEnd, monthEnd));
+      
+      // 边界测试 8: 年末
+      const yearEnd = new Date('2024-12-31T23:59:59.999Z').getTime();
+      results.push(createTestCase('边界 8: 年末 (12 月 31 日)', yearEnd, yearEnd));
+      
+      container.innerHTML = results.join('');
+      appendDetailedResults('边界时间测试', '所有边界测试完成');
+    }
+
+    function runCustomTimeTest() {
+      const input = document.getElementById('customTimeInput').value;
+      if (!input) {
+        alert('请选择日期时间');
+        return;
+      }
+      
+      const customTime = new Date(input).getTime();
+      const container = document.getElementById('currentTimeTest');
+      const result = createTestCase(
+        `自定义时间测试: ${formatDateTime(customTime)}`,
+        customTime,
+        customTime
+      );
+      
+      container.innerHTML = result;
+    }
+
+    function appendDetailedResults(title, content) {
+      const container = document.getElementById('detailedResults');
+      const timestamp = new Date().toLocaleTimeString();
+      
+      const log = `
+════════════════════════════════════════
+${title} - ${timestamp}
+════════════════════════════════════════
+${typeof content === 'string' ? content : content.join('\n')}
+
+统计：总计 ${testStats.total} | 通过 ${testStats.pass} | 失败 ${testStats.fail} | 最大误差 ${testStats.maxError}ms
+
+`;
+      
+      container.innerHTML = log + container.innerHTML;
+    }
+
+    function clearResults() {
+      document.getElementById('presetTests').innerHTML = '';
+      document.getElementById('currentTimeTest').innerHTML = '';
+      document.getElementById('boundaryTests').innerHTML = '';
+      document.getElementById('detailedResults').innerHTML = '';
+      testStats = { total: 0, pass: 0, fail: 0, maxError: 0 };
+      updateStats(0, 0);
+    }
+
+    // 初始化
+    updateStats(0, 0);
+  </script>
+</body>
+</html>

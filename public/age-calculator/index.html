@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>年龄计算器 - 支持公历和农历</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .calendar-type-selector {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 25px;
+      justify-content: center;
+    }
+
+    .calendar-type-btn {
+      padding: 12px 30px;
+      border: 2px solid #667eea;
+      background: white;
+      color: #667eea;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .calendar-type-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: transparent;
+    }
+
+    .calendar-type-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .input-section {
+      margin-bottom: 25px;
+    }
+
+    .input-section label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .date-inputs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .date-input-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .date-input-group label {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 5px;
+    }
+
+    select {
+      padding: 12px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 16px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .lunar-info {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border-left: 4px solid #667eea;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+    }
+
+    .lunar-info h3 {
+      color: #667eea;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .lunar-info p {
+      color: #475569;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .result-section {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .result-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+
+    .result-card .label {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .result-card .value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .result-card .unit {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-left: 4px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .history-section {
+      border-top: 2px solid #e5e7eb;
+      padding-top: 25px;
+    }
+
+    .history-section h2 {
+      font-size: 20px;
+      color: #111827;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      background: #f9fafb;
+      padding: 15px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s;
+    }
+
+    .history-item:hover {
+      background: #f3f4f6;
+      transform: translateX(4px);
+    }
+
+    .history-info {
+      flex: 1;
+    }
+
+    .history-date {
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .history-age {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .history-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .history-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .history-btn-load {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .history-btn-load:hover {
+      background: #bfdbfe;
+    }
+
+    .history-btn-delete {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .history-btn-delete:hover {
+      background: #fecaca;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #9ca3af;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        padding: 20px;
+      }
+
+      .date-inputs {
+        grid-template-columns: 1fr;
+      }
+
+      .result-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .action-buttons {
+        flex-direction: column;
+      }
+
+      .calendar-type-selector {
+        flex-direction: column;
+      }
+
+      .calendar-type-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>
+        <span>🎂</span>
+        <span>年龄计算器</span>
+      </h1>
+      <p>支持公历和农历生日，精确计算年龄、天数、生肖和星座</p>
+    </header>
+
+    <div class="content">
+      <!-- 日历类型选择 -->
+      <div class="calendar-type-selector">
+        <button class="calendar-type-btn active" data-type="solar">
+          📅 公历生日
+        </button>
+        <button class="calendar-type-btn" data-type="lunar">
+          🌙 农历生日
+        </button>
+      </div>
+
+      <!-- 输入区域 -->
+      <div class="input-section">
+        <label>请选择出生日期</label>
+        <div class="date-inputs" id="dateInputs">
+          <div class="date-input-group">
+            <label>年份</label>
+            <select id="birthYear"></select>
+          </div>
+          <div class="date-input-group">
+            <label>月份</label>
+            <select id="birthMonth"></select>
+          </div>
+          <div class="date-input-group">
+            <label>日期</label>
+            <select id="birthDay"></select>
+          </div>
+        </div>
+
+        <!-- 农历信息显示 -->
+        <div class="lunar-info" id="lunarInfo" style="display: none;">
+          <h3>🌙 农历信息</h3>
+          <p id="lunarDateText"></p>
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="action-buttons">
+        <button class="btn btn-primary" id="calculateBtn">
+          🎯 立即计算
+        </button>
+        <button class="btn btn-secondary" id="resetBtn">
+          🔄 重置
+        </button>
+      </div>
+
+      <!-- 结果区域 -->
+      <div class="result-section" id="resultSection" style="display: none;">
+        <div class="result-grid">
+          <div class="result-card">
+            <div class="label">周岁</div>
+            <div class="value" id="ageValue">0<span class="unit">岁</span></div>
+          </div>
+          <div class="result-card">
+            <div class="label">虚岁</div>
+            <div class="value" id="virtualAgeValue">0<span class="unit">岁</span></div>
+          </div>
+          <div class="result-card">
+            <div class="label">总天数</div>
+            <div class="value" id="daysValue">0<span class="unit">天</span></div>
+          </div>
+          <div class="result-card">
+            <div class="label">生肖</div>
+            <div class="value" id="zodiacValue" style="font-size: 24px;">-</div>
+          </div>
+          <div class="result-card">
+            <div class="label">星座</div>
+            <div class="value" id="constellationValue" style="font-size: 20px;">-</div>
+          </div>
+          <div class="result-card">
+            <div class="label">下次生日</div>
+            <div class="value" id="nextBirthdayValue" style="font-size: 18px;">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 历史记录 -->
+      <div class="history-section">
+        <h2>
+          <span>📜</span>
+          <span>计算历史</span>
+        </h2>
+        <div class="history-list" id="historyList">
+          <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <div>暂无计算记录</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 农历年数据（1900-2100）
+    const lunarInfo = [
+      0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
+      0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,
+      0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970,
+      0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950,
+      0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557,
+      0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5b0, 0x14573, 0x052b0, 0x0a9a8, 0x0e950, 0x06aa0,
+      0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0,
+      0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b6a0, 0x195a6,
+      0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570,
+      0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x055c0, 0x0ab60, 0x096d5, 0x092e0,
+      0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5,
+      0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930,
+      0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530,
+      0x05aa0, 0x076a3, 0x096d0, 0x04afb, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45,
+      0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0,
+      0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0,
+      0x0a2e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4,
+      0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0,
+      0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160,
+      0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252,
+      0x0d520
+    ];
+
+    const Gan = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+    const Zhi = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+    const Animals = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"];
+    const lunarMonths = ["正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "冬", "腊"];
+    const lunarDays = [
+      "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
+      "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
+      "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"
+    ];
+
+    // 工具函数
+    function leapMonth(year) {
+      return lunarInfo[year - 1900] & 0xf;
+    }
+
+    function leapDays(year) {
+      if (leapMonth(year)) {
+        return (lunarInfo[year - 1900] & 0x10000) ? 30 : 29;
+      }
+      return 0;
+    }
+
+    function monthDays(year, month) {
+      return (lunarInfo[year - 1900] & (0x10000 >> month)) ? 30 : 29;
+    }
+
+    function solarToLunar(year, month, day) {
+      let baseDate = new Date(1900, 0, 31);
+      let objDate = new Date(year, month - 1, day);
+      let offset = Math.floor((objDate - baseDate) / 86400000);
+
+      let lunarYear, lunarMonth, lunarDay;
+      let isLeap = false;
+
+      for (lunarYear = 1900; lunarYear < 2101 && offset > 0; lunarYear++) {
+        let daysInYear = 348 + leapDays(lunarYear);
+        offset -= daysInYear;
+      }
+      if (offset < 0) {
+        offset += 348 + leapDays(--lunarYear);
+      }
+
+      for (lunarMonth = 1; lunarMonth < 13 && offset > 0; lunarMonth++) {
+        let daysInMonth = monthDays(lunarYear, lunarMonth);
+        offset -= daysInMonth;
+      }
+      if (offset < 0) {
+        offset += monthDays(lunarYear, --lunarMonth);
+      }
+
+      lunarDay = offset + 1;
+
+      let leap = leapMonth(lunarYear);
+      if (leap && lunarMonth > leap) {
+        lunarMonth--;
+        isLeap = false;
+      }
+      if (leap && lunarMonth === leap && offset >= monthDays(lunarYear, leap)) {
+        isLeap = true;
+        lunarMonth++;
+      }
+
+      return {
+        year: lunarYear,
+        month: lunarMonth,
+        day: lunarDay,
+        isLeap,
+        ganZhi: getGanZhi(lunarYear),
+        animal: Animals[(lunarYear - 4) % 12]
+      };
+    }
+
+    function getGanZhi(year) {
+      return Gan[(year - 4) % 10] + Zhi[(year - 4) % 12];
+    }
+
+    function lunarToSolar(year, month, day, isLeapMonth = false) {
+      let offset = 0;
+      for (let i = 1900; i < year; i++) {
+        offset += 348 + leapDays(i);
+      }
+
+      let leap = leapMonth(year);
+      for (let i = 1; i < month; i++) {
+        offset += monthDays(year, i);
+        if (leap === i) {
+          offset += leapDays(year);
+        }
+      }
+
+      if (isLeapMonth && leap === month) {
+        offset += leapDays(year);
+      }
+
+      offset += day - 1;
+      let baseDate = new Date(1900, 0, 31);
+      let solarDate = new Date(baseDate.getTime() + offset * 86400000);
+      
+      return {
+        year: solarDate.getFullYear(),
+        month: solarDate.getMonth() + 1,
+        day: solarDate.getDate()
+      };
+    }
+
+    // 生肖
+    function getZodiac(year) {
+      return Animals[(year - 4) % 12];
+    }
+
+    // 星座
+    function getConstellation(month, day) {
+      const dates = [20, 19, 21, 20, 21, 22, 23, 23, 23, 24, 22, 22];
+      const signs = [
+        '摩羯座', '水瓶座', '双鱼座', '白羊座', '金牛座', '双子座',
+        '巨蟹座', '狮子座', '处女座', '天秤座', '天蝎座', '射手座', '摩羯座'
+      ];
+      return dates[month - 1] < day ? signs[month] : signs[month - 1];
+    }
+
+    // 计算年龄
+    function calculateAge(birthDate, isLunar = false) {
+      let solarBirthDate;
+      
+      if (isLunar) {
+        const solar = lunarToSolar(birthDate.year, birthDate.month, birthDate.day, birthDate.isLeap);
+        solarBirthDate = new Date(solar.year, solar.month - 1, solar.day);
+      } else {
+        solarBirthDate = new Date(birthDate.year, birthDate.month - 1, birthDate.day);
+      }
+
+      const today = new Date();
+      const diff = today - solarBirthDate;
+      const days = Math.floor(diff / 86400000);
+      
+      let age = today.getFullYear() - solarBirthDate.getFullYear();
+      let monthDiff = today.getMonth() - solarBirthDate.getMonth();
+      let dayDiff = today.getDate() - solarBirthDate.getDate();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+        age--;
+      }
+
+      const virtualAge = age + 1;
+
+      // 计算下次生日
+      let nextBirthday = new Date(today.getFullYear(), solarBirthDate.getMonth(), solarBirthDate.getDate());
+      if (nextBirthday < today) {
+        nextBirthday.setFullYear(nextBirthday.getFullYear() + 1);
+      }
+      const daysToNextBirthday = Math.floor((nextBirthday - today) / 86400000);
+
+      return {
+        age,
+        virtualAge,
+        days,
+        zodiac: getZodiac(solarBirthDate.getFullYear()),
+        constellation: getConstellation(solarBirthDate.getMonth() + 1, solarBirthDate.getDate()),
+        nextBirthday: daysToNextBirthday,
+        nextBirthdayDate: nextBirthday
+      };
+    }
+
+    // 初始化年份选择
+    function initYearSelect() {
+      const yearSelect = document.getElementById('birthYear');
+      const currentYear = new Date().getFullYear();
+      for (let year = 1900; year <= currentYear; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        if (year === 2000) {
+          option.selected = true;
+        }
+        yearSelect.appendChild(option);
+      }
+    }
+
+    // 初始化月份选择
+    function initMonthSelect() {
+      const monthSelect = document.getElementById('birthMonth');
+      for (let month = 1; month <= 12; month++) {
+        const option = document.createElement('option');
+        option.value = month;
+        option.textContent = month;
+        if (month === 1) {
+          option.selected = true;
+        }
+        monthSelect.appendChild(option);
+      }
+    }
+
+    // 初始化日期选择
+    function initDaySelect(month = 1, year = 2000, isLunar = false) {
+      const daySelect = document.getElementById('birthDay');
+      daySelect.innerHTML = '';
+      
+      let daysInMonth;
+      if (isLunar) {
+        daysInMonth = monthDays(year, month);
+      } else {
+        daysInMonth = new Date(year, month, 0).getDate();
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const option = document.createElement('option');
+        option.value = day;
+        option.textContent = isLunar ? lunarDays[day - 1] : day;
+        if (day === 1) {
+          option.selected = true;
+        }
+        daySelect.appendChild(option);
+      }
+    }
+
+    // 更新农历信息显示
+    function updateLunarDisplay() {
+      const year = parseInt(document.getElementById('birthYear').value);
+      const month = parseInt(document.getElementById('birthMonth').value);
+      const day = parseInt(document.getElementById('birthDay').value);
+      const isLunarMode = document.querySelector('.calendar-type-btn.active').dataset.type === 'lunar';
+
+      const lunar = solarToLunar(year, month, day);
+      const lunarText = `农历${lunar.ganZhi}年（${lunar.animal}年）${lunar.isLeap ? '闰' : ''}${lunarMonths[lunar.month - 1]}月${lunarDays[lunar.day - 1]}`;
+      
+      document.getElementById('lunarDateText').textContent = lunarText;
+    }
+
+    // 渲染结果
+    function renderResult(result) {
+      document.getElementById('resultSection').style.display = 'block';
+      document.getElementById('ageValue').innerHTML = `${result.age}<span class="unit">岁</span>`;
+      document.getElementById('virtualAgeValue').innerHTML = `${result.virtualAge}<span class="unit">岁</span>`;
+      document.getElementById('daysValue').innerHTML = `${result.days.toLocaleString()}<span class="unit">天</span>`;
+      document.getElementById('zodiacValue').textContent = result.zodiac;
+      document.getElementById('constellationValue').textContent = result.constellation;
+      document.getElementById('nextBirthdayValue').textContent = `${result.nextBirthday}天后`;
+    }
+
+    // 保存到历史记录
+    function saveToHistory(birthDate, result, isLunar) {
+      const history = JSON.parse(localStorage.getItem('ageCalculatorHistory') || '[]');
+      const record = {
+        id: Date.now(),
+        birthDate,
+        result,
+        isLunar,
+        timestamp: new Date().toISOString()
+      };
+      history.unshift(record);
+      if (history.length > 100) {
+        history.pop();
+      }
+      localStorage.setItem('ageCalculatorHistory', JSON.stringify(history));
+      renderHistory();
+    }
+
+    // 渲染历史记录
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem('ageCalculatorHistory') || '[]');
+      const historyList = document.getElementById('historyList');
+
+      if (history.length === 0) {
+        historyList.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <div>暂无计算记录</div>
+          </div>
+        `;
+        return;
+      }
+
+      historyList.innerHTML = history.map(item => `
+        <div class="history-item">
+          <div class="history-info">
+            <div class="history-date">
+              ${item.isLunar ? '🌙' : '📅'} ${item.birthDate.year}年${item.birthDate.month}月${item.birthDate.day}日
+              ${item.isLunar && item.birthDate.isLeap ? '(闰)' : ''}
+            </div>
+            <div class="history-age">
+              ${item.result.age}岁 | 生肖${item.result.zodiac} | ${item.result.constellation}
+            </div>
+          </div>
+          <div class="history-actions">
+            <button class="history-btn history-btn-load" onclick="loadHistory(${item.id})">
+              加载
+            </button>
+            <button class="history-btn history-btn-delete" onclick="deleteHistory(${item.id})">
+              删除
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 加载历史记录
+    window.loadHistory = function(id) {
+      const history = JSON.parse(localStorage.getItem('ageCalculatorHistory') || '[]');
+      const record = history.find(h => h.id === id);
+      if (record) {
+        const type = record.isLunar ? 'lunar' : 'solar';
+        document.querySelector(`[data-type="${type}"]`).click();
+        
+        document.getElementById('birthYear').value = record.birthDate.year;
+        document.getElementById('birthMonth').value = record.birthDate.month;
+        document.getElementById('birthDay').value = record.birthDate.day;
+        
+        if (record.isLunar) {
+          initDaySelect(record.birthDate.month, record.birthDate.year, true);
+          document.getElementById('birthDay').value = record.birthDate.day;
+        }
+        
+        renderResult(record.result);
+      }
+    };
+
+    // 删除历史记录
+    window.deleteHistory = function(id) {
+      let history = JSON.parse(localStorage.getItem('ageCalculatorHistory') || '[]');
+      history = history.filter(h => h.id !== id);
+      localStorage.setItem('ageCalculatorHistory', JSON.stringify(history));
+      renderHistory();
+    };
+
+    // 事件监听
+    document.addEventListener('DOMContentLoaded', function() {
+      initYearSelect();
+      initMonthSelect();
+      initDaySelect();
+      renderHistory();
+
+      // 日历类型切换
+      document.querySelectorAll('.calendar-type-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.calendar-type-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+
+          const isLunar = this.dataset.type === 'lunar';
+          const year = parseInt(document.getElementById('birthYear').value);
+          const month = parseInt(document.getElementById('birthMonth').value);
+
+          initDaySelect(month, year, isLunar);
+          
+          const lunarInfoDiv = document.getElementById('lunarInfo');
+          if (isLunar) {
+            lunarInfoDiv.style.display = 'none';
+          } else {
+            lunarInfoDiv.style.display = 'block';
+            updateLunarDisplay();
+          }
+        });
+      });
+
+      // 年份变化时更新日期
+      document.getElementById('birthYear').addEventListener('change', function() {
+        const isLunar = document.querySelector('.calendar-type-btn.active').dataset.type === 'lunar';
+        const month = parseInt(document.getElementById('birthMonth').value);
+        initDaySelect(month, parseInt(this.value), isLunar);
+        if (!isLunar) {
+          updateLunarDisplay();
+        }
+      });
+
+      // 月份变化时更新日期
+      document.getElementById('birthMonth').addEventListener('change', function() {
+        const isLunar = document.querySelector('.calendar-type-btn.active').dataset.type === 'lunar';
+        initDaySelect(parseInt(this.value), parseInt(document.getElementById('birthYear').value), isLunar);
+        if (!isLunar) {
+          updateLunarDisplay();
+        }
+      });
+
+      // 日期变化时更新农历显示
+      document.getElementById('birthDay').addEventListener('change', function() {
+        if (document.querySelector('.calendar-type-btn.active').dataset.type !== 'lunar') {
+          updateLunarDisplay();
+        }
+      });
+
+      // 计算按钮
+      document.getElementById('calculateBtn').addEventListener('click', function() {
+        const year = parseInt(document.getElementById('birthYear').value);
+        const month = parseInt(document.getElementById('birthMonth').value);
+        const day = parseInt(document.getElementById('birthDay').value);
+        const isLunar = document.querySelector('.calendar-type-btn.active').dataset.type === 'lunar';
+
+        const birthDate = { year, month, day, isLeap: false };
+        const result = calculateAge(birthDate, isLunar);
+        
+        renderResult(result);
+        saveToHistory(birthDate, result, isLunar);
+      });
+
+      // 重置按钮
+      document.getElementById('resetBtn').addEventListener('click', function() {
+        document.getElementById('birthYear').value = 2000;
+        document.getElementById('birthMonth').value = 1;
+        initDaySelect(1, 2000, false);
+        document.getElementById('birthDay').value = 1;
+        document.getElementById('resultSection').style.display = 'none';
+        updateLunarDisplay();
+      });
+
+      // 初始化农历显示
+      updateLunarDisplay();
+    });
+  </script>
+</body>
+</html>
