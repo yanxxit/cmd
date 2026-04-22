@@ -53,6 +53,8 @@ function printServerInfo(port, autoOpen = false) {
     console.log(`║    • CSV转JSON: ${`${baseUrl}/csv-to-json/`.padEnd(33)}║`);
     console.log(`║    • TODO应用: ${`${baseUrl}/todo-v7/`.padEnd(34)}║`);
     console.log(`║    • 日历管理: ${`${baseUrl}/calendar/`.padEnd(34)}║`);
+    console.log(`║    • 身份证生成器: ${`${baseUrl}/id-card-generator/`.padEnd(31)}║`);
+    console.log(`║    • 手机号生成器: ${`${baseUrl}/phone-number-generator/`.padEnd(31)}║`);
     console.log('║                                                          ║');
     console.log('╚══════════════════════════════════════════════════════════╝');
     console.log('');

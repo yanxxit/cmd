@@ -10,6 +10,7 @@ export { LogGenerator } from './log.js';
 export { CsvGenerator } from './csv.js';
 export { JsonGenerator } from './json.js';
 export { BinaryGenerator } from './binary.js';
+export { XlsxGenerator } from './xlsx.js';
 
 // 生成器映射
 export const generatorMap = {
@@ -19,7 +20,9 @@ export const generatorMap = {
   csv: 'CsvGenerator',
   json: 'JsonGenerator',
   binary: 'BinaryGenerator',
-  bin: 'BinaryGenerator' // 别名
+  bin: 'BinaryGenerator', // 别名
+  xlsx: 'XlsxGenerator',
+  excel: 'XlsxGenerator' // 别名
 };
 
 // 统一导出函数
@@ -48,6 +51,9 @@ export async function generateFile(format, options) {
       break;
     case 'BinaryGenerator':
       GeneratorClass = (await import('./binary.js')).BinaryGenerator;
+      break;
+    case 'XlsxGenerator':
+      GeneratorClass = (await import('./xlsx.js')).XlsxGenerator;
       break;
     default:
       throw new Error(`未知的生成器：${generatorName}`);

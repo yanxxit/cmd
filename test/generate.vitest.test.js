@@ -221,3 +221,99 @@ describe('CsvGenerator 测试', () => {
     }
   }, 10000);
 });
+
+describe('XlsxGenerator 测试', () => {
+  let XlsxGenerator;
+
+  beforeAll(async () => {
+    const module = await import('../src/generate/xlsx.js');
+    XlsxGenerator = module.XlsxGenerator;
+  });
+
+  it('应该能够创建 XlsxGenerator 实例', () => {
+    const generator = new XlsxGenerator({
+      size: 1024,
+      outputPath: path.join(TEST_DIR, 'test1.xlsx')
+    });
+    expect(generator).toBeInstanceOf(XlsxGenerator);
+    expect(generator.sheetName).toBe('Data');
+    expect(generator.table).toBe('user');
+    expect(generator.rows).toBe(0);
+    expect(generator.debug).toBe(false);
+  });
+
+  it('应该支持自定义配置', () => {
+    const generator = new XlsxGenerator({
+      size: 2048,
+      outputPath: path.join(TEST_DIR, 'test2.xlsx'),
+      sheetName: '测试表',
+      table: 'order',
+      rows: 10,
+      debug: true
+    });
+    expect(generator.sheetName).toBe('测试表');
+    expect(generator.table).toBe('order');
+    expect(generator.rows).toBe(10);
+    expect(generator.debug).toBe(true);
+  });
+
+  it('应该能够生成小的 XLSX 文件（用户数据）', async () => {
+    const outputPath = path.join(TEST_DIR, 'users.xlsx');
+    const generator = new XlsxGenerator({
+      size: 1024 * 10,
+      outputPath: outputPath,
+      table: 'user',
+      rows: 5,
+      sheetName: 'Users'
+    });
+    generator.startTime = Date.now();
+    
+    const result = await generator.generate();
+    
+    expect(result.success).toBe(true);
+    expect(result.path).toBe(outputPath);
+    expect(result.rows).toBe(5);
+    expect(result.table).toBe('user');
+    
+    // 验证文件存在
+    expect(fs.existsSync(outputPath)).toBe(true);
+  }, 10000);
+
+  it('应该能够生成订单数据', async () => {
+    const outputPath = path.join(TEST_DIR, 'orders.xlsx');
+    const generator = new XlsxGenerator({
+      size: 1024 * 10,
+      outputPath: outputPath,
+      table: 'order',
+      rows: 3,
+      sheetName: 'Orders'
+    });
+    generator.startTime = Date.now();
+    
+    const result = await generator.generate();
+    
+    expect(result.success).toBe(true);
+    expect(result.rows).toBe(3);
+    expect(result.table).toBe('order');
+    expect(fs.existsSync(outputPath)).toBe(true);
+  }, 10000);
+
+  it('应该能够生成产品数据', async () => {
+    const outputPath = path.join(TEST_DIR, 'products.xlsx');
+    const generator = new XlsxGenerator({
+      size: 1024 * 10,
+      outputPath: outputPath,
+      table: 'product',
+      rows: 8,
+      sheetName: 'Products'
+    });
+    generator.startTime = Date.now();
+    
+    const result = await generator.generate();
+    
+    expect(result.success).toBe(true);
+    expect(result.rows).toBe(8);
+    expect(result.table).toBe('product');
+    expect(fs.existsSync(outputPath)).toBe(true);
+  }, 10000);
+});

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>👤 名字生成器</title>
+  <style>
+    :root {
+      --primary: #0ea5e9;
+      --primary-dark: #0284c7;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-input: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --border: #475569;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #1e3a5f 50%, var(--bg-dark) 100%);
+      min-height: 100vh; color: var(--text-primary); padding: 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 30px; padding: 30px 20px; }
+    .header h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;
+    }
+    .header p { color: var(--text-secondary); font-size: 1.1rem; }
+    .card {
+      background: var(--bg-card); border-radius: 16px; padding: 30px;
+      border: 1px solid var(--border); margin-bottom: 20px;
+    }
+    .card-title { font-size: 1.3rem; margin-bottom: 20px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9rem; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 12px 16px; background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-primary); font-size: 1rem;
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+    .btn-row { display: flex; gap: 12px; margin-top: 20px; }
+    .btn {
+      flex: 1; padding: 14px 24px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.3s;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(14, 165, 233, 0.4); }
+    .btn-secondary { background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--primary); }
+    .result-area { text-align: center; padding: 30px; }
+    .name-display { font-size: 2.2rem; font-weight: bold; color: #60a5fa; margin: 20px 0; }
+    .name-info { display: flex; justify-content: center; gap: 30px; margin-top: 15px; flex-wrap: wrap; }
+    .name-info-item { text-align: center; }
+    .name-info-item .label { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; }
+    .name-info-item .value { font-size: 1rem; color: var(--text-primary); }
+    .country-flag { font-size: 2.5rem; margin-bottom: 10px; }
+    .history-btn {
+      position: fixed; bottom: 30px; right: 30px; width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none; color: white;
+      font-size: 24px; cursor: pointer; box-shadow: 0 4px 16px rgba(14, 165, 233, 0.4); transition: all 0.3s; z-index: 100;
+    }
+    .history-btn:hover { transform: scale(1.1); box-shadow: 0 6px 24px rgba(14, 165, 233, 0.6); }
+    .history-badge {
+      position: absolute; top: -4px; right: -4px; width: 22px; height: 22px; background: var(--danger);
+      border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center;
+    }
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.6); z-index: 200; justify-content: center; align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--bg-card); border-radius: 16px; width: 90%; max-width: 600px;
+      max-height: 80vh; display: flex; flex-direction: column; border: 1px solid var(--border);
+    }
+    .modal-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-header h3 { font-size: 1.2rem; color: var(--primary); }
+    .modal-close {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--bg-input); border: none;
+      color: var(--text-primary); font-size: 18px; cursor: pointer; transition: all 0.2s;
+    }
+    .modal-close:hover { background: var(--danger); }
+    .modal-body { padding: 16px 24px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      padding: 16px 24px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .history-item {
+      background: var(--bg-input); border-radius: 10px; padding: 16px; margin-bottom: 12px;
+      cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
+    }
+    .history-item:hover { border-color: var(--primary); transform: translateX(4px); }
+    .history-item .name-value {
+      font-size: 1.3rem; font-weight: bold; color: #60a5fa; margin-bottom: 8px;
+    }
+    .history-item .name-detail { display: flex; gap: 15px; flex-wrap: wrap; }
+    .history-item .name-detail span { font-size: 0.85rem; color: var(--text-secondary); }
+    .copy-toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+      background: var(--success); color: white; padding: 12px 24px; border-radius: 8px;
+      font-size: 0.9rem; z-index: 300; transition: transform 0.3s ease;
+    }
+    .copy-toast.show { transform: translateX(-50%) translateY(0); }
+    .empty-state { text-align: center; padding: 40px; color: var(--text-secondary); }
+    .clear-btn {
+      padding: 8px 16px; background: var(--danger); color: white; border: none;
+      border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
+    }
+    .clear-btn:hover { opacity: 0.8; }
+    .count-badge { font-size: 0.85rem; color: var(--text-secondary); }
+    .hidden { display: none !important; }
+    @media (max-width: 600px) {
+      .header h1 { font-size: 1.8rem; }
+      .name-display { font-size: 1.5rem; }
+      .form-row { grid-template-columns: 1fr; }
+      .btn-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>👤 名字生成器</h1>
+      <p>生成各国/地区真实风格的虚拟姓名，仅供测试使用</p>
+    </header>
+
+    <div class="card">
+      <h2 class="card-title">⚙️ 参数设置</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>国家/地区</label>
+          <select id="country">
+            <optgroup label=" 亚洲">
+              <option value="CN" selected>🇨🇳 中国大陆</option>
+              <option value="HK">🇭🇰 中国香港</option>
+              <option value="MO">🇲🇴 中国澳门</option>
+              <option value="TW">🇹🇼 中国台湾</option>
+              <option value="JP">🇯🇵 日本</option>
+              <option value="KR">🇰🇷 韩国</option>
+              <option value="SG">🇸🇬 新加坡</option>
+              <option value="MY">🇲🇾 马来西亚</option>
+            </optgroup>
+            <optgroup label=" 美洲">
+              <option value="US">🇺🇸 美国</option>
+              <option value="CA">🇨🇦 加拿大</option>
+              <option value="BR">🇧🇷 巴西</option>
+            </optgroup>
+            <optgroup label=" 欧洲">
+              <option value="GB">🇬🇧 英国</option>
+              <option value="DE">🇩🇪 德国</option>
+              <option value="FR">🇫🇷 法国</option>
+              <option value="IT">🇮🇹 意大利</option>
+              <option value="ES">🇪🇸 西班牙</option>
+              <option value="RU">🇷🇺 俄罗斯</option>
+            </optgroup>
+            <optgroup label=" 大洋洲">
+              <option value="AU">🇦🇺 澳大利亚</option>
+              <option value="NZ">🇳🇿 新西兰</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>性别</label>
+          <select id="gender">
+            <option value="">随机</option>
+            <option value="male">男</option>
+            <option value="female">女</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="generate()">🎲 生成名字</button>
+        <button class="btn btn-secondary" onclick="generateMultiple()">📋 批量生成 (10个)</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="resultCard">
+      <h2 class="card-title">👤 生成结果</h2>
+      <div class="result-area">
+        <div class="country-flag" id="countryFlag"></div>
+        <div class="name-display" id="nameDisplay"></div>
+        <div class="name-info" id="nameInfo"></div>
+      </div>
+    </div>
+
+    <button class="history-btn" onclick="openHistory()" id="historyBtn" style="display: none;">
+      📋<span class="history-badge" id="historyBadge">0</span>
+    </button>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>📋 生成历史</h3>
+        <button class="modal-close" onclick="closeHistory()">×</button>
+      </div>
+      <div class="modal-body" id="historyList">
+        <div class="empty-state">暂无生成记录</div>
+      </div>
+      <div class="modal-footer">
+        <span class="count-badge" id="countBadge"></span>
+        <button class="clear-btn" onclick="clearHistory()">清空记录</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="copy-toast" id="copyToast">已复制到剪贴板</div>
+
+  <script>
+    const STORAGE_KEY = 'name_generator_history';
+    const MAX_HISTORY = 100;
+
+    const nameData = {
+      'CN': {
+        flag: '🇨🇳', name: '中国大陆',
+        surnames: ['王', '李', '张', '刘', '陈', '杨', '黄', '赵', '周', '吴', '徐', '孙', '马', '朱', '胡', '郭', '林', '何', '高', '梁', '郑', '罗', '宋', '谢', '唐', '邓', '冯', '韩', '曹', '彭', '曾', '肖', '田', '董', '袁', '潘', '于', '蒋', '蔡', '余', '杜', '叶', '程', '魏', '苏', '吕', '丁', '任', '卢', '姚', '陆'],
+        maleGiven: ['伟', '强', '磊', '军', '勇', '杰', '明', '浩', '宇', '飞', '建', '鹏', '涛', '峰', '龙', '刚', '超', '辉', '鑫', '博', '翔', '毅', '俊', '凯', '昊', '泽', '睿', '晨', '航', '瑞'],
+        femaleGiven: ['娜', '芳', '敏', '静', '丽', '艳', '玲', '萍', '婷', '丽', '雪', '梅', '琳', '红', '倩', '瑶', '薇', '欣', '莹', '洁', '茹', '彤', '悦', '颖', '蕾', '妍', '菲', '芸', '茜', '佳']
+      },
+      'HK': {
+        flag: '🇭🇰', name: '中国香港',
+        surnames: ['张', '王', '李', '陈', '黄', '林', '吴', '刘', '郑', '梁', '杨', '何', '蔡', '周', '谢', '黎', '罗', '郭', '马', '徐', '许', '谭', '邓', '朱', '曾', '袁', '赵', '胡', '潘', '孔'],
+        maleGiven: ['志强', '伟明', '俊杰', '浩宇', '家明', '志豪', '俊豪', '志明', '伟杰', '宇轩', '子轩', '天佑', '俊杰', '伟伦', '建宏', '国豪', '振华', '俊杰', '志恒', '启源'],
+        femaleGiven: ['美玲', '淑华', '雅婷', '雪莹', '芷晴', '嘉怡', '欣怡', '晓彤', '诗韵', '美琪', '家欣', '慧敏', '婉婷', '佩珊', '思颖', '秀英', '丽娟', '美珍', '嘉玲', '慧芳']
+      },
+      'MO': {
+        flag: '🇲🇴', name: '中国澳门',
+        surnames: ['陈', '李', '张', '黄', '梁', '林', '杨', '何', '吴', '刘', '周', '蔡', '郑', '郭', '谭', '许', '马', '徐', '胡', '冯'],
+        maleGiven: ['志强', '伟明', '俊杰', '家明', '志豪', '伟杰', '建宏', '国豪', '振华', '启源'],
+        femaleGiven: ['美玲', '淑华', '雅婷', '雪莹', '芷晴', '嘉怡', '欣怡', '诗韵', '美琪', '慧敏']
+      },
+      'TW': {
+        flag: '🇹🇼', name: '中国台湾',
+        surnames: ['陈', '林', '黄', '张', '李', '王', '吴', '刘', '蔡', '杨', '许', '郑', '谢', '洪', '郭', '邱', '曾', '廖', '周', '徐'],
+        maleGiven: ['志伟', '家豪', '志强', '建宏', '文杰', '志明', '俊宏', '冠廷', '宗翰', '柏翰', '品睿', '宇翔', '奕辰', '承恩', '柏玮', '冠霖', '家齐', '凯翔', '彦廷', '柏凯'],
+        femaleGiven: ['雅惠', '淑芬', '怡君', '雅琪', '家甄', '淑娟', '怡萱', '雅婷', '雅琳', '欣怡', '美玲', '佳蓉', '怡婷', '雅芳', '淑惠', '婉婷', '诗涵', '雅雯', '佳颖', '芷萱']
+      },
+      'JP': {
+        flag: '🇯🇵', name: '日本',
+        surnames: ['佐藤', '铃木', '高桥', '田中', '渡边', '伊藤', '山本', '中村', '小林', '加藤', '吉田', '山田', '佐佐木', '山口', '松本', '井上', '木村', '林', '清水', '斎藤'],
+        maleGiven: ['翔太', '大翔', '悠真', '陆斗', '大和', '树', '湊', '苍', '阳菜', '莲', '飒', '海', '大辉', '健太', '拓海', '亮介', '健二', '直树', '浩司', '慎一'],
+        femaleGiven: ['阳菜', '葵', '凛', '樱', '美咲', '结衣', '美羽', '心春', '七海', '优奈', '彩花', '爱', '莉', '真央', '绫', '美咲', '春菜', '花音', '美优', '诗织']
+      },
+      'KR': {
+        flag: '🇰🇷', name: '韩国',
+        surnames: ['金', '李', '朴', '崔', '郑', '姜', '赵', '尹', '张', '林', '吴', '韩', '申', '权', '黄', '安', '宋', '全', '洪', '高'],
+        maleGiven: ['民俊', '书俊', '智勋', '宇镇', '俊浩', '贤宇', '泰宇', '胜民', '俊书', '珉宇', '在贤', '成勋', '宇成', '道勋', '允浩', '相铉', '钟国', '秀贤', '正宇', '敏俊'],
+        femaleGiven: ['书妍', '智媛', '秀雅', '艺琳', '智恩', '昭熙', '多恩', '夏英', '敏智', '允珠', '世英', '宥利', '瑞妍', '彩媛', '恩智', '惠利', '素英', '美京', '贞淑', '贤珠']
+      },
+      'SG': {
+        flag: '🇸🇬', name: '新加坡',
+        surnames: ['Tan', 'Lee', 'Koh', 'Ng', 'Lim', 'Chen', 'Wong', 'Teo', 'Goh', 'Ong', 'Chua', 'Low', 'Ho', 'Toh', 'Yeo', 'Chan', 'Lai', 'Tay', 'See', 'Foo'],
+        maleGiven: ['Wei Jie', 'Jun Kai', 'Xin Yi', 'Zhi Hao', 'Ryan', 'Jia Hao', 'Jun Jie', 'En Ze', 'Kai Wen', 'Yi Ming', 'Sheng Wei', 'Jun Wei', 'Hao Chen', 'Jun Xian', 'Zi Xuan', 'Wei Lun', 'Jian Hao', 'Yong Sheng', 'Jun Le', 'Chen Yu'],
+        femaleGiven: ['Xin Yi', 'Jia Hui', 'Hui Min', 'Yi Ling', 'Ying Xuan', 'Qi Yan', 'Rui En', 'Shi Ting', 'Mei Lin', 'Wen Xuan', 'Jia En', 'Yu Ting', 'Hui Wen', 'Si Ying', 'Qiao En', 'Yun Xi', 'Zi Xuan', 'Jia Qi', 'Mei Xuan', 'Hui Ling']
+      },
+      'MY': {
+        flag: '🇲🇾', name: '马来西亚',
+        surnames: ['Tan', 'Lee', 'Ng', 'Lim', 'Wong', 'Chong', 'Chan', 'Yap', 'Goh', 'Ong', 'Low', 'Chua', 'Ho', 'Koh', 'Teoh', 'Cheah', 'Loh', 'Toh', 'See', 'Foo'],
+        maleGiven: ['Wei Jie', 'Jun Kai', 'Zhi Hao', 'Jia Hao', 'Kai Wen', 'Sheng Wei', 'Jun Wei', 'Hao Chen', 'Yi Ming', 'Jian Hao', 'Wei Lun', 'Jun Xian', 'Ming Hui', 'Zhi Xuan', 'Jun Le', 'Yu Chen', 'Xiao Feng', 'Zhi Yuan', 'Jia Ming', 'Sheng Jie'],
+        femaleGiven: ['Xin Yi', 'Jia Hui', 'Hui Min', 'Yi Ling', 'Ying Xuan', 'Rui En', 'Shi Ting', 'Mei Lin', 'Wen Xuan', 'Jia En', 'Hui Wen', 'Si Ying', 'Qiao En', 'Zi Xuan', 'Jia Qi', 'Mei Xuan', 'Hui Ling', 'Yu Xuan', 'Shu Ting', 'Yun Xi']
+      },
+      'US': {
+        flag: '🇺🇸', name: '美国',
+        surnames: ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Moore'],
+        maleGiven: ['James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles', 'Christopher', 'Daniel', 'Matthew', 'Anthony', 'Mark', 'Donald', 'Steven', 'Paul', 'Andrew', 'Joshua'],
+        femaleGiven: ['Mary', 'Patricia', 'Jennifer', 'Linda', 'Elizabeth', 'Barbara', 'Susan', 'Jessica', 'Sarah', 'Karen', 'Lisa', 'Nancy', 'Betty', 'Margaret', 'Sandra', 'Ashley', 'Dorothy', 'Kimberly', 'Emily', 'Donna']
+      },
+      'CA': {
+        flag: '🇨🇦', name: '加拿大',
+        surnames: ['Smith', 'Brown', 'Tremblay', 'Johnson', 'Martin', 'Roy', 'Lee', 'Gagnon', 'Williams', 'Jones', 'MacDonald', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson'],
+        maleGiven: ['Liam', 'Noah', 'Oliver', 'James', 'William', 'Benjamin', 'Lucas', 'Henry', 'Theodore', 'Jack', 'Levi', 'Alexander', 'Jackson', 'Mateo', 'Daniel', 'Michael', 'Mason', 'Sebastian', 'Ethan', 'Logan'],
+        femaleGiven: ['Olivia', 'Emma', 'Charlotte', 'Amelia', 'Ava', 'Sophia', 'Isabella', 'Mia', 'Evelyn', 'Harper', 'Luna', 'Camila', 'Gianna', 'Abigail', 'Ella', 'Elizabeth', 'Sofia', 'Avery', 'Scarlett', 'Emily']
+      },
+      'BR': {
+        flag: '🇧🇷', name: '巴西',
+        surnames: ['Silva', 'Santos', 'Oliveira', 'Souza', 'Rodrigues', 'Ferreira', 'Alves', 'Pereira', 'Lima', 'Gomes', 'Costa', 'Ribeiro', 'Martins', 'Carvalho', 'Almeida', 'Lopes', 'Soares', 'Fernandes', 'Vieira', 'Barbosa'],
+        maleGiven: ['Miguel', 'Arthur', 'Gael', 'Heitor', 'Theo', 'Davi', 'Gabriel', 'Bernardo', 'Samuel', 'João', 'Lucas', 'Rafael', 'Pedro', 'Enzo', 'Gustavo', 'Felipe', 'Matheus', 'Leonardo', 'Nicolas', 'Bruno'],
+        femaleGiven: ['Helena', 'Alice', 'Laura', 'Maria', 'Valentina', 'Heloísa', 'Sophia', 'Isabella', 'Manuela', 'Julia', 'Luísa', 'Mariana', 'Cecília', 'Beatriz', 'Lara', 'Gabriela', 'Letícia', 'Ana', 'Carolina', 'Fernanda']
+      },
+      'GB': {
+        flag: '🇬🇧', name: '英国',
+        surnames: ['Smith', 'Jones', 'Williams', 'Taylor', 'Brown', 'Davies', 'Evans', 'Wilson', 'Thomas', 'Johnson', 'Roberts', 'Walker', 'Wright', 'Robinson', 'Thompson', 'White', 'Hughes', 'Edwards', 'Green', 'Hall'],
+        maleGiven: ['Oliver', 'George', 'Arthur', 'Noah', 'Muhammad', 'Leo', 'Harry', 'Jack', 'Charlie', 'Oscar', 'Henry', 'Alfie', 'Archie', 'Theodore', 'Freddie', 'Finley', 'Tommy', 'Ethan', 'William', 'James'],
+        femaleGiven: ['Olivia', 'Amelia', 'Isla', 'Ava', 'Emily', 'Sophia', 'Grace', 'Mia', 'Willow', 'Ella', 'Lily', 'Evie', 'Ivy', 'Freya', 'Florence', 'Isabella', 'Daisy', 'Harper', 'Rosie', 'Poppy']
+      },
+      'DE': {
+        flag: '🇩🇪', name: '德国',
+        surnames: ['Müller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Meyer', 'Wagner', 'Becker', 'Schulz', 'Hoffmann', 'Schäfer', 'Koch', 'Bauer', 'Richter', 'Klein', 'Wolf', 'Schröder', 'Neumann', 'Schwarz', 'Braun'],
+        maleGiven: ['Lukas', 'Leon', 'Finn', 'Paul', 'Jonas', 'Ben', 'Felix', 'Maximilian', 'Noah', 'Elias', 'Julian', 'Moritz', 'Alexander', 'Philipp', 'Tim', 'Liam', 'Jakob', 'David', 'Jan', 'Niklas'],
+        femaleGiven: ['Emma', 'Mia', 'Hannah', 'Sofia', 'Anna', 'Emilia', 'Lina', 'Marie', 'Lena', 'Mila', 'Clara', 'Ella', 'Lea', 'Amelie', 'Luis', 'Charlotte', 'Mathilda', 'Nora', 'Katharina', 'Laura']
+      },
+      'FR': {
+        flag: '🇫🇷', name: '法国',
+        surnames: ['Martin', 'Bernard', 'Thomas', 'Petit', 'Robert', 'Richard', 'Durand', 'Dubois', 'Moreau', 'Laurent', 'Simon', 'Michel', 'Lefebvre', 'Leroy', 'Roux', 'David', 'Bertrand', 'Morel', 'Fournier', 'Girard'],
+        maleGiven: ['Gabriel', 'Raphaël', 'Léo', 'Louis', 'Adam', 'Jules', 'Arthur', 'Hugo', 'Lucas', 'Liam', 'Noah', 'Maël', 'Nathan', 'Ethan', 'Paul', 'Théo', 'Maxime', 'Antoine', 'Alexandre', 'Pierre'],
+        femaleGiven: ['Emma', 'Louise', 'Jade', 'Alice', 'Léa', 'Chloé', 'Manon', 'Rose', 'Anna', 'Mila', 'Lina', 'Inès', 'Léonie', 'Margaux', 'Camille', 'Charlotte', 'Clara', 'Zoé', 'Juliette', 'Lou']
+      },
+      'IT': {
+        flag: '🇮🇹', name: '意大利',
+        surnames: ['Rossi', 'Russo', 'Ferrari', 'Esposito', 'Bianchi', 'Romano', 'Colombo', 'Ricci', 'Marino', 'Greco', 'Bruno', 'Gallo', 'Conti', 'De Luca', 'Mancini', 'Costa', 'Giordano', 'Rizzo', 'Lombardi', 'Moretti'],
+        maleGiven: ['Leonardo', 'Francesco', 'Alessandro', 'Lorenzo', 'Mattia', 'Gabriele', 'Andrea', 'Riccardo', 'Tommaso', 'Edoardo', 'Federico', 'Marco', 'Luca', 'Matteo', 'Giuseppe', 'Antonio', 'Giovanni', 'Davide', 'Simone', 'Stefano'],
+        femaleGiven: ['Sofia', 'Giulia', 'Aurora', 'Alice', 'Ginevra', 'Emma', 'Giorgia', 'Greta', 'Beatrice', 'Anna', 'Chiara', 'Sara', 'Marta', 'Valentina', 'Elena', 'Francesca', 'Elisa', 'Alessia', 'Martina', 'Silvia']
+      },
+      'ES': {
+        flag: '🇪🇸', name: '西班牙',
+        surnames: ['García', 'Rodríguez', 'Martínez', 'López', 'González', 'Hernández', 'Pérez', 'Sánchez', 'Ramírez', 'Torres', 'Flores', 'Rivera', 'Gómez', 'Díaz', 'Vázquez', 'Cruz', 'Morales', 'Reyes', 'Ruiz', 'Jiménez'],
+        maleGiven: ['Hugo', 'Martín', 'Lucas', 'Daniel', 'Pablo', 'Alejandro', 'Manuel', 'Álvaro', 'Adrián', 'David', 'Mario', 'Javier', 'Mateo', 'Carlos', 'Diego', 'Sergio', 'Miguel', 'Izan', 'Enzo', 'Leo'],
+        femaleGiven: ['Lucía', 'Sofía', 'Martina', 'María', 'Julia', 'Paula', 'Emma', 'Daniela', 'Valeria', 'Alba', 'Carla', 'Noa', 'Sara', 'Laia', 'Claudia', 'Elena', 'Carmen', 'Ana', 'Lola', 'Irene']
+      },
+      'RU': {
+        flag: '🇷🇺', name: '俄罗斯',
+        surnames: ['Иванов', 'Смирнов', 'Кузнецов', 'Попов', 'Васильев', 'Петров', 'Соколов', 'Михайлов', 'Новиков', 'Федоров', 'Морозов', 'Волков', 'Алексеев', 'Лебедев', 'Семенов', 'Егоров', 'Павлов', 'Козлов', 'Степанов', 'Николаев'],
+        maleGiven: ['Александр', 'Дмитрий', 'Максим', 'Иван', 'Артём', 'Михаил', 'Даниил', 'Матвей', 'Тимофей', 'Кирилл', 'Егор', 'Андрей', 'Никита', 'Илья', 'Алексей', 'Сергей', 'Николай', 'Владимир', 'Юрий', 'Павел'],
+        femaleGiven: ['Анна', 'Мария', 'Елена', 'Дарья', 'Алина', 'Ирина', 'Екатерина', 'Александра', 'Арина', 'Полина', 'Виктория', 'Наталья', 'Юлия', 'Татьяна', 'Ольга', 'Светлана', 'Ксения', 'Марина', 'Людмила', 'Валентина']
+      },
+      'AU': {
+        flag: '🇦🇺', name: '澳大利亚',
+        surnames: ['Smith', 'Jones', 'Williams', 'Brown', 'Wilson', 'Taylor', 'Johnson', 'White', 'Martin', 'Anderson', 'Thompson', 'Nguyen', 'Thomas', 'Walker', 'Harris', 'Lee', 'Ryan', 'Robinson', 'Kelly', 'King'],
+        maleGiven: ['Oliver', 'Noah', 'Jack', 'William', 'Leo', 'Lucas', 'Henry', 'Charlie', 'James', 'Ethan', 'Alexander', 'Thomas', 'Oscar', 'Liam', 'Mason', 'Hudson', 'Benjamin', 'Elijah', 'Max', 'Harvey'],
+        femaleGiven: ['Charlotte', 'Olivia', 'Amelia', 'Mia', 'Isla', 'Willow', 'Grace', 'Ava', 'Chloe', 'Ella', 'Sophie', 'Harper', 'Zoe', 'Lily', 'Evie', 'Sienna', 'Ivy', 'Matilda', 'Daisy', 'Florence']
+      },
+      'NZ': {
+        flag: '🇳🇿', name: '新西兰',
+        surnames: ['Smith', 'Williams', 'Brown', 'Wilson', 'Taylor', 'Johnson', 'Anderson', 'Thomas', 'Lee', 'White', 'Harris', 'Martin', 'Roberts', 'Walker', 'Evans', 'Robinson', 'Clark', 'Scott', 'Young', 'Morgan'],
+        maleGiven: ['Oliver', 'Noah', 'Jack', 'George', 'Leo', 'Charlie', 'James', 'William', 'Lucas', 'Henry', 'Thomas', 'Liam', 'Alexander', 'Benjamin', 'Samuel', 'Daniel', 'Isaac', 'Ethan', 'Oscar', 'Hudson'],
+        femaleGiven: ['Olivia', 'Charlotte', 'Amelia', 'Isla', 'Ava', 'Sophie', 'Mia', 'Chloe', 'Ella', 'Grace', 'Harper', 'Lily', 'Evie', 'Zoe', 'Willow', 'Emma', 'Ruby', 'Hazel', 'Daisy', 'Sienna']
+      }
+    };
+
+    function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function randomPick(arr) { return arr[randomInt(0, arr.length - 1)]; }
+
+    function generateName() {
+      const countryCode = document.getElementById('country').value;
+      const selectedGender = document.getElementById('gender').value;
+      const country = nameData[countryCode];
+
+      let gender = selectedGender;
+      if (!gender) {
+        gender = Math.random() > 0.5 ? 'male' : 'female';
+      }
+
+      const surname = randomPick(country.surnames);
+      const givenName = gender === 'male' ? randomPick(country.maleGiven) : randomPick(country.femaleGiven);
+
+      let fullName;
+      if (['CN', 'HK', 'MO', 'TW', 'JP', 'KR'].includes(countryCode)) {
+        fullName = surname + givenName;
+      } else {
+        fullName = givenName + ' ' + surname;
+      }
+
+      return {
+        fullName,
+        surname,
+        givenName,
+        gender: gender === 'male' ? '男' : '女',
+        countryName: country.name,
+        flag: country.flag,
+        format: ['CN', 'HK', 'MO', 'TW', 'JP', 'KR'].includes(countryCode) ? '姓+名' : '名+姓'
+      };
+    }
+
+    function saveHistory(record) {
+      let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      history.unshift(record);
+      if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      updateHistoryBadge();
+    }
+
+    function getHistory() { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+
+    function updateHistoryBadge() {
+      const history = getHistory();
+      const btn = document.getElementById('historyBtn');
+      const badge = document.getElementById('historyBadge');
+      if (history.length > 0) {
+        btn.style.display = 'block';
+        badge.textContent = history.length > 99 ? '99+' : history.length;
+      } else {
+        btn.style.display = 'none';
+      }
+    }
+
+    function showResult(record) {
+      document.getElementById('resultCard').classList.remove('hidden');
+      document.getElementById('countryFlag').textContent = record.flag;
+      document.getElementById('nameDisplay').textContent = record.fullName;
+      document.getElementById('nameInfo').innerHTML = `
+        <div class="name-info-item"><div class="label">国家/地区</div><div class="value">${record.countryName}</div></div>
+        <div class="name-info-item"><div class="label">性别</div><div class="value">${record.gender}</div></div>
+        <div class="name-info-item"><div class="label">姓氏</div><div class="value">${record.surname}</div></div>
+        <div class="name-info-item"><div class="label">名字</div><div class="value">${record.givenName}</div></div>
+      `;
+    }
+
+    function generate() {
+      const record = generateName();
+      saveHistory(record);
+      showResult(record);
+    }
+
+    function generateMultiple() {
+      for (let i = 0; i < 10; i++) generate();
+      const history = getHistory();
+      if (history.length > 0) showResult(history[0]);
+      showToast('已批量生成 10 个名字');
+    }
+
+    function openHistory() {
+      const history = getHistory();
+      const list = document.getElementById('historyList');
+      const countBadge = document.getElementById('countBadge');
+      if (history.length === 0) {
+        list.innerHTML = '<div class="empty-state">暂无生成记录</div>';
+        countBadge.textContent = '';
+      } else {
+        list.innerHTML = history.map(item => `
+          <div class="history-item" onclick="copyId('${item.fullName}')">
+            <div class="name-value">${item.flag} ${item.fullName}</div>
+            <div class="name-detail">
+              <span>📍 ${item.countryName}</span>
+              <span>👤 ${item.gender}</span>
+            </div>
+          </div>
+        `).join('');
+        countBadge.textContent = `共 ${history.length} 条记录`;
+      }
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeHistory() { document.getElementById('modalOverlay').classList.remove('active'); }
+    function closeModal(event) { if (event.target === document.getElementById('modalOverlay')) closeHistory(); }
+
+    function clearHistory() {
+      if (confirm('确定要清空所有生成记录吗？')) {
+        localStorage.removeItem(STORAGE_KEY);
+        updateHistoryBadge();
+        closeHistory();
+        document.getElementById('resultCard').classList.add('hidden');
+      }
+    }
+
+    async function copyId(name) {
+      try {
+        await navigator.clipboard.writeText(name);
+        showToast('已复制到剪贴板');
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = name; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('已复制到剪贴板');
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('copyToast');
+      toast.textContent = msg; toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() { updateHistoryBadge(); });
+  </script>
+</body>
+</html>

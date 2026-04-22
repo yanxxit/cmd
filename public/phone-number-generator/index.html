@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📱 手机号生成器</title>
+  <style>
+    :root {
+      --primary: #0ea5e9;
+      --primary-dark: #0284c7;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-input: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --border: #475569;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #1e3a5f 50%, var(--bg-dark) 100%);
+      min-height: 100vh;
+      color: var(--text-primary);
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 30px 20px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 30px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(14, 165, 233, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--primary);
+    }
+
+    .result-area {
+      text-align: center;
+      padding: 30px;
+    }
+
+    .phone-display {
+      font-size: 2rem;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      color: #60a5fa;
+      letter-spacing: 2px;
+      margin: 20px 0;
+      word-break: break-all;
+    }
+
+    .phone-info {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .phone-info-item {
+      text-align: center;
+    }
+
+    .phone-info-item .label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .phone-info-item .value {
+      font-size: 1rem;
+      color: var(--text-primary);
+    }
+
+    .country-flag {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .history-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.4);
+      transition: all 0.3s;
+      z-index: 100;
+    }
+
+    .history-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 24px rgba(14, 165, 233, 0.6);
+    }
+
+    .history-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 22px;
+      height: 22px;
+      background: var(--danger);
+      border-radius: 50%;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.2rem;
+      color: var(--primary);
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-input);
+      border: none;
+      color: var(--text-primary);
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      background: var(--danger);
+    }
+
+    .modal-body {
+      padding: 16px 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-item {
+      background: var(--bg-input);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .history-item:hover {
+      border-color: var(--primary);
+      transform: translateX(4px);
+    }
+
+    .history-item .phone-number {
+      font-family: 'Courier New', monospace;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #60a5fa;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .history-item .phone-detail {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .history-item .phone-detail span {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .copy-toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: var(--success);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      z-index: 300;
+      transition: transform 0.3s ease;
+    }
+
+    .copy-toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .clear-btn {
+      padding: 8px 16px;
+      background: var(--danger);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .clear-btn:hover {
+      opacity: 0.8;
+    }
+
+    .count-badge {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .hidden { display: none !important; }
+
+    .region-group {
+      margin-bottom: 12px;
+    }
+
+    .region-group-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      padding-left: 4px;
+    }
+
+    @media (max-width: 600px) {
+      .header h1 { font-size: 1.8rem; }
+      .phone-display { font-size: 1.3rem; }
+      .form-row { grid-template-columns: 1fr; }
+      .btn-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>📱 手机号生成器</h1>
+      <p>生成各国/地区虚拟手机号，仅供测试使用</p>
+    </header>
+
+    <div class="card">
+      <h2 class="card-title">⚙️ 参数设置</h2>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>国家/地区</label>
+          <select id="country">
+            <optgroup label=" 亚洲">
+              <option value="CN" selected>🇨🇳 中国大陆 (+86)</option>
+              <option value="HK">🇭🇰 中国香港 (+852)</option>
+              <option value="MO">🇲🇴 中国澳门 (+853)</option>
+              <option value="TW">🇹🇼 中国台湾 (+886)</option>
+              <option value="JP">🇯🇵 日本 (+81)</option>
+              <option value="KR">🇰 韩国 (+82)</option>
+              <option value="SG">🇸 新加坡 (+65)</option>
+              <option value="MY">🇲🇾 马来西亚 (+60)</option>
+              <option value="TH">🇹🇭 泰国 (+66)</option>
+              <option value="VN">🇻🇳 越南 (+84)</option>
+              <option value="ID">🇮🇩 印度尼西亚 (+62)</option>
+              <option value="PH">🇵 菲律宾 (+63)</option>
+              <option value="IN">🇮🇳 印度 (+91)</option>
+            </optgroup>
+            <optgroup label="🌎 美洲">
+              <option value="US">🇺 美国 (+1)</option>
+              <option value="CA">🇨🇦 加拿大 (+1)</option>
+              <option value="MX">🇲🇽 墨西哥 (+52)</option>
+              <option value="BR">🇧🇷 巴西 (+55)</option>
+            </optgroup>
+            <optgroup label="🌍 欧洲">
+              <option value="GB">🇬🇧 英国 (+44)</option>
+              <option value="DE">🇩🇪 德国 (+49)</option>
+              <option value="FR">🇫 法国 (+33)</option>
+              <option value="IT">🇮🇹 意大利 (+39)</option>
+              <option value="ES">🇪🇸 西班牙 (+34)</option>
+              <option value="NL">🇳🇱 荷兰 (+31)</option>
+              <option value="RU">🇷🇺 俄罗斯 (+7)</option>
+            </optgroup>
+            <optgroup label="🌏 大洋洲">
+              <option value="AU">🇦🇺 澳大利亚 (+61)</option>
+              <option value="NZ">🇳 新西兰 (+64)</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>运营商 (可选)</label>
+          <select id="carrier">
+            <option value="">随机</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="generate()">🎲 生成手机号</button>
+        <button class="btn btn-secondary" onclick="generateMultiple()">📋 批量生成 (10个)</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="resultCard">
+      <h2 class="card-title">📱 生成结果</h2>
+      <div class="result-area">
+        <div class="country-flag" id="countryFlag"></div>
+        <div class="phone-display" id="phoneDisplay"></div>
+        <div class="phone-info" id="phoneInfo"></div>
+      </div>
+    </div>
+
+    <button class="history-btn" onclick="openHistory()" id="historyBtn" style="display: none;">
+      📋
+      <span class="history-badge" id="historyBadge">0</span>
+    </button>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>📋 生成历史</h3>
+        <button class="modal-close" onclick="closeHistory()">×</button>
+      </div>
+      <div class="modal-body" id="historyList">
+        <div class="empty-state">暂无生成记录</div>
+      </div>
+      <div class="modal-footer">
+        <span class="count-badge" id="countBadge"></span>
+        <button class="clear-btn" onclick="clearHistory()">清空记录</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="copy-toast" id="copyToast">已复制到剪贴板</div>
+
+  <script>
+    const STORAGE_KEY = 'phone_number_generator_history';
+    const MAX_HISTORY = 100;
+
+    const countries = {
+      'CN': { flag: '🇨🇳', name: '中国大陆', code: '+86', carriers: [
+        { name: '中国移动', prefix: ['134', '135', '136', '137', '138', '139', '147', '150', '151', '152', '157', '158', '159', '172', '178', '182', '183', '184', '187', '188', '195', '197', '198'] },
+        { name: '中国联通', prefix: ['130', '131', '132', '145', '155', '156', '166', '171', '175', '176', '185', '186', '196'] },
+        { name: '中国电信', prefix: ['133', '149', '153', '173', '177', '180', '181', '189', '191', '193', '199'] },
+        { name: '中国广电', prefix: ['192'] }
+      ]},
+      'HK': { flag: '🇭🇰', name: '中国香港', code: '+852', carriers: [
+        { name: '随机', prefix: ['5', '6', '7', '8', '9'] }
+      ]},
+      'MO': { flag: '🇲🇴', name: '中国澳门', code: '+853', carriers: [
+        { name: '随机', prefix: ['6'] }
+      ]},
+      'TW': { flag: '🇹', name: '中国台湾', code: '+886', carriers: [
+        { name: '中华电信', prefix: ['0912', '0913', '0914', '0915', '0916', '0917', '0918', '0919', '0920', '0921', '0922', '0923', '0924', '0925', '0926', '0927', '0928', '0929', '0930', '0931', '0932', '0933', '0934', '0935', '0936', '0937', '0938', '0939'] },
+        { name: '台湾大哥大', prefix: ['0931', '0932', '0933', '0934', '0935', '0936', '0937', '0938', '0939', '0940', '0941', '0942', '0943', '0944', '0945', '0946', '0947', '0948', '0949'] },
+        { name: '远传电信', prefix: ['0900', '0901', '0902', '0903', '0904', '0905', '0906', '0907', '0908', '0909'] },
+        { name: '随机', prefix: ['09'] }
+      ]},
+      'JP': { flag: '🇯🇵', name: '日本', code: '+81', carriers: [
+        { name: 'NTT Docomo', prefix: ['090', '080', '070'] },
+        { name: 'KDDI/au', prefix: ['090', '080', '070'] },
+        { name: 'SoftBank', prefix: ['090', '080', '070'] },
+        { name: '随机', prefix: ['090', '080', '070'] }
+      ]},
+      'KR': { flag: '🇰🇷', name: '韩国', code: '+82', carriers: [
+        { name: 'SK Telecom', prefix: ['010'] },
+        { name: 'KT', prefix: ['010'] },
+        { name: 'LG U+', prefix: ['010'] },
+        { name: '随机', prefix: ['010'] }
+      ]},
+      'SG': { flag: '🇸🇬', name: '新加坡', code: '+65', carriers: [
+        { name: 'Singtel', prefix: ['8', '9'] },
+        { name: 'StarHub', prefix: ['8', '9'] },
+        { name: 'M1', prefix: ['8', '9'] },
+        { name: '随机', prefix: ['8', '9'] }
+      ]},
+      'MY': { flag: '🇲', name: '马来西亚', code: '+60', carriers: [
+        { name: 'Maxis', prefix: ['11', '12', '14', '17'] },
+        { name: 'Celcom', prefix: ['11', '13', '19'] },
+        { name: 'Digi', prefix: ['10', '16', '14'] },
+        { name: 'U Mobile', prefix: ['11', '17'] },
+        { name: '随机', prefix: ['10', '11', '12', '13', '14', '16', '17', '18', '19'] }
+      ]},
+      'TH': { flag: '🇹', name: '泰国', code: '+66', carriers: [
+        { name: 'AIS', prefix: ['08', '09'] },
+        { name: 'DTAC', prefix: ['08', '09'] },
+        { name: 'TrueMove', prefix: ['06', '08', '09'] },
+        { name: '随机', prefix: ['06', '08', '09'] }
+      ]},
+      'VN': { flag: '🇻🇳', name: '越南', code: '+84', carriers: [
+        { name: 'Viettel', prefix: ['086', '096', '097', '098', '032', '033', '034', '035', '036', '037', '038', '039'] },
+        { name: 'Vinaphone', prefix: ['088', '091', '094', '083', '084', '085'] },
+        { name: 'Mobifone', prefix: ['089', '090', '093', '070', '076', '077', '078', '079'] },
+        { name: '随机', prefix: ['03', '05', '07', '08', '09'] }
+      ]},
+      'ID': { flag: '🇮', name: '印度尼西亚', code: '+62', carriers: [
+        { name: 'Telkomsel', prefix: ['0811', '0812', '0813', '0821', '0822', '0823', '0852', '0853', '0851'] },
+        { name: 'Indosat', prefix: ['0814', '0815', '0816', '0855', '0856', '0857', '0858'] },
+        { name: 'XL Axiata', prefix: ['0817', '0818', '0819', '0859', '0877', '0878'] },
+        { name: '随机', prefix: ['081', '082', '085', '087', '088'] }
+      ]},
+      'PH': { flag: '🇵', name: '菲律宾', code: '+63', carriers: [
+        { name: 'Globe', prefix: ['905', '906', '915', '916', '917', '926', '927', '935', '936', '937', '965', '966', '967'] },
+        { name: 'Smart', prefix: ['908', '909', '910', '912', '913', '918', '919', '920', '921', '928', '929', '930', '938', '939', '946', '947', '948', '949'] },
+        { name: '随机', prefix: ['9'] }
+      ]},
+      'IN': { flag: '🇮🇳', name: '印度', code: '+91', carriers: [
+        { name: 'Jio', prefix: ['6', '7', '8', '9'] },
+        { name: 'Airtel', prefix: ['6', '7', '8', '9'] },
+        { name: 'Vi', prefix: ['6', '7', '8', '9'] },
+        { name: '随机', prefix: ['6', '7', '8', '9'] }
+      ]},
+      'US': { flag: '🇺', name: '美国', code: '+1', carriers: [
+        { name: 'AT&T', prefix: ['201', '202', '203', '205', '206', '207', '208', '209', '210', '212', '213', '214', '215', '216', '217', '218', '219', '220', '224', '225', '228', '229', '231', '234', '239', '240', '248', '251', '252', '253', '254', '256', '260', '262', '267', '269', '270', '272', '276', '281', '283'] },
+        { name: 'Verizon', prefix: ['301', '302', '303', '304', '305', '307', '308', '309', '310', '312', '313', '314', '315', '316', '317', '318', '319', '320', '321', '323', '325', '330', '331', '334', '336', '337', '339', '341', '346', '347', '351', '352', '360', '361', '364'] },
+        { name: 'T-Mobile', prefix: ['401', '402', '404', '405', '406', '407', '408', '409', '410', '412', '413', '414', '415', '417', '419', '423', '424', '425', '430', '432', '434', '435', '440', '442', '443', '445', '458', '463', '469', '470', '475', '478', '479', '480'] },
+        { name: '随机', prefix: ['201', '202', '203', '205', '206', '207', '208', '209', '210', '212', '213', '214', '215', '301', '302', '303', '304', '305', '401', '404', '408', '415', '512', '617', '702', '801', '917'] }
+      ]},
+      'CA': { flag: '🇨🇦', name: '加拿大', code: '+1', carriers: [
+        { name: 'Rogers', prefix: ['204', '226', '236', '249', '289', '306', '343', '365', '403', '416', '418', '431', '437', '438', '506', '514', '519', '548', '579', '581', '587', '604', '613', '639', '647', '672', '705', '709', '778', '780', '782', '807', '819', '825', '867', '873', '902', '905'] },
+        { name: 'Bell', prefix: ['204', '226', '236', '249', '289', '306', '343', '365', '403', '416', '418', '431', '437', '438', '506', '514', '519', '548', '579', '581', '587', '604', '613', '639', '647', '672', '705', '709', '778', '780', '782', '807', '819', '825', '867', '873', '902', '905'] },
+        { name: 'Telus', prefix: ['204', '226', '236', '249', '289', '306', '343', '365', '403', '416', '418', '431', '437', '438', '506', '514', '519', '548', '579', '581', '587', '604', '613', '639', '647', '672', '705', '709', '778', '780', '782', '807', '819', '825', '867', '873', '902', '905'] },
+        { name: '随机', prefix: ['416', '604', '613', '705', '403', '514', '780', '905'] }
+      ]},
+      'MX': { flag: '🇲', name: '墨西哥', code: '+52', carriers: [
+        { name: 'Telcel', prefix: ['1'] },
+        { name: 'AT&T Mexico', prefix: ['1'] },
+        { name: 'Movistar', prefix: ['1'] },
+        { name: '随机', prefix: ['1'] }
+      ]},
+      'BR': { flag: '🇧', name: '巴西', code: '+55', carriers: [
+        { name: 'Vivo', prefix: ['11', '12', '13', '14', '15', '16', '17', '18', '19', '21', '22', '24', '27', '28', '31', '32', '33', '34', '35', '37', '38', '41', '42', '43', '44', '45', '46', '47', '48', '49', '51', '53', '54', '55', '61', '62', '63', '64', '65', '66', '67', '68', '69', '71', '73', '74', '75', '77', '79', '81', '82', '83', '84', '85', '86', '87', '88', '89', '91', '92', '93', '94', '95', '96', '97', '98', '99'] },
+        { name: 'Claro', prefix: ['11', '12', '13', '14', '15', '16', '17', '18', '19', '21', '22', '24', '27', '28', '31', '32', '33', '34', '35', '37', '38', '41', '42', '43', '44', '45', '46', '47', '48', '49', '51', '53', '54', '55', '61', '62', '63', '64', '65', '66', '67', '68', '69', '71', '73', '74', '75', '77', '79', '81', '82', '83', '84', '85', '86', '87', '88', '89', '91', '92', '93', '94', '95', '96', '97', '98', '99'] },
+        { name: '随机', prefix: ['11', '21', '31', '41', '51', '61', '71', '81', '91'] }
+      ]},
+      'GB': { flag: '🇬🇧', name: '英国', code: '+44', carriers: [
+        { name: 'EE', prefix: ['074', '075', '076', '077', '078', '079'] },
+        { name: 'O2', prefix: ['074', '075', '076', '077', '078', '079'] },
+        { name: 'Vodafone', prefix: ['074', '075', '076', '077', '078', '079'] },
+        { name: 'Three', prefix: ['074', '075', '076', '077', '078', '079'] },
+        { name: '随机', prefix: ['074', '075', '076', '077', '078', '079'] }
+      ]},
+      'DE': { flag: '🇩🇪', name: '德国', code: '+49', carriers: [
+        { name: 'Telekom', prefix: ['0151', '0160', '0170', '0171', '0175'] },
+        { name: 'Vodafone', prefix: ['0152', '0162', '0172', '0173', '0174'] },
+        { name: 'O2', prefix: ['0157', '0159', '0176', '0177', '0178', '0179'] },
+        { name: '随机', prefix: ['0151', '0152', '0157', '0160', '0170', '0172', '0176'] }
+      ]},
+      'FR': { flag: '🇫🇷', name: '法国', code: '+33', carriers: [
+        { name: 'Orange', prefix: ['06', '07'] },
+        { name: 'SFR', prefix: ['06', '07'] },
+        { name: 'Bouygues', prefix: ['06', '07'] },
+        { name: 'Free', prefix: ['06', '07'] },
+        { name: '随机', prefix: ['06', '07'] }
+      ]},
+      'IT': { flag: '🇮', name: '意大利', code: '+39', carriers: [
+        { name: 'TIM', prefix: ['3'] },
+        { name: 'Vodafone', prefix: ['3'] },
+        { name: 'WindTre', prefix: ['3'] },
+        { name: 'Iliad', prefix: ['3'] },
+        { name: '随机', prefix: ['3'] }
+      ]},
+      'ES': { flag: '🇪', name: '西班牙', code: '+34', carriers: [
+        { name: 'Movistar', prefix: ['6', '7'] },
+        { name: 'Vodafone', prefix: ['6', '7'] },
+        { name: 'Orange', prefix: ['6', '7'] },
+        { name: 'Yoigo', prefix: ['6', '7'] },
+        { name: '随机', prefix: ['6', '7'] }
+      ]},
+      'NL': { flag: '🇳🇱', name: '荷兰', code: '+31', carriers: [
+        { name: 'KPN', prefix: ['06'] },
+        { name: 'Vodafone', prefix: ['06'] },
+        { name: 'T-Mobile', prefix: ['06'] },
+        { name: '随机', prefix: ['06'] }
+      ]},
+      'RU': { flag: '🇷', name: '俄罗斯', code: '+7', carriers: [
+        { name: 'MTS', prefix: ['91', '98'] },
+        { name: 'MegaFon', prefix: ['92', '93'] },
+        { name: 'Beeline', prefix: ['90', '96'] },
+        { name: 'Tele2', prefix: ['95'] },
+        { name: '随机', prefix: ['90', '91', '92', '93', '95', '96', '98', '99'] }
+      ]},
+      'AU': { flag: '🇦🇺', name: '澳大利亚', code: '+61', carriers: [
+        { name: 'Telstra', prefix: ['04'] },
+        { name: 'Optus', prefix: ['04'] },
+        { name: 'Vodafone', prefix: ['04'] },
+        { name: '随机', prefix: ['04'] }
+      ]},
+      'NZ': { flag: '🇳', name: '新西兰', code: '+64', carriers: [
+        { name: 'Spark', prefix: ['021', '022', '027'] },
+        { name: 'Vodafone', prefix: ['021', '022', '027'] },
+        { name: '2degrees', prefix: ['021', '022', '027'] },
+        { name: '随机', prefix: ['021', '022', '027'] }
+      ]}
+    };
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function randomDigits(count) {
+      let result = '';
+      for (let i = 0; i < count; i++) {
+        result += randomInt(0, 9);
+      }
+      return result;
+    }
+
+    function updateCarrierSelect() {
+      const countryCode = document.getElementById('country').value;
+      const carrierSelect = document.getElementById('carrier');
+      const country = countries[countryCode];
+
+      carrierSelect.innerHTML = '<option value="">随机</option>';
+
+      if (country && country.carriers) {
+        country.carriers.forEach(carrier => {
+          carrierSelect.innerHTML += `<option value="${carrier.name}">${carrier.name}</option>`;
+        });
+      }
+    }
+
+    function generatePhoneNumber() {
+      const countryCode = document.getElementById('country').value;
+      const selectedCarrier = document.getElementById('carrier').value;
+      const country = countries[countryCode];
+
+      if (!country) return null;
+
+      let carrier;
+      if (selectedCarrier) {
+        carrier = country.carriers.find(c => c.name === selectedCarrier) || country.carriers[0];
+      } else {
+        carrier = country.carriers[randomInt(0, country.carriers.length - 1)];
+      }
+
+      const prefix = carrier.prefix[randomInt(0, carrier.prefix.length - 1)];
+
+      let phoneNumber;
+      switch (countryCode) {
+        case 'CN':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'HK':
+          phoneNumber = prefix + randomDigits(7);
+          break;
+        case 'MO':
+          phoneNumber = prefix + randomDigits(7);
+          break;
+        case 'TW':
+          if (prefix === '09') {
+            phoneNumber = prefix + randomDigits(8);
+          } else {
+            phoneNumber = prefix + randomDigits(6);
+          }
+          break;
+        case 'JP':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'KR':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'SG':
+          phoneNumber = prefix + randomDigits(7);
+          break;
+        case 'MY':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'TH':
+          phoneNumber = prefix + randomDigits(7);
+          break;
+        case 'VN':
+          phoneNumber = prefix + randomDigits(7);
+          break;
+        case 'ID':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'PH':
+          if (prefix === '9') {
+            phoneNumber = prefix + randomDigits(9);
+          } else {
+            phoneNumber = prefix + randomDigits(8);
+          }
+          break;
+        case 'IN':
+          phoneNumber = prefix + randomDigits(9);
+          break;
+        case 'US':
+        case 'CA':
+          phoneNumber = prefix + randomDigits(7);
+          break;
+        case 'MX':
+          phoneNumber = prefix + randomDigits(9);
+          break;
+        case 'BR':
+          phoneNumber = prefix + randomDigits(9);
+          break;
+        case 'GB':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'DE':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'FR':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'IT':
+          phoneNumber = prefix + randomDigits(9);
+          break;
+        case 'ES':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'NL':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'RU':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'AU':
+          phoneNumber = prefix + randomDigits(8);
+          break;
+        case 'NZ':
+          phoneNumber = prefix + randomDigits(7);
+          break;
+        default:
+          phoneNumber = prefix + randomDigits(8);
+      }
+
+      return {
+        number: country.code + ' ' + phoneNumber,
+        rawNumber: phoneNumber,
+        countryCode: country.code,
+        countryName: country.name,
+        flag: country.flag,
+        carrier: carrier.name
+      };
+    }
+
+    function saveHistory(record) {
+      let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      history.unshift(record);
+      if (history.length > MAX_HISTORY) {
+        history = history.slice(0, MAX_HISTORY);
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      updateHistoryBadge();
+    }
+
+    function getHistory() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    }
+
+    function updateHistoryBadge() {
+      const history = getHistory();
+      const btn = document.getElementById('historyBtn');
+      const badge = document.getElementById('historyBadge');
+      if (history.length > 0) {
+        btn.style.display = 'block';
+        badge.textContent = history.length > 99 ? '99+' : history.length;
+      } else {
+        btn.style.display = 'none';
+      }
+    }
+
+    function showResult(record) {
+      document.getElementById('resultCard').classList.remove('hidden');
+      document.getElementById('countryFlag').textContent = record.flag;
+      document.getElementById('phoneDisplay').textContent = record.number;
+      document.getElementById('phoneInfo').innerHTML = `
+        <div class="phone-info-item">
+          <div class="label">国家/地区</div>
+          <div class="value">${record.countryName}</div>
+        </div>
+        <div class="phone-info-item">
+          <div class="label">区号</div>
+          <div class="value">${record.countryCode}</div>
+        </div>
+        <div class="phone-info-item">
+          <div class="label">运营商</div>
+          <div class="value">${record.carrier}</div>
+        </div>
+      `;
+    }
+
+    function generate() {
+      const record = generatePhoneNumber();
+      if (record) {
+        saveHistory(record);
+        showResult(record);
+      }
+    }
+
+    function generateMultiple() {
+      for (let i = 0; i < 10; i++) {
+        const record = generatePhoneNumber();
+        if (record) {
+          saveHistory(record);
+        }
+      }
+      const history = getHistory();
+      if (history.length > 0) {
+        showResult(history[0]);
+      }
+      showToast('已批量生成 10 个手机号');
+    }
+
+    function openHistory() {
+      const history = getHistory();
+      const list = document.getElementById('historyList');
+      const countBadge = document.getElementById('countBadge');
+
+      if (history.length === 0) {
+        list.innerHTML = '<div class="empty-state">暂无生成记录</div>';
+        countBadge.textContent = '';
+      } else {
+        list.innerHTML = history.map(item => `
+          <div class="history-item" onclick="copyId('${item.number}')">
+            <div class="phone-number">${item.flag} ${item.number}</div>
+            <div class="phone-detail">
+              <span>📍 ${item.countryName}</span>
+              <span>📡 ${item.carrier}</span>
+            </div>
+          </div>
+        `).join('');
+        countBadge.textContent = `共 ${history.length} 条记录`;
+      }
+
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeHistory() {
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    function closeModal(event) {
+      if (event.target === document.getElementById('modalOverlay')) {
+        closeHistory();
+      }
+    }
+
+    function clearHistory() {
+      if (confirm('确定要清空所有生成记录吗？')) {
+        localStorage.removeItem(STORAGE_KEY);
+        updateHistoryBadge();
+        closeHistory();
+        document.getElementById('resultCard').classList.add('hidden');
+      }
+    }
+
+    async function copyId(phone) {
+      try {
+        await navigator.clipboard.writeText(phone);
+        showToast('已复制到剪贴板');
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = phone;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('已复制到剪贴板');
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('copyToast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    document.getElementById('country').addEventListener('change', updateCarrierSelect);
+
+    document.addEventListener('DOMContentLoaded', function() {
+      updateCarrierSelect();
+      updateHistoryBadge();
+    });
+  </script>
+</body>
+</html>

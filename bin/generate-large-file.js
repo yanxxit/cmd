@@ -249,6 +249,65 @@ program
     }
   });
 
+// XLSX 文件生成子命令
+program
+  .command('xlsx')
+  .alias('excel')
+  .description('生成大型 XLSX/Excel 文件')
+  .option('-S, --size <size>', '文件大小，例如：50MB, 1GB', '50MB')
+  .option('-o, --output <path>', '输出文件路径', './large-file.xlsx')
+  .option('-n, --sheet <name>', '工作表名称', 'Data')
+  .option('-t, --table <type>', '表格类型：user|order|product', 'user')
+  .option('-r, --rows <count>', '行数（可选，优先于大小）', '0')
+  .option('-d, --debug', '启用调试模式', false)
+  .action(async (options) => {
+    try {
+      const size = options.size || '50MB';
+      const sizeBytes = parseSize(size);
+      const outputPath = options.output || './large-file.xlsx';
+      const sheetName = options.sheet || 'Data';
+      const table = options.table || 'user';
+      const rows = parseInt(options.rows || '0');
+      const debug = options.debug || false;
+      
+      console.log(chalk.cyan('\n📊 正在生成 XLSX 文件...'));
+      console.log(chalk.gray(`目标大小：${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`));
+      console.log(chalk.gray(`输出路径：${outputPath}`));
+      console.log(chalk.gray(`工作表名称：${sheetName}`));
+      console.log(chalk.gray(`表格类型：${table}`));
+      if (rows > 0) {
+        console.log(chalk.gray(`指定行数：${rows}`));
+      }
+      if (debug) {
+        console.log(chalk.gray(`调试模式：已启用`));
+      }
+      console.log('');
+
+      const result = await generateFile('xlsx', {
+        size: sizeBytes,
+        outputPath: outputPath,
+        sheetName: sheetName,
+        table: table,
+        rows: rows,
+        debug: debug
+      });
+
+      console.log(chalk.green('\n✅ XLSX 文件生成成功！'));
+      console.log(chalk.gray('─'.repeat(50)));
+      console.log(chalk.gray(`保存路径：${chalk.cyan(result.path)}`));
+      console.log(chalk.gray(`最终大小：${chalk.cyan((result.size / (1024 * 1024)).toFixed(2) + ' MB')}`));
+      console.log(chalk.gray(`数据行数：${chalk.cyan(result.rows.toLocaleString())}`));
+      console.log(chalk.gray(`表格类型：${chalk.cyan(result.table)}`));
+      console.log(chalk.gray(`生成时间：${chalk.cyan(result.time + 'ms')}`));
+      console.log(chalk.gray('─'.repeat(50)));
+      console.log('');
+
+    } catch (error) {
+      console.error(chalk.red('\n❌ 生成失败:', error.message));
+      process.exit(1);
+    }
+  });
+
 // 通用文件生成子命令（二进制填充）
 program
   .command('binary [size]')
