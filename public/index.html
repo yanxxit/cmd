@@ -139,6 +139,29 @@
     .tag.recommended { background: #d1fae5; color: #065f46; }
     [data-theme="dark"] .tag.recommended { background: #064e3b; color: #34d399; }
     
+    .search-container {
+      width: 100%;
+      margin: 20px 0;
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 18px 24px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-size: 18px;
+      transition: all 0.3s;
+      box-sizing: border-box;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+    }
+    
     .footer { 
       text-align: center; 
       color: var(--text-secondary); 
@@ -285,8 +308,14 @@
       </div>
     </div>
 
+    <!-- 搜索框 -->
+    <div class="search-container">
+      <input type="text" id="toolSearch" class="search-input" placeholder="🔍 搜索工具名称或描述..." oninput="filterTools()">
+    </div>
+
     <!-- 核心工具 -->
     <h2 class="section-title">🔧 核心工具</h2>
+    
     <div class="tools-grid">
       <!-- 文件查看器 -->
       <a href="/file-viewer/" class="tool-card">
@@ -745,6 +774,18 @@
         </div>
       </a>
 
+      <!-- 文本转语音 -->
+      <a href="/text-to-speech/" class="tool-card">
+        <div class="tool-icon">🔊</div>
+        <h2 class="tool-name">文本转语音</h2>
+        <p class="tool-desc">输入文字即可朗读，支持多种语音、语速、音调调节，带历史记录</p>
+        <div class="tool-tags">
+          <span class="tag new">新</span>
+          <span class="tag recommended">推荐</span>
+          <span class="tag">语音合成</span>
+        </div>
+      </a>
+
       <!-- Reveal.js 演示文稿编辑器 -->
       <a href="/reveal-editor/" class="tool-card">
         <div class="tool-icon">📽️</div>
@@ -792,6 +833,30 @@
       // 更新按钮图标
       const btn = document.getElementById('themeToggle');
       btn.textContent = newTheme === 'light' ? '🌙' : '☀️';
+    }
+
+    // 工具搜索功能
+    function filterTools() {
+      const searchText = document.getElementById('toolSearch').value.toLowerCase();
+      const allCards = document.querySelectorAll('.tool-card, .version-card');
+      
+      allCards.forEach(card => {
+        const name = card.querySelector('.tool-name, .version-name')?.textContent.toLowerCase() || '';
+        const desc = card.querySelector('.tool-desc, .version-tech')?.textContent.toLowerCase() || '';
+        const tags = card.querySelector('.tool-tags')?.textContent.toLowerCase() || '';
+        
+        const match = name.includes(searchText) || desc.includes(searchText) || tags.includes(searchText);
+        
+        if (match) {
+          card.style.display = '';
+          card.style.opacity = '1';
+          card.style.transform = 'scale(1)';
+        } else {
+          card.style.display = 'none';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.9)';
+        }
+      });
     }
 
     // 加载保存的主题
