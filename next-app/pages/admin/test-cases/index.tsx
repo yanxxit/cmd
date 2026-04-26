@@ -8,7 +8,7 @@ import { TestCaseTable } from '../../../components/admin/test-case/TestCaseTable
 import { TestCaseFilters } from '../../../components/admin/test-case/TestCaseFilters';
 import { TestCaseModal } from '../../../components/admin/test-case/TestCaseModal';
 import { TestCaseDetailModal } from '../../../components/admin/test-case/TestCaseDetailModal';
-import { request } from '../../../components/common/request';
+import { testCaseApi } from '../../../lib/api';
 import type { TestCase } from '../../../types/test-case';
 
 const { Title } = Typography;
@@ -33,7 +33,7 @@ export default function TestCasesPage() {
         page: pagination.current,
         limit: pagination.pageSize,
       };
-      return request('/test-cases', { params });
+      return testCaseApi.getTestCases(params);
     },
     { refreshDeps: [filters, pagination] }
   );
@@ -69,12 +69,12 @@ export default function TestCasesPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await request(`/test-cases/${id}`, { method: 'DELETE' });
+      await testCaseApi.deleteTestCase(id);
       message.success('删除成功');
       refresh();
       setSelectedRowKeys(selectedRowKeys.filter((key) => key !== id));
     } catch (e) {
-      // 错误已经在 request 中提示
+      // 错误已经在 API 方法中提示
     }
   };
 
@@ -87,18 +87,12 @@ export default function TestCasesPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await request('/test-cases/batch', {
-            method: 'POST',
-            body: JSON.stringify({
-              operation: 'delete',
-              ids: selectedRowKeys,
-            }),
-          });
+          await testCaseApi.batchDeleteTestCases(selectedRowKeys as string[]);
           message.success('批量删除成功');
           setSelectedRowKeys([]);
           refresh();
         } catch (e) {
-          // 错误已经在 request 中提示
+          // 错误已经在 API 方法中提示
         }
       },
     });

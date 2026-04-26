@@ -6,6 +6,8 @@ const nextConfig = {
   distDir: 'dist',
   // React 19 严格模式
   reactStrictMode: true,
+  // 添加 basePath 以支持通过 /next 前缀访问构建产物
+  basePath: '/next',
   // 图片优化配置
   images: {
     unoptimized: true,
@@ -15,7 +17,7 @@ const nextConfig = {
       return [
         {
           source: '/api/:path*',
-          destination: 'http://localhost:3001/api/:path*',
+          destination: 'http://localhost:3000/api/:path*',
         },
       ];
     }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, Button, Space, message } from 'antd';
 import { JsonEditor } from '../../common/JsonEditor';
+import { testCaseApi } from '../../../lib/api';
 import type { TestCase } from '../../../types/test-case';
 
 interface TestCaseModalProps {
@@ -80,18 +81,12 @@ export const TestCaseModal: React.FC<TestCaseModalProps> = ({
       };
 
       setLoading(true);
-      const url = mode === 'edit' ? `/api/test-cases/${initialData?._id}` : '/api/test-cases';
-      const method = mode === 'edit' ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || '保存失败');
+      // 使用统一的 API 方法
+      if (mode === 'edit' && initialData?._id) {
+        await testCaseApi.updateTestCase(initialData._id, payload);
+      } else {
+        await testCaseApi.createTestCase(payload);
       }
 
       message.success(mode === 'create' ? '创建成功' : '更新成功');

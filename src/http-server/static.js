@@ -405,8 +405,18 @@ export default function (options = { port: 3000, dir: __dirname }) {
   });
 
   // 挂载 Next.js 静态资源
-  const nextDir = path.join(ROOT_DIR, 'public/page/_next');
-  app.use('/_next', express.static(nextDir));
+  const nextDir = path.join(ROOT_DIR, 'next-app/.next');
+  console.log('----- nextDir=', nextDir);
+  app.use('/next/_next', express.static(nextDir));
+
+  // Next.js 页面路由（处理 SPA 路由）
+  const nextPagesDir = path.join(ROOT_DIR, 'next-app/dist');
+  app.get('/next/admin', (req, res) => {
+    res.sendFile(path.join(nextPagesDir, 'admin.html'));
+  });
+  app.get('/next/admin/test-cases', (req, res) => {
+    res.sendFile(path.join(nextPagesDir, 'admin', 'test-cases.html'));
+  });
 
   // 挂载 Markdown 对比编辑器 API 路由
   app.use('/api/markdown-contrast', markdownContrastApiRouter);

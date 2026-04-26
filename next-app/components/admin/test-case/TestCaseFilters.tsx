@@ -2,7 +2,7 @@ import React from 'react';
 import { Form, Input, Select, Button, Space, Row, Col } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useRequest } from 'ahooks';
-import { request } from '../../common/request';
+import { request } from '../../../lib/request';
 
 interface FilterValues {
   search?: string;

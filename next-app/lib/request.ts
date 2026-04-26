@@ -4,10 +4,22 @@ interface RequestOptions extends RequestInit {
   params?: Record<string, any>;
 }
 
+/**
+ * 统一的请求封装函数
+ * 自动适配 Next.js 代理配置：
+ * - 开发环境：自动添加 /api 前缀，通过代理访问后端服务
+ * - 生产环境：直接使用相对路径
+ */
 export async function request<T = any>(url: string, options: RequestOptions = {}): Promise<T> {
   const { params, ...customOptions } = options;
 
   let fetchUrl = url;
+
+  // 自动添加 /api 前缀以适配代理配置
+  // 代理配置：/api/* -> http://localhost:3000/api/*
+  if (!fetchUrl.startsWith('/api/') && !fetchUrl.startsWith('http://') && !fetchUrl.startsWith('https://')) {
+    fetchUrl = `/api${fetchUrl.startsWith('/') ? fetchUrl : '/' + fetchUrl}`;
+  }
 
   // 处理查询参数
   if (params) {
