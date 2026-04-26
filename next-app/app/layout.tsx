@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "JSON Diff Tool",
-  description: "JSON 对比工具",
+  title: "Next App",
+  description: "Next.js 应用",
 };
 
 export default function RootLayout({

@@ -86,6 +86,20 @@ export default function Home() {
       tags: ['数据转换', 'JSON', '新'],
     },
     {
+      icon: '🔄',
+      name: 'JSON to YAML',
+      description: 'JSON 和 YAML 格式数据双向互转，支持代码高亮与格式校验',
+      href: '/json-to-yaml',
+      tags: ['数据转换', 'YAML'],
+    },
+    {
+      icon: '🍅',
+      name: '番茄时钟',
+      description: '专注工作学习的番茄钟，支持自定义时长与休息提醒',
+      href: '/pomodoro',
+      tags: ['时间管理', '生产力'],
+    },
+    {
       icon: '',
       name: '登录入口',
       description: '基于 Pico CSS 的登录页面，支持明暗主题切换',
