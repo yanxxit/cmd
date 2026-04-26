@@ -51,9 +51,9 @@ export const SortBar: React.FC<SortBarProps> = ({
       gap: 12,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ 
-          fontSize: 13, 
-          fontWeight: 500, 
+        <span style={{
+          fontSize: 13,
+          fontWeight: 500,
           color: isDarkMode ? '#fff' : '#000',
           display: 'flex',
           alignItems: 'center',
@@ -62,7 +62,7 @@ export const SortBar: React.FC<SortBarProps> = ({
           <SortAscendingOutlined />
           排序：
         </span>
-        
+
         <Space size="small">
           {/* 排序类型 */}
           <Select
@@ -87,7 +87,7 @@ export const SortBar: React.FC<SortBarProps> = ({
           <Select
             value={sortDirection}
             onChange={(value) => onSortChange(`${sortType}_${value}`)}
-            style={{ width: 100, ...selectStyle }}
+            style={{ ...selectStyle, width: 100 }}
             options={[
               { value: 'desc', label: '降序', icon: <SortDescendingOutlined /> },
               { value: 'asc', label: '升序', icon: <SortAscendingOutlined /> },

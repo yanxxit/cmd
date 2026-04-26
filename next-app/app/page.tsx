@@ -31,7 +31,7 @@ export default function Home() {
     // 加载保存的主题
     const savedTheme = localStorage.getItem('theme') || 'light';
     setIsDarkMode(savedTheme === 'dark');
-    
+
     // 动画计数
     const total = tools.length + versions.length;
     let current = 0;
@@ -45,13 +45,13 @@ export default function Home() {
         setToolCount(current);
       }
     }, 50);
-    
+
     return () => clearInterval(timer);
   }, []);
 
   const toggleTheme = () => {
     const newTheme = isDarkMode ? 'light' : 'dark';
-    setIsDarkMode(newTheme);
+    setIsDarkMode(newTheme === 'dark');
     localStorage.setItem('theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
   };
@@ -335,7 +335,7 @@ export default function Home() {
         }}>
           🔧 核心工具
         </h2>
-        
+
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
@@ -408,7 +408,7 @@ export default function Home() {
         }}>
           ✅ TODO 应用系列
         </h2>
-        
+
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -462,11 +462,11 @@ export default function Home() {
                     key={feature}
                     style={{
                       padding: '2px 8px',
-                      background: feature === '推荐' || feature === '新' 
+                      background: feature === '推荐' || feature === '新'
                         ? (feature === '推荐' ? '#d1fae5' : '#dbeafe')
                         : 'var(--tag-bg)',
-                      color: feature === '推荐' 
-                        ? '#065f46' 
+                      color: feature === '推荐'
+                        ? '#065f46'
                         : feature === '新'
                         ? '#1d4ed8'
                         : 'var(--tag-text)',

@@ -1,40 +1,20 @@
-import { PlusOutlined, EditOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons';
-import { 
-  Form, 
-  Input, 
-  Button, 
-  Table, 
-  Space, 
-  Modal, 
-  message, 
-  Popconfirm, 
-  Tag, 
-  Card, 
+import { useState, useEffect } from 'react';
+import {
+  Form,
+  Button,
+  message,
+  Card,
   Typography,
   Divider,
-  Spin,
   Alert
 } from 'antd';
+import { PlusOutlined, SyncOutlined } from '@ant-design/icons';
 import type { FormProps } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import { useState, useEffect } from 'react';
+import { User, UserFormValues } from '../components/hello/types';
+import UserTable from '../components/hello/UserTable';
+import UserFormModal from '../components/hello/UserFormModal';
 
 const { Title, Text } = Typography;
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  age: number;
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
-
-interface UserFormValues {
-  name: string;
-  email: string;
-  age: number;
-}
 
 export default function HelloPage() {
   // 1. useState - 状态管理
@@ -42,7 +22,9 @@ export default function HelloPage() {
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [form] = Form.useForm();
+
+  // 将 form 实例放在顶层，方便传递和在父组件操作
+  const [form] = Form.useForm<UserFormValues>();
 
   // 2. useEffect - 副作用处理
   useEffect(() => {
@@ -55,14 +37,14 @@ export default function HelloPage() {
     try {
       // 模拟延迟
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // 模拟数据
       const mockData: User[] = [
         { id: 1, name: '张三', email: 'zhangsan@example.com', age: 25, status: 'active', createdAt: '2024-01-01' },
         { id: 2, name: '李四', email: 'lisi@example.com', age: 30, status: 'active', createdAt: '2024-01-02' },
         { id: 3, name: '王五', email: 'wangwu@example.com', age: 28, status: 'inactive', createdAt: '2024-01-03' },
       ];
-      
+
       setUsers(mockData);
     } catch (error) {
       message.error('加载失败');
@@ -75,11 +57,11 @@ export default function HelloPage() {
   const onFinish: FormProps<UserFormValues>['onFinish'] = async (values) => {
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       if (editingUser) {
         // 更新用户
-        setUsers(users.map(user => 
-          user.id === editingUser.id 
+        setUsers(users.map(user =>
+          user.id === editingUser.id
             ? { ...user, ...values }
             : user
         ));
@@ -95,7 +77,7 @@ export default function HelloPage() {
         setUsers([...users, newUser]);
         message.success('创建成功');
       }
-      
+
       handleCloseModal();
     } catch (error) {
       message.error('操作失败');
@@ -127,81 +109,6 @@ export default function HelloPage() {
     form.resetFields();
   };
 
-  // 8. 表格列定义
-  const columns: ColumnsType<User> = [
-    {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 80,
-    },
-    {
-      title: '姓名',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: '邮箱',
-      dataIndex: 'email',
-      key: 'email',
-    },
-    {
-      title: '年龄',
-      dataIndex: 'age',
-      key: 'age',
-      width: 80,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status: string) => (
-        <Tag color={status === 'active' ? 'green' : 'red'}>
-          {status === 'active' ? '活跃' : '未激活'}
-        </Tag>
-      ),
-    },
-    {
-      title: '创建日期',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 120,
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 150,
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定要删除吗？"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-            >
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       <Card>
@@ -222,8 +129,8 @@ export default function HelloPage() {
             <ul style={{ margin: 0, paddingLeft: 20 }}>
               <li><Text strong>useState</Text> - 状态管理（用户列表、加载状态、弹窗状态等）</li>
               <li><Text strong>useEffect</Text> - 副作用处理（页面加载时获取数据）</li>
-              <li><Text strong>事件处理</Text> - 表单提交、删除确认、编辑等事件</li>
-              <li><Text strong>条件渲染</Text> - 根据状态显示不同内容</li>
+              <li><Text strong>组件拆分</Text> - 拆分出了独立的 Table 和 Modal 组件，数据由父组件下发</li>
+              <li><Text strong>事件传递</Text> - 子组件触发事件，通过 Props 通知父组件处理状态</li>
               <li><Text strong>列表渲染</Text> - 使用 Table 组件展示数据</li>
               <li><Text strong>表单验证</Text> - Ant Design Form 的内置验证</li>
             </ul>
@@ -252,113 +159,53 @@ export default function HelloPage() {
           </Button>
         </div>
 
-        {/* 数据表格 */}
-        <Table
-          columns={columns}
-          dataSource={users}
+        {/* 数据表格组件 */}
+        <UserTable
+          users={users}
           loading={loading}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
 
-        {/* 新增/编辑弹窗 */}
-        <Modal
-          title={editingUser ? '编辑用户' : '新增用户'}
+        {/* 新增/编辑弹窗组件 */}
+        <UserFormModal
           open={isModalOpen}
+          editingUser={editingUser}
+          form={form}
           onCancel={handleCloseModal}
-          footer={null}
-          destroyOnClose
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-            initialValues={{ status: 'active' }}
-          >
-            <Form.Item
-              name="name"
-              label="姓名"
-              rules={[{ required: true, message: '请输入姓名' }]}
-            >
-              <Input placeholder="请输入姓名" />
-            </Form.Item>
-
-            <Form.Item
-              name="email"
-              label="邮箱"
-              rules={[
-                { required: true, message: '请输入邮箱' },
-                { type: 'email', message: '请输入有效的邮箱地址' }
-              ]}
-            >
-              <Input placeholder="请输入邮箱" />
-            </Form.Item>
-
-            <Form.Item
-              name="age"
-              label="年龄"
-              rules={[
-                { required: true, message: '请输入年龄' },
-                { type: 'number', min: 1, max: 150, message: '年龄必须在 1-150 之间' }
-              ]}
-            >
-              <Input type="number" placeholder="请输入年龄" min={1} max={150} />
-            </Form.Item>
-
-            <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
-              <Button onClick={handleCloseModal} style={{ marginRight: 8 }}>
-                取消
-              </Button>
-              <Button type="primary" htmlType="submit">
-                {editingUser ? '更新' : '创建'}
-              </Button>
-            </Form.Item>
-          </Form>
-        </Modal>
+          onFinish={onFinish}
+        />
       </Card>
 
       {/* 代码示例区域 */}
       <Card title="核心代码示例" style={{ marginTop: 24 }}>
-        <pre style={{ 
-          background: '#f5f5f5', 
-          padding: 16, 
+        <pre style={{
+          background: '#f5f5f5',
+          padding: 16,
           borderRadius: 4,
           overflow: 'auto',
           fontSize: '12px'
         }}>
-          <code>{`// 1. useState - 状态管理
+          <code>{`// 1. 父组件管理状态和业务逻辑 (pages/hello.tsx)
 const [users, setUsers] = useState<User[]>([]);
-const [loading, setLoading] = useState(false);
+const [form] = Form.useForm<UserFormValues>();
 
-// 2. useEffect - 副作用处理
-useEffect(() => {
-  fetchUsers();
-}, []);
+// 2. 将数据和事件处理通过 Props 传递给子组件
+<UserTable
+  users={users}
+  loading={loading}
+  onEdit={handleEdit}
+  onDelete={handleDelete}
+/>
 
-// 3. 模拟 API 调用
-const fetchUsers = async () => {
-  setLoading(true);
-  try {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const data = [...]; // 模拟数据
-    setUsers(data);
-  } finally {
-    setLoading(false);
-  }
-};
-
-// 4. 表单提交
-const onFinish = async (values) => {
-  await api.save(values);
-  setUsers([...users, newUser]);
-  message.success('成功');
-};
-
-// 5. 删除操作
-const handleDelete = async (id) => {
-  await api.delete(id);
-  setUsers(users.filter(u => u.id !== id));
-};`}</code>
+// 3. 弹窗和表单组件 (components/hello/UserFormModal.tsx)
+<UserFormModal
+  open={isModalOpen}
+  editingUser={editingUser}
+  form={form}
+  onCancel={handleCloseModal}
+  onFinish={onFinish}
+/>`}</code>
         </pre>
       </Card>
     </div>

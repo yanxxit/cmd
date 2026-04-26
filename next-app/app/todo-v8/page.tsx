@@ -21,18 +21,18 @@ const { Content } = Layout;
 export default function TodoV8Page() {
   // 主题
   const { isDarkMode, toggleTheme } = useTheme();
-  
+
   // TODO 数据
-  const { 
-    todos, 
-    filteredTodos, 
-    stats, 
-    loading, 
-    filter, 
+  const {
+    todos,
+    filteredTodos,
+    stats,
+    loading,
+    filter,
     priorityFilter,
     dateFilter,
-    sort, 
-    view, 
+    sort,
+    view,
     search,
     addTodo,
     updateTodo,
@@ -45,13 +45,13 @@ export default function TodoV8Page() {
     setView,
     setSearch,
   } = useTodo();
-  
+
   // 侧边栏折叠状态
   const [sideBarCollapsed, setSideBarCollapsed] = useState(false);
-  
+
   // 编辑中的任务
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
-  
+
   // 处理添加任务
   const handleAdd = (
     content: string,
@@ -70,13 +70,13 @@ export default function TodoV8Page() {
       category,
     });
   };
-  
+
   // 处理编辑任务
   const handleEdit = (todo: Todo) => {
     setEditingTodo(todo);
     // TODO: 打开编辑对话框
   };
-  
+
   return (
     <ConfigProvider
       theme={{
@@ -92,18 +92,18 @@ export default function TodoV8Page() {
           searchValue={search}
           onSearchChange={setSearch}
         />
-        
+
         <Layout>
           {/* 侧边栏 */}
           <SideBar
             isDarkMode={isDarkMode}
             currentView={view}
-            onViewChange={setView}
+            onViewChange={(v) => setView(v as any)}
             collapsed={sideBarCollapsed}
             onCollapse={setSideBarCollapsed}
             stats={stats || undefined}
           />
-          
+
           {/* 主内容区 */}
           <Content
             style={{
@@ -114,9 +114,9 @@ export default function TodoV8Page() {
           >
             <div style={{ maxWidth: 1200, margin: '0 auto' }}>
               {/* 页面标题 */}
-              <h1 style={{ 
-                fontSize: 24, 
-                fontWeight: 600, 
+              <h1 style={{
+                fontSize: 24,
+                fontWeight: 600,
                 marginBottom: 24,
                 color: isDarkMode ? '#fff' : '#000',
               }}>
@@ -127,7 +127,7 @@ export default function TodoV8Page() {
                 {view === 'completed' && '已完成'}
                 {view === 'no-date' && '无日期'}
               </h1>
-              
+
               {/* 统计面板 */}
               {stats && (
                 <>
@@ -135,35 +135,35 @@ export default function TodoV8Page() {
                   <Charts todos={todos} stats={stats} isDarkMode={isDarkMode} />
                 </>
               )}
-              
+
               {/* 快速添加任务 */}
               <QuickAdd onAdd={handleAdd} isDarkMode={isDarkMode} />
-              
+
               {/* 搜索栏 */}
               <SearchBar
                 isDarkMode={isDarkMode}
                 value={search}
                 onChange={setSearch}
               />
-              
+
               {/* 筛选栏 */}
               <FilterBar
                 isDarkMode={isDarkMode}
                 filter={filter}
                 priority={priorityFilter}
                 dateFilter={dateFilter}
-                onFilterChange={setFilter}
+                onFilterChange={(v) => setFilter(v as any)}
                 onPriorityChange={setPriorityFilter}
                 onDateFilterChange={setDateFilter}
               />
-              
+
               {/* 排序栏 */}
               <SortBar
                 isDarkMode={isDarkMode}
                 sort={sort}
-                onSortChange={setSort}
+                onSortChange={(v) => setSort(v as any)}
               />
-              
+
               {/* 任务列表 */}
               <TodoList
                 todos={filteredTodos}

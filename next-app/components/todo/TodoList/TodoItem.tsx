@@ -54,7 +54,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const isToday = todo.due_date && new Date(todo.due_date).toDateString() === new Date().toDateString();
 
   // 优先级标签
-  const PriorityTag = () => {
+  const renderPriorityTag = () => {
     const config = priorityConfig[todo.priority];
     return (
       <Tag color={config.color} style={{ borderRadius: 4, marginRight: 0 }}>
@@ -64,7 +64,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   };
 
   // 截止日期标签
-  const DueDateTag = () => {
+  const renderDueDateTag = () => {
     if (!todo.due_date) return null;
 
     const date = new Date(todo.due_date);
@@ -93,7 +93,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   };
 
   // 子任务进度
-  const SubTaskProgress = () => {
+  const renderSubTaskProgress = () => {
     if (!todo.subTodos || todo.subTodos.length === 0) return null;
 
     const completed = todo.subTodos.filter(t => t.completed).length;
@@ -164,14 +164,14 @@ export const TodoItem: React.FC<TodoItemProps> = ({
 
           {/* 标签行 */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-            <PriorityTag />
-            <DueDateTag />
+            {renderPriorityTag()}
+            {renderDueDateTag()}
             {todo.tags?.map((tag, i) => (
               <Tag key={i} color="purple" style={{ borderRadius: 4 }}>
                 #{tag}
               </Tag>
             ))}
-            {todo.subTodos && todo.subTodos.length > 0 && <SubTaskProgress />}
+            {todo.subTodos && todo.subTodos.length > 0 && renderSubTaskProgress()}
           </div>
         </div>
 
