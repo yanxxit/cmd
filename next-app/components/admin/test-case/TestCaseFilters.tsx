@@ -2,6 +2,7 @@ import React from 'react';
 import { Form, Input, Select, Button, Space, Row, Col } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useRequest } from 'ahooks';
+import { request } from '../../common/request';
 
 interface FilterValues {
   search?: string;
@@ -19,16 +20,22 @@ export const TestCaseFilters: React.FC<TestCaseFiltersProps> = ({ onSearch, load
 
   // Fetch API names for dropdown
   const { data: apiNames = [] } = useRequest(async () => {
-    const res = await fetch('/api/test-cases/api-names');
-    const json = await res.json();
-    return json.data || [];
+    try {
+      const res = await request('/test-cases/api-names');
+      return res.data || [];
+    } catch (e) {
+      return [];
+    }
   });
 
   // Fetch tags for dropdown
   const { data: tags = [] } = useRequest(async () => {
-    const res = await fetch('/api/test-cases/tags');
-    const json = await res.json();
-    return json.data || [];
+    try {
+      const res = await request('/test-cases/tags');
+      return res.data || [];
+    } catch (e) {
+      return [];
+    }
   });
 
   const handleFinish = (values: FilterValues) => {

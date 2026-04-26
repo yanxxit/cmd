@@ -79,7 +79,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             whiteSpace: 'nowrap'
           }}
         >
-          {collapsed ? 'TCM' : 'Test Case Manager'}
+          {collapsed ? 'A' : 'Admin'}
         </div>
         <Menu
           theme="dark"

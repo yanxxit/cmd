@@ -414,7 +414,7 @@ export default function ReactAntdLearning() {
           open={isModalOpen}
           onCancel={handleCloseModal}
           footer={null}
-          destroyOnClose
+          destroyOnClose={false}
         >
           <Form
             form={form}

@@ -58,6 +58,13 @@ export default function Home() {
 
   const tools: Tool[] = [
     {
+      icon: '⚙️',
+      name: '后台管理系统',
+      description: '统一的后台管理界面，目前包含测试案例管理模块',
+      href: '/admin',
+      tags: ['Admin', '管理后台', '推荐'],
+    },
+    {
       icon: '📚',
       name: 'React + Ant Design 学习',
       description: '完整的学生管理系统案例，包含 CRUD 操作、表单处理、表格展示',

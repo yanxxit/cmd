@@ -113,7 +113,8 @@ export const TestCaseModal: React.FC<TestCaseModalProps> = ({
       confirmLoading={loading}
       width={800}
       maskClosable={false}
-      destroyOnClose
+      destroyOnClose={false}
+      afterClose={() => form.resetFields()}
     >
       <Form form={form} layout="vertical" preserve={false}>
         <div style={{ display: 'flex', gap: '16px' }}>

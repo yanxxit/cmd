@@ -23,7 +23,8 @@ export default function UserFormModal({
       open={open}
       onCancel={onCancel}
       footer={null}
-      destroyOnClose
+      destroyOnClose={false}
+      afterClose={() => form.resetFields()}
     >
       <Form
         form={form}

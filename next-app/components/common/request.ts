@@ -36,14 +36,24 @@ export async function request<T = any>(url: string, options: RequestOptions = {}
       ...customOptions,
     });
 
-    const data = await response.json();
+    const contentType = response.headers.get('content-type');
+    let data: any;
+
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      // 代理或路由配置错误时，可能会返回 HTML 等内容
+      throw new Error(`Invalid response content-type: ${contentType}`);
+    }
 
     if (!response.ok) {
-      throw new Error(data.error || '请求失败');
+      throw new Error(data?.error || '请求失败');
     }
 
     return data;
   } catch (error: any) {
+    // 忽略由于组件卸载等原因导致的中止请求错误
+    if (error.name === 'AbortError') throw error;
     message.error(error.message || '网络错误');
     throw error;
   }
