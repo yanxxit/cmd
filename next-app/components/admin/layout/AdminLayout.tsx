@@ -7,6 +7,7 @@ import {
   CodeOutlined,
   DashboardOutlined,
   LogoutOutlined,
+  ShoppingOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -34,6 +35,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       key: '/admin/test-cases',
       icon: <CodeOutlined />,
       label: <Link href="/admin/test-cases">测试案例管理</Link>,
+    },
+    {
+      key: '/admin/orders',
+      icon: <ShoppingOutlined />,
+      label: <Link href="/admin/orders">订单管理</Link>,
     },
   ];
 

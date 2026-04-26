@@ -100,6 +100,13 @@ export default function Home() {
       tags: ['时间管理', '生产力'],
     },
     {
+      icon: '🎂',
+      name: '年龄计算器',
+      description: '支持公历/农历生日，精确计算年龄、总生存天数、生肖与星座',
+      href: '/age-calculator',
+      tags: ['生活工具', '新'],
+    },
+    {
       icon: '',
       name: '登录入口',
       description: '基于 Pico CSS 的登录页面，支持明暗主题切换',
