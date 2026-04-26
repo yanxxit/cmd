@@ -1,6 +1,6 @@
 /**
  * React + Ant Design 基础学习案例
- * 
+ *
  * 本案例展示 React 和 Ant Design 的核心功能：
  * - useState 状态管理
  * - useEffect 副作用处理
@@ -36,6 +36,7 @@ import {
   Slider,
   Checkbox,
   Radio,
+  App,
 } from 'antd';
 import {
   PlusOutlined,
@@ -72,7 +73,15 @@ interface StudentFormValues {
   status: boolean;
 }
 
-export default function ReactAntdLearning() {
+export default function ReactAntdLearningWrapper() {
+  return (
+    <App>
+      <ReactAntdLearning />
+    </App>
+  );
+}
+
+function ReactAntdLearning() {
   // 1. useState - 状态管理
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,7 +89,8 @@ export default function ReactAntdLearning() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [searchText, setSearchText] = useState('');
   const [filterGrade, setFilterGrade] = useState<string>('all');
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<StudentFormValues>();
+  const { message } = App.useApp();
 
   // 2. useEffect - 副作用处理（组件挂载时执行）
   useEffect(() => {
@@ -525,7 +535,7 @@ const fetchStudents = async () => {
 const onFinish = async (values) => {
   if (editingStudent) {
     // 更新逻辑
-    setStudents(students.map(s => 
+    setStudents(students.map(s =>
       s.id === editingStudent.id ? { ...s, ...values } : s
     ));
   } else {
@@ -545,8 +555,8 @@ const handleDelete = async (id) => {
 const columns: TableColumnsType<Student> = [
   { title: '姓名', dataIndex: 'name' },
   { title: '年龄', dataIndex: 'age' },
-  { 
-    title: '操作', 
+  {
+    title: '操作',
     render: (_, record) => (
       <Space>
         <Button onClick={() => handleEdit(record)}>编辑</Button>
