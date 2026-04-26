@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📅 日期对比工具 - 时间差计算</title>
+  
+  <!-- Vue 3 -->
+  <script src="https://cdn.staticfile.org/vue/3.4.21/vue.global.prod.js"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #111827;
+      --border-color: #e5e7eb;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --muted-text: #6b7280;
+    }
+    
+    [data-theme="dark"] {
+      --bg-color: #111827;
+      --text-color: #f9fafb;
+      --border-color: #374151;
+      --card-bg: #1f2937;
+      --input-bg: #374151;
+      --muted-text: #9ca3af;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      transition: background 0.3s ease;
+    }
+    
+    [data-theme="dark"] body {
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    }
+    
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="dark"] .card {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .input-group { margin-bottom: 20px; }
+    .input-label { display: block; font-size: 14px; font-weight: 600; color: var(--text-color); margin-bottom: 8px; }
+    .input-field {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      font-size: 15px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      transition: all 0.2s;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4); }
+    .btn-secondary { background: var(--input-bg); color: var(--text-color); border: 2px solid var(--border-color); }
+    .btn-secondary:hover { background: var(--border-color); }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+    .theme-toggle:hover { transform: scale(1.1); }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .result-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      border: 2px solid var(--border-color);
+    }
+    
+    [data-theme="dark"] .result-card {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+    
+    .result-value {
+      font-size: 36px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .result-label {
+      font-size: 14px;
+      color: var(--muted-text);
+      margin-top: 8px;
+    }
+    
+    .result-detail {
+      background: var(--input-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 15px;
+      color: var(--text-color);
+    }
+    
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .result-row:last-child { border-bottom: none; }
+    
+    .result-label-item { color: var(--muted-text); }
+    .result-value-item { font-weight: 600; }
+    
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    
+    @media (max-width: 768px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .result-value { font-size: 28px; }
+    }
+    
+    [v-cloak] { display: none; }
+  </style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+      {{ isDark ? '☀️' : '🌙' }}
+    </button>
+
+    <div class="container">
+      <!-- 页面标题 -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-2" :class="isDark ? 'text-white' : 'text-gray-900'">📅 日期对比工具</h1>
+        <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">计算两个日期之间的时间差 · 年差 · 月差 · 日差</p>
+      </div>
+
+      <!-- 日期输入区域 -->
+      <div class="card mb-6">
+        <div class="section-title">🔢 选择对比日期</div>
+        
+        <div class="grid-2">
+          <!-- 开始日期 -->
+          <div class="input-group">
+            <label class="input-label">
+              <span>📍 开始日期</span>
+              <button @click="setStartDateToNow" class="text-xs ml-2 px-2 py-1 rounded bg-primary-100 text-primary-700 hover:bg-primary-200">
+                设为今天
+              </button>
+            </label>
+            <input type="date" v-model="startDate" class="input-field">
+          </div>
+          
+          <!-- 结束日期 -->
+          <div class="input-group">
+            <label class="input-label">
+              <span>🏁 结束日期</span>
+              <button @click="setEndDateToNow" class="text-xs ml-2 px-2 py-1 rounded bg-primary-100 text-primary-700 hover:bg-primary-200">
+                设为今天
+              </button>
+            </label>
+            <input type="date" v-model="endDate" class="input-field">
+          </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="flex gap-3 mt-6">
+          <button @click="calculateDiff" class="btn btn-primary flex-1">
+            🎯 立即计算
+          </button>
+          <button @click="swapDates" class="btn btn-secondary" title="交换开始和结束日期">
+            🔄 交换
+          </button>
+          <button @click="resetDates" class="btn btn-secondary">
+            🗑️ 重置
+          </button>
+        </div>
+      </div>
+
+      <!-- 计算结果 -->
+      <div v-if="calculated" class="card mb-6">
+        <div class="section-title">📊 计算结果</div>
+        
+        <!-- 主要结果卡片 -->
+        <div class="grid-4 mb-6">
+          <div class="result-card">
+            <div class="result-value" v-text="result.totalDays"></div>
+            <div class="result-label">总天数</div>
+          </div>
+          <div class="result-card">
+            <div class="result-value" v-text="result.totalWeeks"></div>
+            <div class="result-label">总周数</div>
+          </div>
+          <div class="result-card">
+            <div class="result-value" v-text="result.totalMonths"></div>
+            <div class="result-label">总月数</div>
+          </div>
+          <div class="result-card">
+            <div class="result-value" v-text="result.totalYears"></div>
+            <div class="result-label">总年数</div>
+          </div>
+        </div>
+        
+        <!-- 详细时间差 -->
+        <div class="result-detail mb-6">
+          <div class="section-title mb-4">⏱️ 精确时间差</div>
+          <div class="result-row">
+            <span class="result-label-item">年份差</span>
+            <span class="result-value-item">{{ result.years }} 年</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label-item">月份差</span>
+            <span class="result-value-item">{{ result.months }} 个月</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label-item">天数差</span>
+            <span class="result-value-item">{{ result.days }} 天</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label-item">合计</span>
+            <span class="result-value-item">{{ result.years }}年 {{ result.months }}个月 {{ result.days }}天</span>
+          </div>
+        </div>
+        
+        <!-- 其他单位转换 -->
+        <div class="result-detail">
+          <div class="section-title mb-4">📐 其他单位转换</div>
+          <div class="grid-3">
+            <div class="result-row" style="display: block;">
+              <div class="result-label-item">总小时数</div>
+              <div class="result-value-item text-lg">{{ result.totalHours.toLocaleString() }} 小时</div>
+            </div>
+            <div class="result-row" style="display: block;">
+              <div class="result-label-item">总分钟数</div>
+              <div class="result-value-item text-lg">{{ result.totalMinutes.toLocaleString() }} 分钟</div>
+            </div>
+            <div class="result-row" style="display: block;">
+              <div class="result-label-item">总秒数</div>
+              <div class="result-value-item text-lg">{{ result.totalSeconds.toLocaleString() }} 秒</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 快捷对比 -->
+      <div class="card">
+        <div class="section-title">⚡ 快捷对比</div>
+        <div class="grid-3">
+          <button @click="quickCompare(1, 'day')" class="btn btn-secondary">
+            1 天后/前
+          </button>
+          <button @click="quickCompare(7, 'day')" class="btn btn-secondary">
+            7 天后/前
+          </button>
+          <button @click="quickCompare(30, 'day')" class="btn btn-secondary">
+            30 天后/前
+          </button>
+          <button @click="quickCompare(1, 'month')" class="btn btn-secondary">
+            1 个月后/前
+          </button>
+          <button @click="quickCompare(3, 'month')" class="btn btn-secondary">
+            3 个月后/前
+          </button>
+          <button @click="quickCompare(1, 'year')" class="btn btn-secondary">
+            1 年后/前
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        // 主题状态
+        const isDark = ref(false);
+        
+        // 日期状态
+        const startDate = ref('');
+        const endDate = ref('');
+        const calculated = ref(false);
+        
+        // 计算结果
+        const result = ref({
+          totalDays: 0,
+          totalWeeks: 0,
+          totalMonths: 0,
+          totalYears: 0,
+          years: 0,
+          months: 0,
+          days: 0,
+          totalHours: 0,
+          totalMinutes: 0,
+          totalSeconds: 0
+        });
+
+        // 主题切换
+        const toggleTheme = () => {
+          isDark.value = !isDark.value;
+          document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+          localStorage.setItem('date-diff-theme', isDark.value ? 'dark' : 'light');
+        };
+
+        // 设置开始日期为今天
+        const setStartDateToNow = () => {
+          startDate.value = new Date().toISOString().split('T')[0];
+        };
+
+        // 设置结束日期为今天
+        const setEndDateToNow = () => {
+          endDate.value = new Date().toISOString().split('T')[0];
+        };
+
+        // 交换日期
+        const swapDates = () => {
+          const temp = startDate.value;
+          startDate.value = endDate.value;
+          endDate.value = temp;
+          if (calculated.value) calculateDiff();
+        };
+
+        // 重置日期
+        const resetDates = () => {
+          startDate.value = '';
+          endDate.value = '';
+          calculated.value = false;
+        };
+
+        // 计算日期差
+        const calculateDiff = () => {
+          if (!startDate.value || !endDate.value) {
+            alert('请选择开始和结束日期');
+            return;
+          }
+
+          const start = new Date(startDate.value);
+          const end = new Date(endDate.value);
+          
+          // 计算总毫秒差
+          const diffMs = end - start;
+          const absDiffMs = Math.abs(diffMs);
+          
+          // 计算总天数
+          const totalDays = Math.floor(absDiffMs / (1000 * 60 * 60 * 24));
+          
+          // 计算总周数
+          const totalWeeks = Math.floor(totalDays / 7);
+          
+          // 计算总小时、分钟、秒
+          const totalHours = Math.floor(absDiffMs / (1000 * 60 * 60));
+          const totalMinutes = Math.floor(absDiffMs / (1000 * 60));
+          const totalSeconds = Math.floor(absDiffMs / 1000);
+          
+          // 计算精确的年、月、日差
+          let years = end.getFullYear() - start.getFullYear();
+          let months = end.getMonth() - start.getMonth();
+          let days = end.getDate() - start.getDate();
+          
+          // 处理负数情况
+          if (days < 0) {
+            months--;
+            const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0);
+            days += prevMonth.getDate();
+          }
+          
+          if (months < 0) {
+            years--;
+            months += 12;
+          }
+          
+          // 计算总月数（近似）
+          const totalMonths = Math.floor(totalDays / 30.44);
+          
+          // 计算总年数（近似）
+          const totalYears = (totalDays / 365.25).toFixed(2);
+          
+          // 更新结果
+          result.value = {
+            totalDays,
+            totalWeeks,
+            totalMonths,
+            totalYears,
+            years: Math.abs(years),
+            months: Math.abs(months),
+            days: Math.abs(days),
+            totalHours,
+            totalMinutes,
+            totalSeconds
+          };
+          
+          calculated.value = true;
+        };
+
+        // 快捷对比
+        const quickCompare = (value, unit) => {
+          if (!startDate.value) {
+            setStartDateToNow();
+          }
+          
+          const start = new Date(startDate.value);
+          const end = new Date(start);
+          
+          if (unit === 'day') {
+            end.setDate(end.getDate() + value);
+          } else if (unit === 'month') {
+            end.setMonth(end.getMonth() + value);
+          } else if (unit === 'year') {
+            end.setFullYear(end.getFullYear() + value);
+          }
+          
+          endDate.value = end.toISOString().split('T')[0];
+          
+          // 自动计算
+          setTimeout(calculateDiff, 100);
+        };
+
+        // 初始化
+        onMounted(() => {
+          // 加载主题
+          const savedTheme = localStorage.getItem('date-diff-theme') || 'light';
+          isDark.value = savedTheme === 'dark';
+          document.documentElement.setAttribute('data-theme', savedTheme);
+          
+          // 设置默认日期
+          setStartDateToNow();
+          setEndDateToNow();
+        });
+
+        return {
+          isDark,
+          toggleTheme,
+          startDate,
+          endDate,
+          calculated,
+          result,
+          setStartDateToNow,
+          setEndDateToNow,
+          swapDates,
+          resetDates,
+          calculateDiff,
+          quickCompare
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

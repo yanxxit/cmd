@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试案例管理系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    .sidebar-item {
+      transition: all 0.2s ease;
+    }
+    .sidebar-item:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    .sidebar-item.active {
+      background-color: rgba(59, 130, 246, 0.1);
+      border-left: 3px solid #3B82F6;
+      color: #3B82F6;
+    }
+    .json-editor {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div x-data="testCaseManager()" x-init="init()" class="flex h-screen overflow-hidden">
+    
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-900 text-gray-300 flex flex-col flex-shrink-0">
+      <!-- Logo -->
+      <div class="h-16 flex items-center px-6 border-b border-gray-800">
+        <div class="w-8 h-8 rounded bg-blue-600 flex items-center justify-center mr-3">
+          <i data-lucide="square-check" class="w-5 h-5 text-white"></i>
+        </div>
+        <span class="font-bold text-lg text-white">Test Case Manager</span>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 overflow-y-auto py-4">
+        <a href="#" class="sidebar-item active flex items-center px-4 py-3 text-sm">
+          <i data-lucide="list" class="w-4 h-4 mr-3"></i>
+          案例列表
+        </a>
+        <a href="#" @click.prevent="openCreateModal()" class="sidebar-item flex items-center px-4 py-3 text-sm">
+          <i data-lucide="plus-circle" class="w-4 h-4 mr-3"></i>
+          新建案例
+        </a>
+        <a href="#" @click.prevent="viewStats()" class="sidebar-item flex items-center px-4 py-3 text-sm">
+          <i data-lucide="bar-chart-3" class="w-4 h-4 mr-3"></i>
+          统计分析
+        </a>
+      </nav>
+
+      <!-- User Profile -->
+      <div class="p-4 border-t border-gray-800">
+        <div class="flex items-center">
+          <img src="https://ui-avatars.com/api/?name=Admin&background=3B82F6&color=fff" alt="User" class="w-8 h-8 rounded-full">
+          <div class="ml-3">
+            <p class="text-sm font-medium text-white">管理员</p>
+            <p class="text-xs text-gray-500">admin@test.com</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+      
+      <!-- Header -->
+      <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+        <div class="flex items-center text-sm text-gray-600">
+          <span>测试案例管理</span>
+          <i data-lucide="chevron-right" class="w-4 h-4 mx-2 text-gray-400"></i>
+          <span class="font-medium text-gray-900">案例列表</span>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+          <button @click="loadData()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-md transition">
+            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+          </button>
+          <button @click="openCreateModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center">
+            <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+            新建案例
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <div class="flex-1 overflow-auto p-6">
+        
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 font-medium">总案例数</p>
+                <p class="text-2xl font-bold text-gray-900" x-text="stats.total">0</p>
+              </div>
+              <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                <i data-lucide="file-text" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 font-medium">接口数</p>
+                <p class="text-2xl font-bold text-gray-900" x-text="Object.keys(stats.byApiName || {}).length">0</p>
+              </div>
+              <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                <i data-lucide="layers" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 font-medium">标签数</p>
+                <p class="text-2xl font-bold text-gray-900" x-text="Object.keys(stats.byTags || {}).length">0</p>
+              </div>
+              <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+                <i data-lucide="tags" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 font-medium">最近更新</p>
+                <p class="text-lg font-bold text-gray-900" x-text="stats.recentCases?.length || 0">0</p>
+              </div>
+              <div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
+                <i data-lucide="clock" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-6">
+          <div class="grid grid-cols-4 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">搜索</label>
+              <input type="text" x-model="filters.search" @input.debounce.300ms="loadData()" 
+                     placeholder="接口名、标题..." 
+                     class="w-full rounded-lg border-gray-300 text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">接口名分组</label>
+              <select x-model="filters.apiName" @change="loadData()" class="w-full rounded-lg border-gray-300 text-sm">
+                <option value="">全部</option>
+                <template x-for="name in apiNames" :key="name">
+                  <option :value="name" x-text="name"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">标签过滤</label>
+              <select x-model="filters.tag" @change="loadData()" class="w-full rounded-lg border-gray-300 text-sm">
+                <option value="">全部</option>
+                <template x-for="tag in allTags" :key="tag">
+                  <option :value="tag" x-text="tag"></option>
+                </template>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button @click="resetFilters()" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                重置筛选
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
+                    <input type="checkbox" x-model="selectAll" @change="toggleSelectAll()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">接口名</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标题</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标签</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">请求时间</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <template x-for="item in testCases" :key="item._id">
+                  <tr class="hover:bg-gray-50 transition cursor-pointer" @click="viewDetail(item)">
+                    <td class="px-6 py-4" @click.stop>
+                      <input type="checkbox" :value="item._id" x-model="selectedIds" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </td>
+                    <td class="px-6 py-4">
+                      <span class="text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer" 
+                            @click="viewDetail(item)" 
+                            x-text="item.apiName"
+                            title="点击查看详情"></span>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer" 
+                           @click="viewDetail(item)" 
+                           x-text="item.title"
+                           title="点击查看详情"></div>
+                    </td>
+                    <td class="px-6 py-4" @click.stop>
+                      <div class="flex flex-wrap gap-1">
+                        <template x-for="tag in (item.tags || []).slice(0, 3)" :key="tag">
+                          <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full" x-text="tag"></span>
+                        </template>
+                        <span x-show="(item.tags || []).length > 3" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full" x-text="'+' + (item.tags.length - 3)"></span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500" @click.stop x-text="formatDate(item.requestTime)"></td>
+                    <td class="px-6 py-4 text-sm text-gray-500" @click.stop x-text="formatDate(item.createdAt)"></td>
+                    <td class="px-6 py-4 text-right" @click.stop>
+                      <div class="flex items-center justify-end space-x-2">
+                        <button @click="viewDetail(item)" 
+                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition" 
+                                title="查看详情">
+                          <i data-lucide="eye" class="w-4 h-4 mr-1.5"></i>
+                          查看
+                        </button>
+                        <button @click="editItem(item)" 
+                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition" 
+                                title="编辑">
+                          <i data-lucide="edit-2" class="w-4 h-4 mr-1.5"></i>
+                          编辑
+                        </button>
+                        <button @click="deleteItem(item._id)" 
+                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition" 
+                                title="删除">
+                          <i data-lucide="trash-2" class="w-4 h-4 mr-1.5"></i>
+                          删除
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="testCases.length === 0">
+                  <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                    <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-4 text-gray-300"></i>
+                    <p>暂无测试案例</p>
+                    <button @click="openCreateModal()" class="mt-4 text-blue-600 hover:text-blue-700 text-sm font-medium">立即创建</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div class="text-sm text-gray-500">
+              显示 <span class="font-medium text-gray-900" x-text="pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0"></span> 到 
+              <span class="font-medium text-gray-900" x-text="Math.min(pagination.page * pagination.limit, pagination.total)"></span> 条，共 
+              <span class="font-medium text-gray-900" x-text="pagination.total"></span> 条
+            </div>
+            <div class="flex space-x-2">
+              <button @click="changePage(pagination.page - 1)" 
+                      :disabled="pagination.page <= 1"
+                      class="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50">
+                上一页
+              </button>
+              <template x-for="page in getPages()" :key="page">
+                <button @click="changePage(page)" 
+                        :class="pagination.page === page ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+                        class="px-3 py-1 border rounded text-sm transition"
+                        x-text="page"></button>
+              </template>
+              <button @click="changePage(pagination.page + 1)" 
+                      :disabled="pagination.page >= pagination.pages"
+                      class="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50">
+                下一页
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Batch Operations -->
+        <div x-show="selectedIds.length > 0" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-4 z-40">
+          <span class="text-sm">已选择 <span class="font-bold" x-text="selectedIds.length"></span> 项</span>
+          <button @click="batchDelete()" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm transition">批量删除</button>
+          <button @click="selectedIds = []" class="text-gray-300 hover:text-white text-sm">取消</button>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Create/Edit Modal -->
+    <div x-show="showModal" x-cloak 
+         @click.self="closeModal()"
+         @keydown.escape.window="closeModal()"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 my-8">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h2 class="text-xl font-bold" x-text="isEditing ? '编辑测试案例' : '新建测试案例'"></h2>
+          <div class="flex items-center space-x-2">
+            <button @click="closeModal()" 
+                    class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition" 
+                    title="关闭 (ESC)">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+          <form @submit.prevent="saveItem()">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">接口名称 *</label>
+                <div class="flex">
+                  <input type="text" x-model="formData.apiName" required 
+                         class="flex-1 rounded-l-lg border-gray-300 text-sm"
+                         placeholder="例如：/api/users">
+                  <button type="button" @click="copyFormData('apiName', '接口名称')" 
+                          class="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-sm hover:bg-gray-200 transition" title="复制">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">案例标题 *</label>
+                <div class="flex">
+                  <input type="text" x-model="formData.title" required 
+                         class="flex-1 rounded-l-lg border-gray-300 text-sm"
+                         placeholder="例如：查询用户列表 - 正常场景">
+                  <button type="button" @click="copyFormData('title', '案例标题')" 
+                          class="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-sm hover:bg-gray-200 transition" title="复制">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">请求参数</label>
+              <div class="relative">
+                <textarea x-model="formData.requestParamsText" rows="6" 
+                          class="w-full rounded-lg border-gray-300 text-sm json-editor"
+                          placeholder='{"key": "value"} 或粘贴 JSON 字符串'></textarea>
+                <button type="button" @click="convertStringToJson('requestParams')" 
+                        class="absolute top-2 right-2 px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 transition">
+                  String 转 JSON
+                </button>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">返回数据</label>
+              <div class="relative">
+                <textarea x-model="formData.responseDataText" rows="6" 
+                          class="w-full rounded-lg border-gray-300 text-sm json-editor"
+                          placeholder='{"code": 200, "data": {}} 或粘贴 JSON 字符串'></textarea>
+                <button type="button" @click="convertStringToJson('responseData')" 
+                        class="absolute top-2 right-2 px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 transition">
+                  String 转 JSON
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+                <textarea x-model="formData.remark" rows="3" 
+                          class="w-full rounded-lg border-gray-300 text-sm"
+                          placeholder="补充说明..."></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">标签</label>
+                <div class="flex flex-wrap gap-2 mb-2">
+                  <template x-for="(tag, index) in formData.tags" :key="index">
+                    <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full flex items-center">
+                      <span x-text="tag"></span>
+                      <button type="button" @click="removeTag(index)" class="ml-1 text-blue-700 hover:text-blue-900">✕</button>
+                    </span>
+                  </template>
+                </div>
+                <div class="flex">
+                  <input type="text" x-model="tagInput" @keydown.enter.prevent="addTag()" 
+                         class="flex-1 rounded-l-lg border-gray-300 text-sm"
+                         placeholder="输入标签后按回车">
+                  <button type="button" @click="addTag()" class="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-sm hover:bg-gray-200">添加</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">请求时间</label>
+              <input type="datetime-local" x-model="formData.requestTime" 
+                     class="w-full rounded-lg border-gray-300 text-sm">
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <button type="button" @click="closeModal()" 
+                      class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                取消
+              </button>
+              <button type="submit" 
+                      class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+                <span x-text="isEditing ? '保存' : '创建'"></span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div x-show="showDetailModal" x-cloak 
+         @click.self="showDetailModal = false"
+         @keydown.escape.window="showDetailModal = false"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl mx-4 my-8">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h2 class="text-xl font-bold">案例详情</h2>
+          <div class="flex items-center space-x-2">
+            <button @click="editFromDetail()" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition flex items-center">
+              <i data-lucide="edit-2" class="w-4 h-4 mr-1.5"></i>
+              编辑
+            </button>
+            <button @click="showDetailModal = false" 
+                    class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition" 
+                    title="关闭 (ESC)">
+              <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="p-6 max-h-[calc(100vh-200px)] overflow-y-auto" x-show="detailItem">
+          <!-- 基本信息 -->
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <p class="text-sm text-gray-500 mb-1">接口名称</p>
+              <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <p class="font-medium text-gray-900 text-sm" x-text="detailItem?.apiName"></p>
+                <button @click="copyToClipboard(detailItem?.apiName, '接口名称')" class="text-gray-400 hover:text-gray-600 transition" title="复制">
+                  <i data-lucide="copy" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500 mb-1">案例标题</p>
+              <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <p class="font-medium text-gray-900 text-sm" x-text="detailItem?.title"></p>
+                <button @click="copyToClipboard(detailItem?.title, '案例标题')" class="text-gray-400 hover:text-gray-600 transition" title="复制">
+                  <i data-lucide="copy" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 请求参数 -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm font-medium text-gray-700">请求参数</p>
+              <button @click="copyToClipboard(JSON.stringify(detailItem?.requestParams, null, 2), '请求参数')" 
+                      class="text-blue-600 hover:text-blue-800 text-sm flex items-center transition">
+                <i data-lucide="copy" class="w-4 h-4 mr-1"></i>
+                复制
+              </button>
+            </div>
+            <pre class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm json-editor overflow-x-auto max-h-64" x-text="formatJson(detailItem?.requestParams)"></pre>
+          </div>
+
+          <!-- 返回数据 -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm font-medium text-gray-700">返回数据</p>
+              <button @click="copyToClipboard(JSON.stringify(detailItem?.responseData, null, 2), '返回数据')" 
+                      class="text-blue-600 hover:text-blue-800 text-sm flex items-center transition">
+                <i data-lucide="copy" class="w-4 h-4 mr-1"></i>
+                复制
+              </button>
+            </div>
+            <pre class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm json-editor overflow-x-auto max-h-64" x-text="formatJson(detailItem?.responseData)"></pre>
+          </div>
+
+          <!-- 备注和标签 -->
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-2">备注</p>
+              <div class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <p class="text-gray-900 text-sm" x-text="detailItem?.remark || '无'"></p>
+              </div>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-2">标签</p>
+              <div class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 min-h-[42px]">
+                <div class="flex flex-wrap gap-1">
+                  <template x-for="tag in detailItem?.tags || []" :key="tag">
+                    <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full" x-text="tag"></span>
+                  </template>
+                  <span x-show="!(detailItem?.tags?.length)" class="text-gray-400 text-sm">无标签</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 时间信息 -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-1">请求时间</p>
+              <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <p class="text-gray-900 text-sm" x-text="formatDate(detailItem?.requestTime)"></p>
+                <button @click="copyToClipboard(formatDate(detailItem?.requestTime), '请求时间')" class="text-gray-400 hover:text-gray-600 transition" title="复制">
+                  <i data-lucide="copy" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-1">创建时间</p>
+              <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <p class="text-gray-900 text-sm" x-text="formatDate(detailItem?.createdAt)"></p>
+                <button @click="copyToClipboard(formatDate(detailItem?.createdAt), '创建时间')" class="text-gray-400 hover:text-gray-600 transition" title="复制">
+                  <i data-lucide="copy" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function testCaseManager() {
+      return {
+        testCases: [],
+        stats: {},
+        apiNames: [],
+        allTags: [],
+        pagination: {
+          total: 0,
+          page: 1,
+          limit: 20,
+          pages: 1
+        },
+        filters: {
+          search: '',
+          apiName: '',
+          tag: ''
+        },
+        showModal: false,
+        showDetailModal: false,
+        isEditing: false,
+        editingId: null,
+        formData: {
+          apiName: '',
+          title: '',
+          requestParamsText: '',
+          responseDataText: '',
+          requestParams: {},
+          responseData: {},
+          remark: '',
+          tags: [],
+          requestTime: ''
+        },
+        tagInput: '',
+        selectedIds: [],
+        selectAll: false,
+        detailItem: null,
+
+        async init() {
+          await this.loadData();
+          await this.loadStats();
+          await this.loadApiNames();
+          await this.loadTags();
+        },
+
+        async loadData() {
+          try {
+            const params = new URLSearchParams({
+              page: this.pagination.page.toString(),
+              limit: this.pagination.limit.toString()
+            });
+
+            if (this.filters.search) params.append('search', this.filters.search);
+            if (this.filters.apiName) params.append('apiName', this.filters.apiName);
+            if (this.filters.tag) params.append('tags', this.filters.tag);
+
+            const response = await fetch(`/api/test-cases?${params}`);
+            const result = await response.json();
+
+            if (result.success) {
+              this.testCases = result.data;
+              this.pagination = result.pagination;
+            }
+          } catch (err) {
+            console.error('加载数据失败:', err);
+            alert('加载数据失败：' + err.message);
+          }
+        },
+
+        async loadStats() {
+          try {
+            const response = await fetch('/api/test-cases/stats');
+            const result = await response.json();
+
+            if (result.success) {
+              this.stats = result.data;
+            }
+          } catch (err) {
+            console.error('加载统计失败:', err);
+          }
+        },
+
+        async loadApiNames() {
+          try {
+            const response = await fetch('/api/test-cases/api-names');
+            const result = await response.json();
+
+            if (result.success) {
+              this.apiNames = result.data;
+            }
+          } catch (err) {
+            console.error('加载接口名失败:', err);
+          }
+        },
+
+        async loadTags() {
+          try {
+            const response = await fetch('/api/test-cases/tags');
+            const result = await response.json();
+
+            if (result.success) {
+              this.allTags = result.data;
+            }
+          } catch (err) {
+            console.error('加载标签失败:', err);
+          }
+        },
+
+        resetFilters() {
+          this.filters = {
+            search: '',
+            apiName: '',
+            tag: ''
+          };
+          this.pagination.page = 1;
+          this.loadData();
+        },
+
+        openCreateModal() {
+          this.isEditing = false;
+          this.editingId = null;
+          this.formData = {
+            apiName: '',
+            title: '',
+            requestParamsText: '',
+            responseDataText: '',
+            requestParams: {},
+            responseData: {},
+            remark: '',
+            tags: [],
+            requestTime: new Date().toISOString().slice(0, 16)
+          };
+          this.tagInput = '';
+          this.showModal = true;
+        },
+
+        editItem(item) {
+          this.isEditing = true;
+          this.editingId = item._id;
+          this.formData = {
+            apiName: item.apiName,
+            title: item.title,
+            requestParamsText: JSON.stringify(item.requestParams, null, 2),
+            responseDataText: JSON.stringify(item.responseData, null, 2),
+            requestParams: item.requestParams,
+            responseData: item.responseData,
+            remark: item.remark || '',
+            tags: item.tags || [],
+            requestTime: item.requestTime ? item.requestTime.slice(0, 16) : ''
+          };
+          this.tagInput = '';
+          this.showModal = true;
+        },
+
+        viewDetail(item) {
+          this.detailItem = item;
+          this.showDetailModal = true;
+        },
+
+        editFromDetail() {
+          // 从详情页进入编辑模式
+          this.editItem(this.detailItem);
+        },
+
+        copyToClipboard(text, fieldName) {
+          if (!text) {
+            alert(fieldName + '为空，无法复制');
+            return;
+          }
+          
+          navigator.clipboard.writeText(text).then(() => {
+            // 显示成功提示
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all transform';
+            toast.innerHTML = `✓ ${fieldName}已复制到剪贴板`;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+              toast.style.opacity = '0';
+              toast.style.transform = 'translateY(-20px)';
+              setTimeout(() => toast.remove(), 300);
+            }, 2000);
+          }).catch(err => {
+            alert('复制失败：' + err.message);
+          });
+        },
+
+        formatJson(obj) {
+          if (!obj) return '{}';
+          try {
+            return JSON.stringify(obj, null, 2);
+          } catch (e) {
+            return String(obj);
+          }
+        },
+
+        copyFormData(field, fieldName) {
+          const text = this.formData[field];
+          if (!text) {
+            alert(fieldName + '为空，无法复制');
+            return;
+          }
+          
+          navigator.clipboard.writeText(text).then(() => {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all transform';
+            toast.innerHTML = `✓ ${fieldName}已复制`;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+              toast.style.opacity = '0';
+              toast.style.transform = 'translateY(-20px)';
+              setTimeout(() => toast.remove(), 300);
+            }, 2000);
+          }).catch(err => {
+            alert('复制失败：' + err.message);
+          });
+        },
+
+        closeModal() {
+          this.showModal = false;
+        },
+
+        addTag() {
+          const tag = this.tagInput.trim();
+          if (tag && !this.formData.tags.includes(tag)) {
+            this.formData.tags.push(tag);
+          }
+          this.tagInput = '';
+        },
+
+        removeTag(index) {
+          this.formData.tags.splice(index, 1);
+        },
+
+        convertStringToJson(field) {
+          try {
+            const text = this.formData[`${field}Text`];
+            if (!text.trim()) return;
+
+            const json = JSON.parse(text);
+            this.formData[field] = json;
+            alert('转换成功！');
+          } catch (err) {
+            alert('JSON 格式错误：' + err.message);
+          }
+        },
+
+        async saveItem() {
+          try {
+            // 尝试转换 String 为 JSON
+            if (this.formData.requestParamsText) {
+              try {
+                this.formData.requestParams = JSON.parse(this.formData.requestParamsText);
+              } catch (e) {
+                // 保持原样
+              }
+            }
+            if (this.formData.responseDataText) {
+              try {
+                this.formData.responseData = JSON.parse(this.formData.responseDataText);
+              } catch (e) {
+                // 保持原样
+              }
+            }
+
+            const url = this.isEditing ? `/api/test-cases/${this.editingId}` : '/api/test-cases';
+            const method = this.isEditing ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+              method,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.formData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              alert(this.isEditing ? '案例已更新' : '案例已创建');
+              this.closeModal();
+              await this.loadData();
+              await this.loadStats();
+            } else {
+              alert('操作失败：' + result.error);
+            }
+          } catch (err) {
+            console.error('保存失败:', err);
+            alert('保存失败：' + err.message);
+          }
+        },
+
+        async deleteItem(id) {
+          if (!confirm('确定要删除这个案例吗？')) return;
+
+          try {
+            const response = await fetch(`/api/test-cases/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+
+            if (result.success) {
+              alert('案例已删除');
+              await this.loadData();
+              await this.loadStats();
+            } else {
+              alert('删除失败：' + result.error);
+            }
+          } catch (err) {
+            console.error('删除失败:', err);
+            alert('删除失败：' + err.message);
+          }
+        },
+
+        toggleSelectAll() {
+          if (this.selectAll) {
+            this.selectedIds = this.testCases.map(item => item._id);
+          } else {
+            this.selectedIds = [];
+          }
+        },
+
+        async batchDelete() {
+          if (!confirm(`确定要删除选中的 ${this.selectedIds.length} 个案例吗？`)) return;
+
+          try {
+            const response = await fetch('/api/test-cases/batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ operation: 'delete', ids: this.selectedIds })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              alert(`已删除 ${result.data.deleted} 个案例`);
+              this.selectedIds = [];
+              this.selectAll = false;
+              await this.loadData();
+              await this.loadStats();
+            } else {
+              alert('批量删除失败：' + result.error);
+            }
+          } catch (err) {
+            console.error('批量删除失败:', err);
+            alert('批量删除失败：' + err.message);
+          }
+        },
+
+        changePage(page) {
+          if (page < 1 || page > this.pagination.pages) return;
+          this.pagination.page = page;
+          this.loadData();
+        },
+
+        getPages() {
+          const pages = [];
+          const start = Math.max(1, this.pagination.page - 2);
+          const end = Math.min(this.pagination.pages, this.pagination.page + 2);
+          for (let i = start; i <= end; i++) {
+            pages.push(i);
+          }
+          return pages;
+        },
+
+        formatDate(dateStr) {
+          if (!dateStr) return '-';
+          const date = new Date(dateStr);
+          return date.toLocaleString('zh-CN', { 
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        },
+
+        async viewStats() {
+          await this.loadStats();
+          alert(`统计信息：\n总案例数：${this.stats.total}\n接口数：${Object.keys(this.stats.byApiName || {}).length}\n标签数：${Object.keys(this.stats.byTags || {}).length}`);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
