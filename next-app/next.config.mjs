@@ -15,7 +15,7 @@ const nextConfig = {
   async rewrites() {
     if (isDev) {
       return [
-        {
+        {// http://localhost:3030/next/api/test-cases/tags
           source: '/api/:path*',
           destination: 'http://localhost:3000/api/:path*',
         },

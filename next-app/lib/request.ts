@@ -15,10 +15,15 @@ export async function request<T = any>(url: string, options: RequestOptions = {}
 
   let fetchUrl = url;
 
-  // 自动添加 /api 前缀以适配代理配置
-  // 代理配置：/api/* -> http://localhost:3000/api/*
-  if (!fetchUrl.startsWith('/api/') && !fetchUrl.startsWith('http://') && !fetchUrl.startsWith('https://')) {
-    fetchUrl = `/api${fetchUrl.startsWith('/') ? fetchUrl : '/' + fetchUrl}`;
+  // 自动添加前缀以适配代理和 basePath 配置
+  // 代理配置：/next/api/* -> http://localhost:3000/api/*
+  const isDev = process.env.NODE_ENV === 'development';
+  const prefix = isDev ? '/next/api' : '/api';
+
+  if (!fetchUrl.startsWith(prefix) && !fetchUrl.startsWith('http://') && !fetchUrl.startsWith('https://')) {
+    // 移除可能已经存在的 /api 或 / 头部
+    const cleanUrl = fetchUrl.replace(/^\/?(api)?\//, '');
+    fetchUrl = `${prefix}/${cleanUrl}`;
   }
 
   // 处理查询参数
