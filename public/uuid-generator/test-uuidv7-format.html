@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UUID v7 格式验证</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    .uuid {
+      font-size: 18px;
+      color: #9cdcfe;
+      margin: 10px 0;
+    }
+    .valid {
+      color: #4caf50;
+    }
+    .invalid {
+      color: #f44336;
+    }
+  </style>
+</head>
+<body>
+  <h1>UUID v7 格式验证</h1>
+  <div id="output"></div>
+
+  <script>
+    function getRandomValues(length) {
+      const array = new Uint8Array(length);
+      crypto.getRandomValues(array);
+      return array;
+    }
+
+    function generateUUIDv7Correct(timestamp) {
+      const rand = getRandomValues(10);
+      const timestampHex = timestamp.toString(16).padStart(12, '0');
+      const randHex = Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      // UUID v7 标准格式：xxxxxxxx-xxxx-7xxx-xxxx-xxxxxxxxxxxx
+      // 位置：        01234567890123456789012345678901
+      //              0       1   2   3   4
+      // 字段：        时间戳 (48 位)    版本 随机 变体  随机
+      // 十六进制字符：12 位       4 位     12 位
+      const uuid = `${timestampHex.slice(0,8)}-${timestampHex.slice(8,12)}-7${randHex.slice(0,3)}-${((parseInt(randHex.slice(6,8), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0')}${randHex.slice(8,10)}-${randHex.slice(10,20)}`;
+      
+      return uuid;
+    }
+
+    function parseUUIDv7(uuid) {
+      const clean = uuid.toLowerCase().replace(/[\s-]/g, '');
+      
+      if (!/^[0-9a-f]{32}$/.test(clean)) {
+        return { valid: false, error: '格式不正确（应为 32 位十六进制）' };
+      }
+      
+      if (clean[12] !== '7') {
+        return { valid: false, error: `版本号不正确（应为 7，实际为 ${clean[12]})` };
+      }
+      
+      const timestampHex = clean.slice(0, 12);
+      const timestamp = parseInt(timestampHex, 16);
+      const date = new Date(timestamp);
+      
+      return {
+        valid: true,
+        timestamp,
+        date: date.toISOString().replace('T', ' ').slice(0, 23),
+        hex: timestampHex
+      };
+    }
+
+    const output = document.getElementById('output');
+    const results = [];
+    
+    // 生成 5 个 UUID v7 并验证
+    for (let i = 0; i < 5; i++) {
+      const now = Date.now();
+      const uuid = generateUUIDv7Correct(now);
+      const parsed = parseUUIDv7(uuid);
+      
+      const clean = uuid.toLowerCase().replace(/-/g, '');
+      const segments = [
+        clean.slice(0, 8),
+        clean.slice(8, 12),
+        clean.slice(12, 16),
+        clean.slice(16, 20),
+        clean.slice(20, 32)
+      ];
+      
+      results.push(`
+        <div style="margin: 20px 0; padding: 15px; background: #252526; border-radius: 8px;">
+          <div><strong>生成时间:</strong> ${new Date(now).toISOString().replace('T', ' ').slice(0, 23)}</div>
+          <div class="uuid"><strong>UUID v7:</strong> ${uuid}</div>
+          <div><strong>清理后:</strong> ${clean}</div>
+          <div><strong>分段:</strong> ${segments[0]}-${segments[1]}-${segments[2]}-${segments[3]}-${segments[4]}</div>
+          <div><strong>第 13 位 (索引 12):</strong> <span class="${clean[12] === '7' ? 'valid' : 'invalid'}">${clean[12]}</span></div>
+          <div><strong>解析结果:</strong> ${parsed.valid ? '<span class="valid">✅ 有效</span>' : '<span class="invalid">❌ ' + parsed.error + '</span>'}</div>
+          ${parsed.valid ? `<div><strong>提取时间:</strong> ${parsed.date}</div>` : ''}
+        </div>
+      `);
+    }
+    
+    output.innerHTML = results.join('\n');
+  </script>
+</body>
+</html>

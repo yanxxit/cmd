@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文本转二进制工具 - 字符统计与二进制转换</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      border-left: 4px solid #667eea;
+      transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-number {
+      font-size: 36px;
+      font-weight: bold;
+      color: #667eea;
+      display: block;
+      margin-bottom: 8px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #6b7280;
+      font-weight: 600;
+    }
+
+    .input-section {
+      background: #f9fafb;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 15px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: 'Courier New', monospace;
+      resize: vertical;
+      transition: all 0.3s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .options-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+      align-items: center;
+    }
+
+    .option-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .option-group label {
+      font-size: 14px;
+      color: #374151;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .option-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    select {
+      padding: 8px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      background: white;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .result-section {
+      background: #1e1e1e;
+      border-radius: 15px;
+      padding: 25px;
+      margin-top: 25px;
+    }
+
+    .result-title {
+      color: #4ec9b0;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result-output {
+      background: #000;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #d4d4d4;
+      word-break: break-all;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    .char-detail-section {
+      background: #f0f9ff;
+      border-left: 4px solid #667eea;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .char-detail-title {
+      color: #667eea;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    .char-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .char-item {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      font-size: 13px;
+    }
+
+    .char-item-header {
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+    }
+
+    .char-item-detail {
+      color: #6b7280;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .encoding-info {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 20px;
+    }
+
+    .encoding-info-title {
+      color: #92400e;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .encoding-info-content {
+      color: #78350f;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        padding: 20px;
+      }
+
+      .stats-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .options-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .btn-group {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>
+        <span>🔢</span>
+        <span>文本转二进制工具</span>
+      </h1>
+      <p>支持中文、英文、数字、各种字符，实时显示字符数、字节数和二进制数据</p>
+    </header>
+
+    <div class="content">
+      <!-- 统计栏 -->
+      <div class="stats-bar">
+        <div class="stat-card">
+          <span class="stat-number" id="charCount">0</span>
+          <span class="stat-label">字符数</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="byteCount">0</span>
+          <span class="stat-label">字节数 (UTF-8)</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="bitCount">0</span>
+          <span class="stat-label">比特数</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="wordCount">0</span>
+          <span class="stat-label">单词数</span>
+        </div>
+      </div>
+
+      <!-- 输入区域 -->
+      <div class="input-section">
+        <h2 class="section-title">📝 输入文本</h2>
+        <div class="input-group">
+          <textarea 
+            id="textInput" 
+            placeholder="请输入文本内容，支持中文、英文、数字、Emoji、特殊符号等...
+
+示例：
+Hello 世界！123 🚀
+ABC abc 123
+特殊字符：!@#$%^&*()_+-=[]{}|;':",./<>?`~"
+            spellcheck="false"></textarea>
+          
+          <div class="options-row">
+            <div class="option-group">
+              <input type="checkbox" id="showSpaces" checked>
+              <label for="showSpaces">显示空格分隔</label>
+            </div>
+
+            <div class="option-group">
+              <input type="checkbox" id="autoConvert" checked>
+              <label for="autoConvert">实时转换</label>
+            </div>
+
+            <div class="option-group">
+              <label for="encoding">编码：</label>
+              <select id="encoding">
+                <option value="utf-8">UTF-8 (推荐)</option>
+                <option value="utf-16">UTF-16</option>
+                <option value="ascii">ASCII (仅英文)</option>
+              </select>
+            </div>
+
+            <div class="option-group">
+              <label for="groupSize">分组：</label>
+              <select id="groupSize">
+                <option value="8">8 位一组</option>
+                <option value="16">16 位一组</option>
+                <option value="0">不分组</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="convertToBinary()">
+              <span>⚡</span>
+              <span>转换为二进制</span>
+            </button>
+            <button class="btn btn-secondary" onclick="copyBinary()">
+              <span>📋</span>
+              <span>复制二进制</span>
+            </button>
+            <button class="btn btn-secondary" onclick="copyText()">
+              <span>📄</span>
+              <span>复制原文</span>
+            </button>
+            <button class="btn btn-secondary" onclick="clearAll()">
+              <span>🗑️</span>
+              <span>清空</span>
+            </button>
+            <button class="btn btn-success" onclick="downloadBinary()">
+              <span>💾</span>
+              <span>下载文件</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 二进制结果 -->
+      <div class="result-section" id="resultSection" style="display: none;">
+        <h3 class="result-title">🔢 二进制数据</h3>
+        <div class="result-output" id="binaryOutput"></div>
+        
+        <div class="btn-group">
+          <button class="btn btn-secondary" onclick="toggleFormat()">
+            <span>🔄</span>
+            <span>切换格式</span>
+          </button>
+          <button class="btn btn-secondary" onclick="copyBinary()">
+            <span>📋</span>
+            <span>复制</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 字符详情 -->
+      <div class="char-detail-section" id="charDetailSection" style="display: none;">
+        <h3 class="char-detail-title">📊 字符详情（前 100 个字符）</h3>
+        <div class="char-grid" id="charGrid"></div>
+      </div>
+
+      <!-- 编码说明 -->
+      <div class="encoding-info" id="encodingInfo">
+        <h4 class="encoding-info-title">💡 编码说明</h4>
+        <div class="encoding-info-content" id="encodingInfoContent">
+          <strong>UTF-8</strong> 是一种可变长度的字符编码：
+          <br>• 英文字母、数字：1 字节（8 位）
+          <br>• 带重音的字符：2 字节（16 位）
+          <br>• 中文、日文、韩文：3 字节（24 位）
+          <br>• Emoji、特殊符号：4 字节（32 位）
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 状态管理
+    let currentFormat = 'binary'; // 'binary' | 'hex' | 'decimal'
+    let binaryResult = '';
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      const textInput = document.getElementById('textInput');
+      const autoConvert = document.getElementById('autoConvert');
+
+      // 实时转换
+      textInput.addEventListener('input', function() {
+        updateStats();
+        if (autoConvert.checked) {
+          convertToBinary();
+        }
+      });
+
+      // 编码切换
+      document.getElementById('encoding').addEventListener('change', function() {
+        updateStats();
+        updateEncodingInfo();
+        if (autoConvert.checked) {
+          convertToBinary();
+        }
+      });
+
+      // 分组切换
+      document.getElementById('groupSize').addEventListener('change', function() {
+        if (autoConvert.checked && textInput.value) {
+          convertToBinary();
+        }
+      });
+
+      // 空格显示切换
+      document.getElementById('showSpaces').addEventListener('change', function() {
+        if (autoConvert.checked && textInput.value) {
+          convertToBinary();
+        }
+      });
+
+      // 初始化统计
+      updateStats();
+      updateEncodingInfo();
+    });
+
+    // 更新统计信息
+    function updateStats() {
+      const text = document.getElementById('textInput').value;
+      const encoding = document.getElementById('encoding').value;
+
+      // 字符数
+      const chars = text.length;
+      document.getElementById('charCount').textContent = chars.toLocaleString();
+
+      // 字节数
+      let bytes = 0;
+      if (encoding === 'utf-8') {
+        bytes = new TextEncoder().encode(text).length;
+      } else if (encoding === 'utf-16') {
+        bytes = text.length * 2;
+      } else if (encoding === 'ascii') {
+        bytes = text.split('').filter(c => c.charCodeAt(0) < 128).length;
+      }
+      document.getElementById('byteCount').textContent = bytes.toLocaleString();
+
+      // 比特数
+      document.getElementById('bitCount').textContent = (bytes * 8).toLocaleString();
+
+      // 单词数（按空格和标点分割）
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      document.getElementById('wordCount').textContent = words.toLocaleString();
+    }
+
+    // 更新编码说明
+    function updateEncodingInfo() {
+      const encoding = document.getElementById('encoding').value;
+      const infoContent = document.getElementById('encodingInfoContent');
+
+      if (encoding === 'utf-8') {
+        infoContent.innerHTML = `
+          <strong>UTF-8</strong> 是一种可变长度的字符编码：
+          <br>• 英文字母、数字：1 字节（8 位）
+          <br>• 带重音的字符：2 字节（16 位）
+          <br>• 中文、日文、韩文：3 字节（24 位）
+          <br>• Emoji、特殊符号：4 字节（32 位）
+        `;
+      } else if (encoding === 'utf-16') {
+        infoContent.innerHTML = `
+          <strong>UTF-16</strong> 使用固定 2 字节（16 位）表示基本多文种平面的字符：
+          <br>• 所有字符：2 字节（16 位）
+          <br>• 部分特殊字符（辅助平面）：4 字节（32 位）
+          <br>• 适合处理大量非拉丁字符
+        `;
+      } else if (encoding === 'ascii') {
+        infoContent.innerHTML = `
+          <strong>ASCII</strong> 是最早的字符编码标准：
+          <br>• 仅支持英文字母、数字、基本符号
+          <br>• 每个字符：1 字节（7 位有效，8 位存储）
+          <br>• 不支持中文、Emoji 等非英文字符
+        `;
+      }
+    }
+
+    // 转换为二进制
+    function convertToBinary() {
+      const text = document.getElementById('textInput').value;
+      const encoding = document.getElementById('encoding').value;
+      const groupSize = parseInt(document.getElementById('groupSize').value);
+      const showSpaces = document.getElementById('showSpaces').checked;
+
+      if (!text) {
+        document.getElementById('resultSection').style.display = 'none';
+        document.getElementById('charDetailSection').style.display = 'none';
+        return;
+      }
+
+      // 获取字节数组
+      let bytes;
+      if (encoding === 'utf-8') {
+        bytes = new TextEncoder().encode(text);
+      } else if (encoding === 'utf-16') {
+        const buffer = new ArrayBuffer(text.length * 2);
+        const view = new DataView(buffer);
+        for (let i = 0; i < text.length; i++) {
+          view.setUint16(i * 2, text.charCodeAt(i), true); // Little Endian
+        }
+        bytes = new Uint8Array(buffer);
+      } else if (encoding === 'ascii') {
+        bytes = new Uint8Array(text.split('').map(c => c.charCodeAt(0) & 0x7F));
+      }
+
+      // 转换为二进制字符串
+      let binaryStr = '';
+      for (let i = 0; i < bytes.length; i++) {
+        if (i > 0 && showSpaces) {
+          binaryStr += ' ';
+        }
+        binaryStr += bytes[i].toString(2).padStart(8, '0');
+      }
+
+      // 分组显示
+      if (groupSize > 0) {
+        const groups = [];
+        for (let i = 0; i < binaryStr.length; i += groupSize * 9) { // 8 位 + 1 空格
+          groups.push(binaryStr.slice(i, i + groupSize * 9));
+        }
+        binaryStr = groups.join('\n');
+      }
+
+      binaryResult = binaryStr;
+      currentFormat = 'binary';
+
+      // 显示结果
+      document.getElementById('binaryOutput').textContent = binaryStr;
+      document.getElementById('resultSection').style.display = 'block';
+
+      // 显示字符详情
+      showCharDetails(text);
+    }
+
+    // 显示字符详情
+    function showCharDetails(text) {
+      const encoding = document.getElementById('encoding').value;
+      const grid = document.getElementById('charGrid');
+      const maxChars = Math.min(text.length, 100);
+
+      let html = '';
+      for (let i = 0; i < maxChars; i++) {
+        const char = text[i];
+        const codePoint = char.codePointAt(0);
+        const hex = codePoint.toString(16).toUpperCase().padStart(4, '0');
+        
+        let byteSize;
+        if (encoding === 'utf-8') {
+          const encoded = new TextEncoder().encode(char);
+          byteSize = encoded.length;
+        } else if (encoding === 'utf-16') {
+          byteSize = codePoint > 0xFFFF ? 4 : 2;
+        } else {
+          byteSize = codePoint < 128 ? 1 : 0;
+        }
+
+        const binary = codePoint.toString(2).padStart(byteSize * 8, '0');
+        const displayChar = char === ' ' ? '␣' : (char === '\n' ? '↵' : char);
+
+        html += `
+          <div class="char-item">
+            <div class="char-item-header">${escapeHtml(displayChar)}</div>
+            <div class="char-item-detail">
+              Unicode: U+${hex}<br>
+              十进制：${codePoint}<br>
+              二进制：${binary}<br>
+              字节：${byteSize}
+            </div>
+          </div>
+        `;
+      }
+
+      grid.innerHTML = html;
+      document.getElementById('charDetailSection').style.display = 'block';
+    }
+
+    // 切换格式
+    function toggleFormat() {
+      if (currentFormat === 'binary') {
+        // 切换到十六进制
+        const text = document.getElementById('textInput').value;
+        const encoding = document.getElementById('encoding').value;
+        let bytes;
+
+        if (encoding === 'utf-8') {
+          bytes = new TextEncoder().encode(text);
+        } else if (encoding === 'utf-16') {
+          const buffer = new ArrayBuffer(text.length * 2);
+          const view = new DataView(buffer);
+          for (let i = 0; i < text.length; i++) {
+            view.setUint16(i * 2, text.charCodeAt(i), true);
+          }
+          bytes = new Uint8Array(buffer);
+        } else {
+          bytes = new Uint8Array(text.split('').map(c => c.charCodeAt(0) & 0x7F));
+        }
+
+        let hexStr = '';
+        const showSpaces = document.getElementById('showSpaces').checked;
+        const groupSize = parseInt(document.getElementById('groupSize').value);
+
+        for (let i = 0; i < bytes.length; i++) {
+          if (i > 0 && showSpaces) {
+            hexStr += ' ';
+          }
+          hexStr += bytes[i].toString(16).padStart(2, '0').toUpperCase();
+        }
+
+        if (groupSize > 0) {
+          const groups = [];
+          const itemSize = groupSize * 3; // 2 位 + 1 空格
+          for (let i = 0; i < hexStr.length; i += itemSize) {
+            groups.push(hexStr.slice(i, i + itemSize));
+          }
+          hexStr = groups.join('\n');
+        }
+
+        binaryResult = hexStr;
+        currentFormat = 'hex';
+        document.getElementById('binaryOutput').textContent = hexStr;
+
+      } else if (currentFormat === 'hex') {
+        // 切换到十进制
+        const text = document.getElementById('textInput').value;
+        const encoding = document.getElementById('encoding').value;
+        let bytes;
+
+        if (encoding === 'utf-8') {
+          bytes = new TextEncoder().encode(text);
+        } else if (encoding === 'utf-16') {
+          const buffer = new ArrayBuffer(text.length * 2);
+          const view = new DataView(buffer);
+          for (let i = 0; i < text.length; i++) {
+            view.setUint16(i * 2, text.charCodeAt(i), true);
+          }
+          bytes = new Uint8Array(buffer);
+        } else {
+          bytes = new Uint8Array(text.split('').map(c => c.charCodeAt(0) & 0x7F));
+        }
+
+        let decStr = '';
+        const showSpaces = document.getElementById('showSpaces').checked;
+        const groupSize = parseInt(document.getElementById('groupSize').value);
+
+        for (let i = 0; i < bytes.length; i++) {
+          if (i > 0 && showSpaces) {
+            decStr += ' ';
+          }
+          decStr += bytes[i].toString();
+        }
+
+        if (groupSize > 0) {
+          const groups = [];
+          for (let i = 0; i < decStr.length; i += groupSize * 4) { // 3 位 + 1 空格
+            groups.push(decStr.slice(i, i + groupSize * 4));
+          }
+          decStr = groups.join('\n');
+        }
+
+        binaryResult = decStr;
+        currentFormat = 'decimal';
+        document.getElementById('binaryOutput').textContent = decStr;
+
+      } else {
+        // 切换回二进制
+        convertToBinary();
+      }
+    }
+
+    // 复制二进制
+    async function copyBinary() {
+      if (!binaryResult) {
+        showToast('❌ 没有可复制的内容');
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(binaryResult);
+        showToast('✅ 已复制到剪贴板');
+      } catch (e) {
+        showToast('❌ 复制失败');
+      }
+    }
+
+    // 复制原文
+    async function copyText() {
+      const text = document.getElementById('textInput').value;
+      if (!text) {
+        showToast('❌ 没有可复制的内容');
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('✅ 已复制原文');
+      } catch (e) {
+        showToast('❌ 复制失败');
+      }
+    }
+
+    // 清空
+    function clearAll() {
+      document.getElementById('textInput').value = '';
+      document.getElementById('resultSection').style.display = 'none';
+      document.getElementById('charDetailSection').style.display = 'none';
+      updateStats();
+      showToast('✅ 已清空');
+    }
+
+    // 下载文件
+    function downloadBinary() {
+      if (!binaryResult) {
+        showToast('❌ 没有可下载的内容');
+        return;
+      }
+
+      const text = document.getElementById('textInput').value;
+      const format = currentFormat;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `text-to-${format}-${timestamp}.txt`;
+
+      const content = `原文：\n${text}\n\n${format === 'binary' ? '二进制' : format === 'hex' ? '十六进制' : '十进制'}数据：\n${binaryResult}`;
+      
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('✅ 文件已下载');
+    }
+
+    // 显示提示
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    }
+
+    // HTML 转义
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 添加动画样式
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

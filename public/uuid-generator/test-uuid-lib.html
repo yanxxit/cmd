@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UUID v7 生成测试</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    .uuid {
+      font-size: 18px;
+      color: #9cdcfe;
+      margin: 10px 0;
+    }
+    .valid {
+      color: #4caf50;
+    }
+  </style>
+</head>
+<body>
+  <h1>使用 uuid 库生成 UUID v7</h1>
+  <div id="output"></div>
+
+  <script type="module">
+    import { v7 } from 'https://cdn.jsdelivr.net/npm/uuid@11/+esm';
+    
+    const output = document.getElementById('output');
+    const results = [];
+    
+    // 生成 5 个 UUID v7
+    for (let i = 0; i < 5; i++) {
+      const uuid = v7();
+      
+      // 验证格式
+      const clean = uuid.toLowerCase().replace(/-/g, '');
+      const isValid = /^[0-9a-f]{32}$/.test(clean) && clean[12] === '7';
+      
+      // 提取时间戳
+      const timestampHex = clean.slice(0, 12);
+      const timestamp = parseInt(timestampHex, 16);
+      const date = new Date(timestamp);
+      
+      results.push(`
+        <div style="margin: 20px 0; padding: 15px; background: #252526; border-radius: 8px;">
+          <div class="uuid"><strong>UUID v7:</strong> ${uuid}</div>
+          <div><strong>验证:</strong> <span class="valid">${isValid ? '✅ 有效' : '❌ 无效'}</span></div>
+          <div><strong>时间戳:</strong> ${timestamp} ms</div>
+          <div><strong>时间:</strong> ${date.toISOString().replace('T', ' ').slice(0, 23)} UTC</div>
+          <div><strong>清理后:</strong> ${clean}</div>
+          <div><strong>第 13 位:</strong> ${clean[12]}</div>
+        </div>
+      `);
+    }
+    
+    output.innerHTML = results.join('\n');
+  </script>
+</body>
+</html>

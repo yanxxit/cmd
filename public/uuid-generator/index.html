@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UUID/ID 生成器 - 支持 UUID v4/v7、雪花 ID、NanoID</title>
+  <script type="module">
+    import { v4, v5, v7 } from 'https://cdn.jsdelivr.net/npm/uuid@11/+esm';
+    
+    // 暴露到全局
+    window.uuid_v4 = v4;
+    window.uuid_v5 = v5;
+    window.uuid_v7 = v7;
+  </script>
   <style>
     * {
       margin: 0;
@@ -403,6 +411,7 @@
       <!-- 标签页切换 -->
       <div class="tabs">
         <button class="tab active" data-tab="uuid4">UUID v4</button>
+        <button class="tab" data-tab="uuid5">UUID v5</button>
         <button class="tab" data-tab="uuid7">UUID v7</button>
         <button class="tab" data-tab="snowflake">雪花 ID</button>
         <button class="tab" data-tab="nanoid">NanoID</button>
@@ -459,6 +468,79 @@
             <button class="btn btn-primary" onclick="parseUUIDv4()">解析</button>
           </div>
           <div class="parse-result" id="uuid4ParseResult" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- UUID v5 -->
+      <div class="tab-content" id="uuid5">
+        <div class="generator-section">
+          <h2 class="section-title">🔐 UUID v5 生成器</h2>
+          <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+            基于命名空间和名称的 SHA-1 哈希生成，相同输入总是产生相同输出，适用于根据业务字段生成固定 ID
+          </p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>生成数量</label>
+              <input type="number" id="uuid5Count" value="1" min="1" max="100">
+            </div>
+            <div class="form-group">
+              <label>命名空间</label>
+              <select id="uuid5Namespace">
+                <option value="dns">DNS (6ba7b810-9dad-11d1-80b4-00c04fd430c8)</option>
+                <option value="url">URL (6ba7b811-9dad-11d1-80b4-00c04fd430c8)</option>
+                <option value="oid">OID (6ba7b812-9dad-11d1-80b4-00c04fd430c8)</option>
+                <option value="x500">X.500 (6ba7b813-9dad-11d1-80b4-00c04fd430c8)</option>
+                <option value="custom">自定义命名空间</option>
+              </select>
+            </div>
+            <div class="form-group" id="uuid5CustomNamespace" style="display: none;">
+              <label>自定义命名空间 UUID</label>
+              <input type="text" id="uuid5CustomNamespaceInput" placeholder="输入自定义命名空间 UUID...">
+            </div>
+            <div class="form-group">
+              <label>名称（业务字段）</label>
+              <input type="text" id="uuid5Name" placeholder="例如：邮箱、URL、用户名等">
+            </div>
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="uuid5ShowDetails" checked>
+            <label for="uuid5ShowDetails">显示详细信息（命名空间、哈希过程）</label>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="generateUUIDv5()">
+              <span>⚡</span>
+              <span>立即生成</span>
+            </button>
+            <button class="btn btn-secondary" onclick="copyAll('uuid5Result')">
+              <span>📋</span>
+              <span>复制全部</span>
+            </button>
+            <button class="btn btn-secondary" onclick="clearResult('uuid5Result')">
+              <span>🗑️</span>
+              <span>清空结果</span>
+            </button>
+            <button class="btn btn-secondary" onclick="generateUUIDv5Demo()">
+              <span>🎲</span>
+              <span>随机演示</span>
+            </button>
+          </div>
+
+          <div class="result-section" id="uuid5Result" style="display: none;">
+            <h3 class="result-title">📊 生成结果</h3>
+            <div class="result-output" id="uuid5Output"></div>
+          </div>
+        </div>
+
+        <div class="parse-section">
+          <h3 class="parse-title">🔍 UUID v5 解析</h3>
+          <div class="parse-form">
+            <input type="text" id="uuid5ParseInput" placeholder="输入 UUID v5 进行解析...">
+            <button class="btn btn-primary" onclick="parseUUIDv5()">解析</button>
+          </div>
+          <div class="parse-result" id="uuid5ParseResult" style="display: none;"></div>
         </div>
       </div>
 
@@ -734,6 +816,137 @@
       return `${y}-${m}-${d} ${h}:${min}:${s}.${ms}`;
     }
 
+    // ==================== UUID v5 ====================
+    
+    // 预定义命名空间
+    const NAMESPACE_DNS = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+    const NAMESPACE_URL = '6ba7b811-9dad-11d1-80b4-00c04fd430c8';
+    const NAMESPACE_OID = '6ba7b812-9dad-11d1-80b4-00c04fd430c8';
+    const NAMESPACE_X500 = '6ba7b813-9dad-11d1-80b4-00c04fd430c8';
+
+    function generateUUIDv5() {
+      const count = parseInt(document.getElementById('uuid5Count').value) || 1;
+      const namespaceType = document.getElementById('uuid5Namespace').value;
+      const name = document.getElementById('uuid5Name').value.trim();
+      const showDetails = document.getElementById('uuid5ShowDetails').checked;
+      const results = [];
+
+      if (!name) {
+        showToast('❌ 请输入名称');
+        return;
+      }
+
+      let namespace;
+      if (namespaceType === 'custom') {
+        const customNamespace = document.getElementById('uuid5CustomNamespaceInput').value.trim();
+        if (!customNamespace) {
+          showToast('❌ 请输入自定义命名空间 UUID');
+          return;
+        }
+        namespace = customNamespace;
+      } else {
+        namespace = {
+          dns: NAMESPACE_DNS,
+          url: NAMESPACE_URL,
+          oid: NAMESPACE_OID,
+          x500: NAMESPACE_X500
+        }[namespaceType];
+      }
+
+      for (let i = 0; i < count; i++) {
+        const uuid = window.uuid_v5(name, namespace);
+        
+        if (showDetails) {
+          const namespaceNames = {
+            [NAMESPACE_DNS]: 'DNS',
+            [NAMESPACE_URL]: 'URL',
+            [NAMESPACE_OID]: 'OID',
+            [NAMESPACE_X500]: 'X.500'
+          };
+          const nsName = namespaceNames[namespace] || namespaceType;
+          results.push(`${uuid} (命名空间：${nsName}, 名称：${name})`);
+        } else {
+          results.push(uuid);
+        }
+      }
+
+      displayResults('uuid5Output', 'uuid5Result', results);
+      updateStats(count);
+      saveToHistory('UUID v5', results);
+    }
+
+    function generateUUIDv5Demo() {
+      const demos = [
+        { namespace: 'url', name: 'https://example.com' },
+        { namespace: 'dns', name: 'example.com' },
+        { namespace: 'oid', name: '1.2.3.4.5' },
+        { namespace: 'url', name: 'https://github.com' },
+        { namespace: 'dns', name: 'google.com' }
+      ];
+
+      const demo = demos[Math.floor(Math.random() * demos.length)];
+      document.getElementById('uuid5Namespace').value = demo.namespace;
+      document.getElementById('uuid5Name').value = demo.name;
+      generateUUIDv5();
+    }
+
+    function parseUUIDv5() {
+      const input = document.getElementById('uuid5ParseInput').value.trim();
+      const resultDiv = document.getElementById('uuid5ParseResult');
+      
+      if (!input) {
+        showToast('❌ 请输入 UUID');
+        return;
+      }
+
+      const uuid = input.toLowerCase().replace(/urn:uuid:/i, '').replace(/-/g, '');
+      
+      if (!/^[0-9a-f]{32}$/.test(uuid)) {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div style="color: #ef4444;">❌ 无效的 UUID 格式</div>';
+        return;
+      }
+
+      const version = parseInt(uuid[12], 16);
+      const variant = parseInt(uuid[16], 16);
+      
+      let variantDesc;
+      if (variant >= 8 && variant <= 11) {
+        variantDesc = 'RFC 4122 (标准)';
+      } else if (variant >= 4 && variant <= 7) {
+        variantDesc = 'Microsoft 兼容';
+      } else {
+        variantDesc = '保留/未知';
+      }
+
+      const hex = uuid.match(/.{1,2}/g).join(' ');
+      const timeLow = uuid.slice(0, 8);
+      const timeMid = uuid.slice(8, 12);
+      const timeHi = uuid.slice(12, 16);
+      const clockSeq = uuid.slice(16, 20);
+      const node = uuid.slice(20);
+
+      let versionDesc;
+      if (version === 5) {
+        versionDesc = '(SHA-1 哈希，确定性生成)';
+      } else {
+        versionDesc = `(版本 ${version})`;
+      }
+
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <div class="parse-field"><span class="parse-label">标准格式:</span><span class="parse-value">${timeLow}-${timeMid}-${timeHi}-${clockSeq}-${node}</span></div>
+        <div class="parse-field"><span class="parse-label">版本:</span><span class="parse-value">v${version} ${versionDesc}</span></div>
+        <div class="parse-field"><span class="parse-label">变体:</span><span class="parse-value">${variantDesc}</span></div>
+        <div class="parse-field"><span class="parse-label">十六进制:</span><span class="parse-value">${hex}</span></div>
+        <div class="parse-field"><span class="parse-label">时间低位:</span><span class="parse-value">${timeLow}</span></div>
+        <div class="parse-field"><span class="parse-label">时间中位:</span><span class="parse-value">${timeMid}</span></div>
+        <div class="parse-field"><span class="parse-label">时间高位:</span><span class="parse-value">${timeHi}</span></div>
+        <div class="parse-field"><span class="parse-label">时钟序列:</span><span class="parse-value">${clockSeq}</span></div>
+        <div class="parse-field"><span class="parse-label">节点:</span><span class="parse-value">${node}</span></div>
+      `;
+    }
+
     // ==================== UUID v4 ====================
     
     function generateUUIDv4() {
@@ -742,21 +955,13 @@
       const results = [];
 
       for (let i = 0; i < count; i++) {
-        const bytes = getRandomValues(16);
+        // 使用 uuid 库生成
+        let uuid = window.uuid_v4();
         
-        // 设置版本 (v4) 和变体
-        bytes[6] = (bytes[6] & 0x0f) | 0x40;
-        bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-        let uuid;
         if (format === 'no-dash') {
-          uuid = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+          uuid = uuid.replace(/-/g, '');
         } else if (format === 'urn') {
-          const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-          uuid = `urn:uuid:${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
-        } else {
-          const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0'));
-          uuid = `${hex.slice(0,8).join('')}-${hex.slice(8,10).join('')}${hex.slice(10,12).join('')}-${hex.slice(12,14).join('')}${hex.slice(14,16).join('')}-${hex.slice(16,18).join('')}${hex.slice(18,20).join('')}-${hex.slice(20).join('')}`;
+          uuid = `urn:uuid:${uuid}`;
         }
 
         results.push(uuid);
@@ -837,15 +1042,15 @@
         timestamp = Date.now();
       }
 
+      // 使用 uuid 库生成 UUID v7
       for (let i = 0; i < count; i++) {
-        const rand = getRandomValues(10);
+        // 如果需要自定义时间，使用 options
+        const options = timestampSource === 'custom' && timestamp !== Date.now() 
+          ? { msecs: timestamp } 
+          : undefined;
         
-        // UUID v7 结构：48 位时间戳 + 4 位版本 + 62 位随机
-        const timestampHex = timestamp.toString(16).padStart(12, '0');
-        const randHex = Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('');
+        const uuid = window.uuid_v7(options);
         
-        const uuid = `${timestampHex.slice(0,8)}-${timestampHex.slice(8,12)}-7${randHex.slice(2,5)}-${((parseInt(randHex.slice(6,8), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0')}${randHex.slice(8,10)}-${randHex.slice(10)}`;
-
         if (showParse) {
           const date = new Date(timestamp);
           results.push(`${uuid} (${formatDate(date)})`);
@@ -1148,6 +1353,12 @@
     // UUID v7 自定义时间显示
     document.getElementById('uuid7Timestamp').addEventListener('change', function() {
       const customDiv = document.getElementById('uuid7CustomTime');
+      customDiv.style.display = this.value === 'custom' ? 'block' : 'none';
+    });
+
+    // UUID v5 自定义命名空间显示
+    document.getElementById('uuid5Namespace').addEventListener('change', function() {
+      const customDiv = document.getElementById('uuid5CustomNamespace');
       customDiv.style.display = this.value === 'custom' ? 'block' : 'none';
     });
 
