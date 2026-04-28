@@ -16,16 +16,18 @@ export function parseEscapedJson(inputStr: string): any {
     result = JSON.parse(parsed);
   } catch (e) {
     // 如果失败，尝试一些常见的修正
-    // 1. 如果是以非标准引号包裹的内容，尝试替换
-    let cleanStr = parsed.replace(/^['"`]|['"`]$/g, '');
+    let cleanStr = parsed;
     
-    // 2. 如果包含多余的反斜杠，尝试反转义
-    if (cleanStr.includes('\\"')) {
-      cleanStr = cleanStr.replace(/\\"/g, '"');
-    }
-    if (cleanStr.includes('\\\\')) {
-      cleanStr = cleanStr.replace(/\\\\/g, '\\');
-    }
+    // 1. 移除首尾的引号（双引号、单引号、反引号）
+    cleanStr = cleanStr.replace(/^['"`]|['"`]$/g, '');
+    
+    // 2. 处理多重转义的反斜杠
+    // 先将 \\\\ 替换为 \\（处理四重转义）
+    cleanStr = cleanStr.replace(/\\\\/g, '\\');
+    // 再将 \\" 替换为 "（处理双重转义的引号）
+    cleanStr = cleanStr.replace(/\\"/g, '"');
+    // 最后将 \\ 替换为 \（处理剩余的双重反斜杠）
+    cleanStr = cleanStr.replace(/\\\\/g, '\\');
     
     result = JSON.parse(cleanStr);
   }

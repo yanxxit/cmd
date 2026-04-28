@@ -51,3 +51,4 @@ test-data
 .jsondb/
 
 test/result/
+next-app/data/articles/*

@@ -11,6 +11,7 @@ import {
   BellOutlined,
   SettingOutlined,
   HomeOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -28,6 +29,7 @@ const breadcrumbNameMap: Record<string, string> = {
   '/admin': '控制台',
   '/admin/test-cases': '测试案例管理',
   '/admin/orders': '订单管理',
+  '/admin/articles': '文章管理',
   '/admin/editor-demo': '编辑器演示',
 };
 
@@ -43,6 +45,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => 
       key: '/admin',
       icon: <DashboardOutlined />,
       label: <Link href="/admin">控制台</Link>,
+    },
+    {
+      key: '/admin/articles',
+      icon: <FileTextOutlined />,
+      label: <Link href="/admin/articles">文章管理</Link>,
     },
     {
       key: '/admin/test-cases',

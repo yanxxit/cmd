@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { parseEscapedJson, stringifyAndEscapeJson } from '../app/string-to-json/utils';
 
 describe('String to JSON Utils', () => {
