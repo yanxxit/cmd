@@ -2,10 +2,10 @@
 
 /**
  * API 文档生成脚本
- * 
+ *
  * 根据 Vercel Best Practices 的 bundle-analyzable-paths 规则，
  * 我们使用静态分析来自动生成 API 文档，避免手动维护。
- * 
+ *
  * 使用方法：
  * pnpm generate-api-docs
  */
@@ -35,7 +35,7 @@ const swaggerSpec = {
   },
   servers: [
     {
-      url: 'http://localhost:3030/next',
+      url: 'http://localhost:3030/next/api',
       description: '本地开发环境',
     },
   ],
@@ -56,7 +56,7 @@ const swaggerSpec = {
 function parseApiFile(filePath, relativePath) {
   const content = fs.readFileSync(filePath, 'utf-8');
   const fileName = path.basename(filePath, '.ts');
-  
+
   // 跳过非 API 文件
   if (fileName.startsWith('_') || fileName === 'middleware') {
     return;
