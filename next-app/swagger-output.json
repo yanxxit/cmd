@@ -1,0 +1,226 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Next App API Documentation",
+    "description": "基于 Next.js 的后台管理系统 API 接口文档",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "email": "support@example.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3030/next",
+      "description": "本地开发环境"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Dashboard",
+      "description": "控制台相关接口"
+    },
+    {
+      "name": "Orders",
+      "description": "订单管理相关接口"
+    },
+    {
+      "name": "Mock",
+      "description": "模拟数据接口"
+    }
+  ],
+  "paths": {
+    "/dashboard-stats": {
+      "get": {
+        "summary": "获取控制台统计数据",
+        "description": "返回控制台的各类统计指标，包括订单数、销售额、用户数等",
+        "tags": [
+          "Dashboard"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功返回统计数据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mock-orders": {
+      "get": {
+        "summary": "获取模拟订单列表",
+        "description": "返回模拟的订单数据列表，支持分页和数量控制",
+        "tags": [
+          "Orders",
+          "Mock"
+        ],
+        "parameters": [
+          {
+            "name": "count",
+            "in": "query",
+            "description": "返回的订单数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 150,
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功返回订单列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DashboardStats": {
+        "type": "object",
+        "properties": {
+          "totalOrders": {
+            "type": "number",
+            "description": "总订单数",
+            "example": 1128
+          },
+          "totalSales": {
+            "type": "number",
+            "description": "总销售额",
+            "example": 128936
+          },
+          "activeUsers": {
+            "type": "number",
+            "description": "活跃用户数",
+            "example": 8932
+          },
+          "conversionRate": {
+            "type": "number",
+            "description": "转化率",
+            "example": 23.8
+          },
+          "pendingOrders": {
+            "type": "number",
+            "description": "待处理订单数",
+            "example": 12
+          },
+          "processingOrders": {
+            "type": "number",
+            "description": "处理中订单数",
+            "example": 35
+          },
+          "deliveredOrders": {
+            "type": "number",
+            "description": "已送达订单数",
+            "example": 45
+          },
+          "cancelledOrders": {
+            "type": "number",
+            "description": "已取消订单数",
+            "example": 3
+          },
+          "orderGrowth": {
+            "type": "number",
+            "description": "订单增长率 (%)",
+            "example": 12.5
+          },
+          "salesTarget": {
+            "type": "number",
+            "description": "销售目标",
+            "example": 200000
+          },
+          "userGrowth": {
+            "type": "number",
+            "description": "用户增长数",
+            "example": 256
+          },
+          "targetConversion": {
+            "type": "number",
+            "description": "目标转化率 (%)",
+            "example": 30
+          }
+        },
+        "required": [
+          "totalOrders",
+          "totalSales",
+          "activeUsers",
+          "conversionRate"
+        ]
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "订单 ID"
+          },
+          "orderNo": {
+            "type": "string",
+            "description": "订单编号",
+            "example": "ORD12345678"
+          },
+          "customerName": {
+            "type": "string",
+            "description": "客户姓名"
+          },
+          "customerPhone": {
+            "type": "string",
+            "description": "客户电话",
+            "example": "13800138000"
+          },
+          "totalAmount": {
+            "type": "number",
+            "description": "订单金额",
+            "example": 1299
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "processing",
+              "shipped",
+              "delivered",
+              "cancelled"
+            ],
+            "description": "订单状态"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间"
+          },
+          "shippingAddress": {
+            "type": "string",
+            "description": "收货地址"
+          }
+        },
+        "required": [
+          "id",
+          "orderNo",
+          "customerName",
+          "totalAmount",
+          "status",
+          "createdAt"
+        ]
+      }
+    }
+  }
+}

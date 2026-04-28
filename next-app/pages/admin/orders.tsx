@@ -13,60 +13,44 @@ import {
   Form,
   Descriptions,
   DatePicker,
-  InputNumber
+  InputNumber,
+  Row,
+  Col,
+  Statistic,
+  Typography,
+  Divider,
 } from 'antd';
 import {
   SearchOutlined,
   EyeOutlined,
   EditOutlined,
   DeleteOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  DollarOutlined,
+  ShoppingOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
-import { faker } from '@faker-js/faker';
 import dayjs from 'dayjs';
 import { AdminLayout } from '../../components/admin/layout/AdminLayout';
+import { Order } from '../api/mock-orders';
 
-// --- 类型定义 ---
-export interface Order {
-  id: string;
-  orderNo: string;
-  customerName: string;
-  customerPhone: string;
-  totalAmount: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  createdAt: string;
-  shippingAddress: string;
-}
-
-// --- 模拟数据生成 ---
-const generateMockOrders = (count: number = 100): Order[] => {
-  return Array.from({ length: count }).map(() => ({
-    id: faker.string.uuid(),
-    orderNo: 'ORD' + faker.string.numeric(8),
-    customerName: faker.person.fullName(),
-    customerPhone: '13' + faker.string.numeric(9),
-    totalAmount: parseFloat(faker.commerce.price({ min: 10, max: 5000, dec: 2 })),
-    status: faker.helpers.arrayElement(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
-    createdAt: faker.date.recent({ days: 30 }).toISOString(),
-    shippingAddress: faker.location.streetAddress({ useFullAddress: true }),
-  }));
-};
+const { Title, Text } = Typography;
 
 const statusMap = {
-  pending: { color: 'gold', text: '待处理' },
-  processing: { color: 'blue', text: '处理中' },
-  shipped: { color: 'cyan', text: '已发货' },
-  delivered: { color: 'green', text: '已送达' },
-  cancelled: { color: 'red', text: '已取消' },
+  pending: { color: 'gold', text: '待处理', icon: <ClockCircleOutlined /> },
+  processing: { color: 'blue', text: '处理中', icon: <ShoppingOutlined /> },
+  shipped: { color: 'cyan', text: '已发货', icon: <ShoppingOutlined /> },
+  delivered: { color: 'green', text: '已送达', icon: <CheckCircleOutlined /> },
+  cancelled: { color: 'red', text: '已取消', icon: <CloseCircleOutlined /> },
 };
 
 export default function OrderManagement() {
-  // --- 状态管理 ---
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   
-  // 搜索和分页状态
   const [searchText, setSearchText] = useState('');
   const [searchStatus, setSearchStatus] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
@@ -74,29 +58,70 @@ export default function OrderManagement() {
     pageSize: 10,
     total: 0,
     showSizeChanger: true,
+    showQuickJumper: true,
+    showTotal: (total) => `共 ${total} 条`,
   });
 
-  // 弹窗状态
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   
   const [form] = Form.useForm();
 
-  // --- 初始化数据 ---
+  // 统计数据
+  const statistics = useMemo(() => {
+    const total = allOrders.length;
+    const pending = allOrders.filter(o => o.status === 'pending').length;
+    const processing = allOrders.filter(o => o.status === 'processing').length;
+    const delivered = allOrders.filter(o => o.status === 'delivered').length;
+    const totalAmount = allOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+    
+    return { total, pending, processing, delivered, totalAmount };
+  }, [allOrders]);
+
   useEffect(() => {
-    // 模拟从服务器获取数据
+    const apiUrl = '/next/api/mock-orders?count=150';
+    console.group('[OrderManagement] 数据获取流程');
+    console.log('📍 请求 URL:', apiUrl);
+    console.log('⏳ 开始发起 fetch 请求...');
+    
     setLoading(true);
-    setTimeout(() => {
-      const data = generateMockOrders(150);
-      // 按时间倒序排序
-      data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setAllOrders(data);
-      setLoading(false);
-    }, 600);
+    fetch(apiUrl)
+      .then(async (res) => {
+        console.log('📥 收到响应:', {
+          status: res.status,
+          statusText: res.statusText,
+          url: res.url,
+          ok: res.ok,
+        });
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const data = await res.json();
+        console.log('✅ 解析 JSON 成功，数据条数:', data.length);
+        console.log('📦 第一条数据示例:', data[0]);
+        console.log('📦 最后一条数据示例:', data[data.length - 1]);
+        
+        setAllOrders(data);
+        console.log('✅ 数据已成功设置到 state');
+      })
+      .catch((err) => {
+        console.error('❌ 请求失败:', err);
+        console.error('错误详情:', {
+          message: err.message,
+          stack: err.stack,
+        });
+        message.error('获取模拟订单数据失败');
+      })
+      .finally(() => {
+        console.log('⏹️ 请求完成，关闭 loading');
+        console.groupEnd();
+        setLoading(false);
+      });
   }, []);
 
-  // --- 过滤和分页逻辑 ---
   const filteredOrders = useMemo(() => {
     let result = allOrders;
     if (searchText) {
@@ -113,19 +138,16 @@ export default function OrderManagement() {
     return result;
   }, [allOrders, searchText, searchStatus]);
 
-  // 更新总数
   useEffect(() => {
     setPagination(prev => ({ ...prev, total: filteredOrders.length }));
   }, [filteredOrders.length]);
 
-  // 当前页显示的数据
   const currentData = useMemo(() => {
     const start = ((pagination.current || 1) - 1) * (pagination.pageSize || 10);
     const end = start + (pagination.pageSize || 10);
     return filteredOrders.slice(start, end);
   }, [filteredOrders, pagination.current, pagination.pageSize]);
 
-  // --- 操作处理 ---
   const handleTableChange = (newPagination: TablePaginationConfig) => {
     setPagination(prev => ({
       ...prev,
@@ -170,7 +192,6 @@ export default function OrderManagement() {
   const handleEditSubmit = async (values: any) => {
     try {
       setLoading(true);
-      // 模拟请求延迟
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const updatedOrder = {
@@ -189,37 +210,52 @@ export default function OrderManagement() {
     }
   };
 
-  // --- 列定义 ---
   const columns: ColumnsType<Order> = [
     {
       title: '订单号',
       dataIndex: 'orderNo',
       key: 'orderNo',
-      width: 120,
+      width: 140,
+      fixed: 'left',
+      render: (text) => <Text code>{text}</Text>,
     },
     {
       title: '客户姓名',
       dataIndex: 'customerName',
       key: 'customerName',
       width: 150,
+      sorter: (a, b) => a.customerName.localeCompare(b.customerName),
     },
     {
       title: '订单金额',
       dataIndex: 'totalAmount',
       key: 'totalAmount',
       width: 120,
-      render: (amount: number) => `¥${(amount ?? 0).toFixed(2)}`,
+      render: (amount: number) => (
+        <Text strong style={{ color: '#f5222d' }}>
+          ¥{amount.toFixed(2)}
+        </Text>
+      ),
       sorter: (a, b) => a.totalAmount - b.totalAmount,
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      width: 100,
+      width: 120,
       render: (status: keyof typeof statusMap) => {
         const config = statusMap[status];
-        return <Tag color={config?.color}>{config?.text || status}</Tag>;
+        return (
+          <Tag icon={config?.icon} color={config?.color}>
+            {config?.text || status}
+          </Tag>
+        );
       },
+      filters: Object.entries(statusMap).map(([key, value]) => ({
+        text: value.text,
+        value: key,
+      })),
+      onFilter: (value, record) => record.status === value,
     },
     {
       title: '创建时间',
@@ -232,14 +268,24 @@ export default function OrderManagement() {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 220,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)}>
+          <Button 
+            type="link" 
+            size="small" 
+            icon={<EyeOutlined />} 
+            onClick={() => handleView(record)}
+          >
             查看
           </Button>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+          <Button 
+            type="link" 
+            size="small" 
+            icon={<EditOutlined />} 
+            onClick={() => handleEdit(record)}
+          >
             编辑
           </Button>
           <Popconfirm
@@ -248,7 +294,12 @@ export default function OrderManagement() {
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button 
+              type="link" 
+              size="small" 
+              danger 
+              icon={<DeleteOutlined />}
+            >
               删除
             </Button>
           </Popconfirm>
@@ -258,9 +309,55 @@ export default function OrderManagement() {
   ];
 
   return (
-    <AdminLayout>
-      <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', background: '#f0f2f5', minHeight: '100vh' }}>
-      <Card bordered={false} style={{ marginBottom: 16, borderRadius: 8 }}>
+    <AdminLayout title="订单管理">
+      {/* 统计卡片 */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="总订单数"
+              value={statistics.total}
+              prefix={<ShoppingOutlined style={{ color: '#1890ff' }} />}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="待处理"
+              value={statistics.pending}
+              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
+              valueStyle={{ color: '#faad14' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="处理中"
+              value={statistics.processing}
+              prefix={<ShoppingOutlined style={{ color: '#13c2c2' }} />}
+              valueStyle={{ color: '#13c2c2' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="总销售额"
+              value={statistics.totalAmount}
+              precision={2}
+              prefix={<DollarOutlined style={{ color: '#52c41a' }} />}
+              suffix="元"
+              valueStyle={{ color: '#52c41a' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 筛选区域 */}
+      <Card bordered={false} style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <Space wrap>
             <Input
@@ -270,6 +367,7 @@ export default function OrderManagement() {
               onPressEnter={handleSearch}
               style={{ width: 250 }}
               prefix={<SearchOutlined />}
+              allowClear
             />
             <Select
               placeholder="订单状态"
@@ -292,7 +390,8 @@ export default function OrderManagement() {
         </div>
       </Card>
 
-      <Card bordered={false} style={{ borderRadius: 8 }}>
+      {/* 数据表格 */}
+      <Card bordered={false}>
         <Table
           columns={columns}
           dataSource={currentData}
@@ -300,13 +399,14 @@ export default function OrderManagement() {
           pagination={pagination}
           loading={loading}
           onChange={handleTableChange}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1200 }}
+          size="middle"
         />
       </Card>
 
       {/* 查看弹窗 */}
       <Modal
-        title="订单详情"
+        title={<><EyeOutlined style={{ marginRight: 8 }} />订单详情</>}
         open={isViewModalOpen}
         onCancel={() => setIsViewModalOpen(false)}
         footer={[
@@ -317,19 +417,19 @@ export default function OrderManagement() {
         width={700}
       >
         {currentOrder && (
-          <Descriptions bordered column={2} style={{ marginTop: 16 }}>
+          <Descriptions bordered column={2} style={{ marginTop: 16 }} size="small">
             <Descriptions.Item label="订单号">{currentOrder.orderNo}</Descriptions.Item>
             <Descriptions.Item label="状态">
-              <Tag color={statusMap[currentOrder.status]?.color}>
+              <Tag icon={statusMap[currentOrder.status]?.icon} color={statusMap[currentOrder.status]?.color}>
                 {statusMap[currentOrder.status]?.text}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="客户姓名">{currentOrder.customerName}</Descriptions.Item>
             <Descriptions.Item label="联系电话">{currentOrder.customerPhone}</Descriptions.Item>
             <Descriptions.Item label="订单金额" span={2}>
-              <span style={{ color: '#f5222d', fontWeight: 'bold' }}>
+              <Text strong style={{ color: '#f5222d', fontSize: 16 }}>
                 ¥{currentOrder.totalAmount.toFixed(2)}
-              </span>
+              </Text>
             </Descriptions.Item>
             <Descriptions.Item label="收货地址" span={2}>
               {currentOrder.shippingAddress}
@@ -343,7 +443,7 @@ export default function OrderManagement() {
 
       {/* 编辑弹窗 */}
       <Modal
-        title="编辑订单"
+        title={<><EditOutlined style={{ marginRight: 8 }} />编辑订单</>}
         open={isEditModalOpen}
         onCancel={() => setIsEditModalOpen(false)}
         onOk={() => form.submit()}
@@ -357,54 +457,59 @@ export default function OrderManagement() {
           onFinish={handleEditSubmit}
           style={{ marginTop: 16 }}
         >
-          <div style={{ display: 'flex', gap: 16 }}>
-            <Form.Item
-              name="customerName"
-              label="客户姓名"
-              rules={[{ required: true, message: '请输入客户姓名' }]}
-              style={{ flex: 1 }}
-            >
-              <Input placeholder="请输入客户姓名" />
-            </Form.Item>
-            <Form.Item
-              name="customerPhone"
-              label="联系电话"
-              rules={[{ required: true, message: '请输入联系电话' }]}
-              style={{ flex: 1 }}
-            >
-              <Input placeholder="请输入联系电话" />
-            </Form.Item>
-          </div>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="customerName"
+                label="客户姓名"
+                rules={[{ required: true, message: '请输入客户姓名' }]}
+              >
+                <Input placeholder="请输入客户姓名" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="customerPhone"
+                label="联系电话"
+                rules={[{ required: true, message: '请输入联系电话' }]}
+              >
+                <Input placeholder="请输入联系电话" />
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <div style={{ display: 'flex', gap: 16 }}>
-            <Form.Item
-              name="totalAmount"
-              label="订单金额"
-              rules={[{ required: true, message: '请输入订单金额' }]}
-              style={{ flex: 1 }}
-            >
-              <InputNumber
-                prefix="¥"
-                style={{ width: '100%' }}
-                min={0}
-                precision={2}
-                step={0.01}
-              />
-            </Form.Item>
-            <Form.Item
-              name="status"
-              label="订单状态"
-              rules={[{ required: true, message: '请选择订单状态' }]}
-              style={{ flex: 1 }}
-            >
-              <Select
-                options={Object.entries(statusMap).map(([key, value]) => ({
-                  label: value.text,
-                  value: key,
-                }))}
-              />
-            </Form.Item>
-          </div>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="totalAmount"
+                label="订单金额"
+                rules={[{ required: true, message: '请输入订单金额' }]}
+              >
+                <InputNumber
+                  prefix="¥"
+                  style={{ width: '100%' }}
+                  min={0}
+                  precision={2}
+                  step={0.01}
+                  addonAfter="元"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="status"
+                label="订单状态"
+                rules={[{ required: true, message: '请选择订单状态' }]}
+              >
+                <Select
+                  options={Object.entries(statusMap).map(([key, value]) => ({
+                    label: value.text,
+                    value: key,
+                  }))}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
           <Form.Item
             name="shippingAddress"
@@ -415,7 +520,6 @@ export default function OrderManagement() {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
     </AdminLayout>
   );
 }
