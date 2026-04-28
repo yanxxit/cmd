@@ -690,6 +690,8 @@
             <button class="btn" id="exportCsvBtn">导出 CSV</button>
             <button class="btn btn-outline" id="exportJsonBtn">导出 JSON</button>
             <button class="btn btn-outline" id="copyTableHtmlBtn">复制 HTML</button>
+            <button class="btn btn-outline" id="copyMarkdownBtn">复制 Markdown</button>
+            <button class="btn btn-outline" id="downloadMarkdownBtn">下载</button>
           </div>
         </div>
 
@@ -986,6 +988,21 @@
       if (currentData && currentData.table) {
         const html = tableToHTML(currentData.table);
         copyToClipboard(html, 'HTML 表格');
+      }
+    });
+
+    // 复制 Markdown 按钮
+    document.getElementById('copyMarkdownBtn')?.addEventListener('click', () => {
+      if (currentData && currentData.table) {
+        const md = tableToMarkdown(currentData.table);
+        copyToClipboard(md, 'Markdown 表格');
+      }
+    });
+
+    // 下载 Markdown 按钮
+    document.getElementById('downloadMarkdownBtn')?.addEventListener('click', () => {
+      if (currentData && currentData.table) {
+        downloadMarkdown(currentData.table);
       }
     });
 
@@ -2015,6 +2032,46 @@
       const jsonStr = JSON.stringify(jsonData, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
       downloadBlob(blob, 'table_export.json');
+    }
+
+    /**
+     * 表格数据转换为 Markdown 字符串
+     */
+    function tableToMarkdown(tableData) {
+      const { headers, rows } = tableData;
+      
+      // 构建 Markdown 表格
+      let md = '| ' + headers.map(h => escapeMarkdown(h)).join(' | ') + ' |\n';
+      
+      // 添加分隔行
+      md += '| ' + headers.map(() => '---').join(' | ') + ' |\n';
+      
+      // 添加数据行
+      rows.forEach(row => {
+        md += '| ' + row.map(cell => escapeMarkdown(cell)).join(' | ') + ' |\n';
+      });
+
+      return md;
+    }
+
+    /**
+     * 下载 Markdown 文件
+     */
+    function downloadMarkdown(tableData) {
+      const md = tableToMarkdown(tableData);
+      const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+      downloadBlob(blob, 'table_export.md');
+    }
+
+    /**
+     * Markdown 字段转义
+     * 处理管道符、换行符等特殊字符
+     */
+    function escapeMarkdown(text) {
+      if (text === null || text === undefined) return '';
+      const str = String(text);
+      // 转义管道符和换行符
+      return str.replace(/\|/g, '\\|').replace(/\n/g, ' ').replace(/\r/g, '');
     }
 
     /**
