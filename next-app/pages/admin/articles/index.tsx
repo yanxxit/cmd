@@ -1,6 +1,6 @@
 /**
  * 文章管理页面
- * 
+ *
  * 功能：
  * - 文章列表展示
  * - 分页查询
@@ -42,6 +42,19 @@ import { AdminLayout } from '../../../components/admin/layout/AdminLayout';
 import { Article, ArticleFilters } from '../../../types/article';
 import { request } from '../../../lib/request';
 import Link from 'next/link';
+import {
+  FilterCard,
+  TableCard,
+  ErrorAlert,
+  TitleContainer,
+  TitleText,
+  SummaryText,
+  HelpIcon,
+  CreateButtonContainer,
+  EmptyState,
+  EmptyDescription,
+  ActionSpace,
+} from './index.styled';
 
 const { Title, Text } = Typography;
 
@@ -63,13 +76,13 @@ export default function ArticleManagement() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
-  
+
   // 分页状态
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
   });
-  
+
   // 筛选状态
   const [filters, setFilters] = useState<ArticleFilters>({
     keyword: '',
@@ -104,9 +117,9 @@ export default function ArticleManagement() {
         pageSize: pagination.pageSize,
         ...filters,
       };
-      
+
       const data = await request('/articles', { params });
-      
+
       setArticles(data.data);
       setTotal(data.total);
     } catch (err: any) {
@@ -149,7 +162,7 @@ export default function ArticleManagement() {
         <span>
           标题
           <Tooltip title="支持标题和摘要模糊搜索" placement="right">
-            <QuestionCircleOutlined style={{ marginLeft: 4, color: '#999' }} />
+            <HelpIcon>?</HelpIcon>
           </Tooltip>
         </span>
       ),
@@ -157,16 +170,16 @@ export default function ArticleManagement() {
       key: 'title',
       width: 280,
       render: (text: string, record: Article) => (
-        <div>
-          <div style={{ fontWeight: 500, color: '#1890ff', marginBottom: 4 }}>
+        <TitleContainer>
+          <TitleText>
             {text}
-          </div>
+          </TitleText>
           {record.summary && (
-            <Text type="secondary" ellipsis style={{ fontSize: 12 }}>
+            <SummaryText ellipsis>
               {record.summary}
-            </Text>
+            </SummaryText>
           )}
-        </div>
+        </TitleContainer>
       ),
     },
     {
@@ -220,7 +233,7 @@ export default function ArticleManagement() {
       key: 'createdAt',
       width: 170,
       render: (date: string) => new Date(date).toLocaleString('zh-CN'),
-      sorter: (a: Article, b: Article) => 
+      sorter: (a: Article, b: Article) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
@@ -288,7 +301,7 @@ export default function ArticleManagement() {
   return (
     <AdminLayout>
       {/* 筛选区域 */}
-      <Card bordered={false} style={{ marginBottom: 16 }}>
+      <FilterCard bordered={false}>
         <Form layout="vertical">
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={8}>
@@ -326,15 +339,15 @@ export default function ArticleManagement() {
             <Col xs={24} sm={8}>
               <Form.Item label="&nbsp;">
                 <Space>
-                  <Button 
-                  icon={<ReloadOutlined />} 
+                  <Button
+                  icon={<ReloadOutlined />}
                   onClick={handleReset}
                 >
                   重置
                 </Button>
-                  <Button 
+                  <Button
                     type="primary"
-                    icon={<SearchOutlined />} 
+                    icon={<SearchOutlined />}
                     onClick={loadArticles}
                     loading={loading}
                   >
@@ -345,28 +358,27 @@ export default function ArticleManagement() {
             </Col>
           </Row>
         </Form>
-        
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+
+        <CreateButtonContainer>
           <Link href="/admin/articles/edit/new">
             <Button type="primary" icon={<PlusOutlined />}>
               新建文章
             </Button>
           </Link>
-        </div>
-      </Card>
+        </CreateButtonContainer>
+      </FilterCard>
 
       {/* 数据表格 */}
-      <Card bordered={false}>
+      <TableCard>
         {error && (
-          <Alert
+          <ErrorAlert
             message={error}
             type="error"
             showIcon
             closable
-            style={{ marginBottom: 16 }}
           />
         )}
-        
+
         <Table
           columns={columns}
           dataSource={articles}
@@ -385,12 +397,12 @@ export default function ArticleManagement() {
           size="middle"
           locale={{
             emptyText: (
-              <Empty
+              <EmptyState
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
-                  <span>
+                  <EmptyDescription>
                     {filters.keyword || filters.status ? '未找到匹配的文章' : '暂无文章，点击右上角「新建文章」开始创作'}
-                  </span>
+                  </EmptyDescription>
                 }
               >
                 {filters.keyword || filters.status ? (
@@ -398,11 +410,11 @@ export default function ArticleManagement() {
                     清除筛选
                   </Button>
                 ) : null}
-              </Empty>
+              </EmptyState>
             ),
           }}
         />
-      </Card>
+      </TableCard>
     </AdminLayout>
   );
 }

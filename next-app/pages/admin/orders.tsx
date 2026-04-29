@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Table,
   Button,
   Input,
   Select,
   Space,
-  Card,
   Tag,
   Popconfirm,
   message,
@@ -16,9 +15,8 @@ import {
   InputNumber,
   Row,
   Col,
-  Statistic,
   Typography,
-  Divider,
+  Tooltip,
 } from 'antd';
 import {
   SearchOutlined,
@@ -26,7 +24,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   ReloadOutlined,
-  DollarOutlined,
+  ClearOutlined,
   ShoppingOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -36,6 +34,15 @@ import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { AdminLayout } from '../../components/admin/layout/AdminLayout';
 import { Order } from '../api/mock-orders';
+import {
+  PageHeader,
+  PageTitle,
+  BatchActions,
+  FilterCard,
+  TableCard,
+  ErrorAlert,
+  ActionSpace,
+} from './orders.styled';
 
 const { Title, Text } = Typography;
 
@@ -50,6 +57,8 @@ const statusMap = {
 export default function OrderManagement() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [error, setError] = useState<string | undefined>(undefined);
   
   const [searchText, setSearchText] = useState('');
   const [searchStatus, setSearchStatus] = useState<string | undefined>(undefined);
@@ -68,7 +77,7 @@ export default function OrderManagement() {
   
   const [form] = Form.useForm();
 
-  // 统计数据
+  // 统计数据（仅用于显示，不再展示在顶部）
   const statistics = useMemo(() => {
     const total = allOrders.length;
     const pending = allOrders.filter(o => o.status === 'pending').length;
@@ -79,10 +88,36 @@ export default function OrderManagement() {
     return { total, pending, processing, delivered, totalAmount };
   }, [allOrders]);
 
+  const handleBatchDelete = useCallback(() => {
+    Modal.confirm({
+      title: '确认批量删除',
+      content: `确定要删除选中的 ${selectedRowKeys.length} 个订单吗？此操作不可恢复。`,
+      okText: '确定',
+      okType: 'danger',
+      cancelText: '取消',
+      icon: null,
+      onOk: async () => {
+        try {
+          // TODO: 实现批量删除 API
+          message.success('批量删除成功');
+          setSelectedRowKeys([]);
+        } catch (e) {
+          message.error('批量删除失败');
+        }
+      },
+    });
+  }, [selectedRowKeys.length]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedRowKeys([]);
+    message.info('已取消选择');
+  }, []);
+
   useEffect(() => {
     const apiUrl = '/next/api/mock-orders?count=150';
     
     setLoading(true);
+    setError(undefined);
     fetch(apiUrl)
       .then(async (res) => {
         if (!res.ok) {
@@ -94,6 +129,7 @@ export default function OrderManagement() {
       })
       .catch((err) => {
         message.error('获取模拟订单数据失败');
+        setError(err.message || '获取数据失败');
       })
       .finally(() => {
         setLoading(false);
@@ -287,62 +323,42 @@ export default function OrderManagement() {
   ];
 
   return (
-    <AdminLayout title="订单管理">
-      {/* 统计卡片 */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
-            <Statistic
-              title="总订单数"
-              value={statistics.total}
-              prefix={<ShoppingOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
-            <Statistic
-              title="待处理"
-              value={statistics.pending}
-              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
-            <Statistic
-              title="处理中"
-              value={statistics.processing}
-              prefix={<ShoppingOutlined style={{ color: '#13c2c2' }} />}
-              valueStyle={{ color: '#13c2c2' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
-            <Statistic
-              title="总销售额"
-              value={statistics.totalAmount}
-              precision={2}
-              prefix={<DollarOutlined style={{ color: '#52c41a' }} />}
-              suffix="元"
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+    <AdminLayout>
+      {/* 页面头部 */}
+      <PageHeader>
+        <PageTitle level={2}>订单列表</PageTitle>
+        <BatchActions>
+          {selectedRowKeys.length > 0 && (
+            <>
+              <Tooltip title="取消选择已选项">
+                <Button 
+                  icon={<ClearOutlined />} 
+                  onClick={handleClearSelection}
+                >
+                  取消选择 ({selectedRowKeys.length})
+                </Button>
+              </Tooltip>
+              <Button 
+                danger 
+                icon={<DeleteOutlined />} 
+                onClick={handleBatchDelete}
+              >
+                批量删除
+              </Button>
+            </>
+          )}
+        </BatchActions>
+      </PageHeader>
 
       {/* 筛选区域 */}
-      <Card bordered={false} style={{ marginBottom: 16 }}>
+      <FilterCard>
         <Form layout="inline">
           <Form.Item label="搜索">
             <Input
               placeholder="订单号或客户姓名"
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
-              onPressEnter={handleSearch}
+              onPressEnter={() => setPagination(prev => ({ ...prev, current: 1 }))}
               allowClear
               style={{ width: 220 }}
               prefix={<SearchOutlined />}
@@ -363,30 +379,50 @@ export default function OrderManagement() {
           </Form.Item>
           <Form.Item>
             <Space>
-              <Button type="primary" onClick={handleSearch} loading={loading}>
+              <Button type="primary" icon={<SearchOutlined />} onClick={() => setPagination(prev => ({ ...prev, current: 1 }))}>
                 查询
               </Button>
-              <Button icon={<ReloadOutlined />} onClick={handleReset}>
+              <Button icon={<ReloadOutlined />} onClick={() => {
+                setSearchText('');
+                setSearchStatus(undefined);
+                setPagination(prev => ({ ...prev, current: 1 }));
+              }}>
                 重置
               </Button>
             </Space>
           </Form.Item>
         </Form>
-      </Card>
+      </FilterCard>
 
       {/* 数据表格 */}
-      <Card bordered={false}>
+      <TableCard>
+        {error && (
+          <ErrorAlert
+            message={error}
+            type="error"
+            showIcon
+            closable
+          />
+        )}
+        
         <Table
           columns={columns}
           dataSource={currentData}
           rowKey="id"
-          pagination={pagination}
           loading={loading}
+          pagination={{
+            ...pagination,
+            total: filteredOrders.length,
+          }}
           onChange={handleTableChange}
           scroll={{ x: 1200 }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+          }}
           size="middle"
         />
-      </Card>
+      </TableCard>
 
       {/* 查看弹窗 */}
       <Modal
