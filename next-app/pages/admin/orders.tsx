@@ -81,43 +81,21 @@ export default function OrderManagement() {
 
   useEffect(() => {
     const apiUrl = '/next/api/mock-orders?count=150';
-    console.group('[OrderManagement] 数据获取流程');
-    console.log('📍 请求 URL:', apiUrl);
-    console.log('⏳ 开始发起 fetch 请求...');
     
     setLoading(true);
     fetch(apiUrl)
       .then(async (res) => {
-        console.log('📥 收到响应:', {
-          status: res.status,
-          statusText: res.statusText,
-          url: res.url,
-          ok: res.ok,
-        });
-        
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
         
         const data = await res.json();
-        console.log('✅ 解析 JSON 成功，数据条数:', data.length);
-        console.log('📦 第一条数据示例:', data[0]);
-        console.log('📦 最后一条数据示例:', data[data.length - 1]);
-        
         setAllOrders(data);
-        console.log('✅ 数据已成功设置到 state');
       })
       .catch((err) => {
-        console.error('❌ 请求失败:', err);
-        console.error('错误详情:', {
-          message: err.message,
-          stack: err.stack,
-        });
         message.error('获取模拟订单数据失败');
       })
       .finally(() => {
-        console.log('⏹️ 请求完成，关闭 loading');
-        console.groupEnd();
         setLoading(false);
       });
   }, []);
@@ -358,36 +336,42 @@ export default function OrderManagement() {
 
       {/* 筛选区域 */}
       <Card bordered={false} style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-          <Space wrap>
+        <Form layout="inline">
+          <Form.Item label="搜索">
             <Input
-              placeholder="搜索订单号或客户姓名"
+              placeholder="订单号或客户姓名"
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
               onPressEnter={handleSearch}
-              style={{ width: 250 }}
-              prefix={<SearchOutlined />}
               allowClear
+              style={{ width: 220 }}
+              prefix={<SearchOutlined />}
             />
+          </Form.Item>
+          <Form.Item label="状态">
             <Select
               placeholder="订单状态"
               allowClear
               value={searchStatus}
               onChange={setSearchStatus}
-              style={{ width: 150 }}
+              style={{ width: 140 }}
               options={Object.entries(statusMap).map(([key, value]) => ({
                 label: value.text,
                 value: key,
               }))}
             />
-            <Button type="primary" onClick={handleSearch}>
-              查询
-            </Button>
-            <Button icon={<ReloadOutlined />} onClick={handleReset}>
-              重置
-            </Button>
-          </Space>
-        </div>
+          </Form.Item>
+          <Form.Item>
+            <Space>
+              <Button type="primary" onClick={handleSearch} loading={loading}>
+                查询
+              </Button>
+              <Button icon={<ReloadOutlined />} onClick={handleReset}>
+                重置
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
       </Card>
 
       {/* 数据表格 */}
@@ -406,7 +390,12 @@ export default function OrderManagement() {
 
       {/* 查看弹窗 */}
       <Modal
-        title={<><EyeOutlined style={{ marginRight: 8 }} />订单详情</>}
+        title={
+          <Space>
+            <EyeOutlined style={{ color: '#1890ff' }} />
+            <span>订单详情</span>
+          </Space>
+        }
         open={isViewModalOpen}
         onCancel={() => setIsViewModalOpen(false)}
         footer={[
@@ -415,9 +404,10 @@ export default function OrderManagement() {
           </Button>,
         ]}
         width={700}
+        destroyOnClose
       >
         {currentOrder && (
-          <Descriptions bordered column={2} style={{ marginTop: 16 }} size="small">
+          <Descriptions bordered column={2} size="middle">
             <Descriptions.Item label="订单号">{currentOrder.orderNo}</Descriptions.Item>
             <Descriptions.Item label="状态">
               <Tag icon={statusMap[currentOrder.status]?.icon} color={statusMap[currentOrder.status]?.color}>
@@ -427,7 +417,7 @@ export default function OrderManagement() {
             <Descriptions.Item label="客户姓名">{currentOrder.customerName}</Descriptions.Item>
             <Descriptions.Item label="联系电话">{currentOrder.customerPhone}</Descriptions.Item>
             <Descriptions.Item label="订单金额" span={2}>
-              <Text strong style={{ color: '#f5222d', fontSize: 16 }}>
+              <Text strong style={{ color: '#f5222d', fontSize: 18 }}>
                 ¥{currentOrder.totalAmount.toFixed(2)}
               </Text>
             </Descriptions.Item>
@@ -443,7 +433,12 @@ export default function OrderManagement() {
 
       {/* 编辑弹窗 */}
       <Modal
-        title={<><EditOutlined style={{ marginRight: 8 }} />编辑订单</>}
+        title={
+          <Space>
+            <EditOutlined style={{ color: '#1890ff' }} />
+            <span>编辑订单</span>
+          </Space>
+        }
         open={isEditModalOpen}
         onCancel={() => setIsEditModalOpen(false)}
         onOk={() => form.submit()}
@@ -455,7 +450,6 @@ export default function OrderManagement() {
           form={form}
           layout="vertical"
           onFinish={handleEditSubmit}
-          style={{ marginTop: 16 }}
         >
           <Row gutter={16}>
             <Col span={12}>
@@ -471,9 +465,12 @@ export default function OrderManagement() {
               <Form.Item
                 name="customerPhone"
                 label="联系电话"
-                rules={[{ required: true, message: '请输入联系电话' }]}
+                rules={[
+                  { required: true, message: '请输入联系电话' },
+                  { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号' }
+                ]}
               >
-                <Input placeholder="请输入联系电话" />
+                <Input placeholder="请输入手机号" maxLength={11} />
               </Form.Item>
             </Col>
           </Row>
@@ -491,7 +488,7 @@ export default function OrderManagement() {
                   min={0}
                   precision={2}
                   step={0.01}
-                  addonAfter="元"
+                  placeholder="0.00"
                 />
               </Form.Item>
             </Col>
@@ -502,6 +499,7 @@ export default function OrderManagement() {
                 rules={[{ required: true, message: '请选择订单状态' }]}
               >
                 <Select
+                  placeholder="请选择状态"
                   options={Object.entries(statusMap).map(([key, value]) => ({
                     label: value.text,
                     value: key,
@@ -516,7 +514,7 @@ export default function OrderManagement() {
             label="收货地址"
             rules={[{ required: true, message: '请输入收货地址' }]}
           >
-            <Input.TextArea rows={3} placeholder="请输入收货地址" />
+            <Input.TextArea rows={3} placeholder="请输入详细收货地址" showCount maxLength={200} />
           </Form.Item>
         </Form>
       </Modal>

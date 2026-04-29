@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { Typography, Card, Row, Col, Statistic, Progress, Table, Tag, Timeline, Space, Avatar, Spin, Empty, Alert, message, Button } from 'antd';
 import { AdminLayout } from '../../components/admin/layout/AdminLayout';
@@ -49,11 +49,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   // 获取统计数据
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
-
-  const fetchDashboardStats = async () => {
+  const fetchDashboardStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -64,18 +60,20 @@ export default function AdminDashboard() {
       }
       
       const data = await response.json();
-      console.log('✅ 获取统计数据成功:', data);
       setStats(data);
     } catch (err) {
-      console.error('❌ 获取统计数据失败:', err);
       setError(err instanceof Error ? err.message : '获取数据失败');
       message.error('获取统计数据失败，请刷新重试');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const orderColumns = [
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [fetchDashboardStats]);
+
+  const orderColumns = useMemo(() => [
     {
       title: '订单号',
       dataIndex: 'orderNo',
@@ -101,7 +99,7 @@ export default function AdminDashboard() {
         <Tag color={statusMap[status]?.color}>{statusMap[status]?.text}</Tag>
       ),
     },
-  ];
+  ], []);
 
   return (
     <AdminLayout title="控制台">

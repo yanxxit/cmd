@@ -11,7 +11,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Form,
   Input,
@@ -73,37 +73,32 @@ export default function ArticleEdit() {
   /**
    * 加载文章详情（编辑模式）
    */
-  useEffect(() => {
-    if (!isNew && id && typeof id === 'string') {
-      loadArticle(id);
-    }
-  }, [id, isNew]);
-
-  /**
-   * 加载文章详情
-   */
-  const loadArticle = async (articleId: string) => {
+  const loadArticle = useCallback(async (articleId: string) => {
     setLoading(true);
     setError(null);
     try {
-      // 使用查询参数方式调用 API，避免 Turbopack 动态路由问题
       const data = await request(`/articles/detail`, { params: { id: articleId } });
       setArticle(data);
       form.setFieldsValue(data);
       setCoverImage(data.coverImage);
     } catch (err: any) {
-      console.error('❌ 加载文章失败:', err);
       setError('加载文章失败');
       message.error('加载文章失败');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isNew && id && typeof id === 'string') {
+      loadArticle(id);
+    }
+  }, [id, isNew, loadArticle]);
 
   /**
    * 保存文章
    */
-  const handleSave = async (values: any) => {
+  const handleSave = useCallback(async (values: any) => {
     setSaving(true);
     try {
       const payload: CreateArticleRequest | UpdateArticleRequest = {
@@ -113,14 +108,12 @@ export default function ArticleEdit() {
 
       let result;
       if (isNew) {
-        // 新建文章
         result = await request('/articles', {
           method: 'POST',
           body: payload,
         });
         message.success('文章创建成功');
       } else {
-        // 更新文章 - 使用查询参数方式调用 API
         result = await request(`/articles/manage`, {
           method: 'PUT',
           params: { id },
@@ -129,24 +122,22 @@ export default function ArticleEdit() {
         message.success('文章更新成功');
       }
 
-      // 跳转到列表页
       setTimeout(() => {
         router.push('/admin/articles');
       }, 500);
     } catch (err: any) {
-      console.error('❌ 保存失败:', err);
       message.error(err.message || '保存失败');
     } finally {
       setSaving(false);
     }
-  };
+  }, [isNew, id, coverImage, router]);
 
   /**
    * 返回上一页
    */
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     router.back();
-  };
+  }, [router]);
 
   /**
    * 封面图上传处理

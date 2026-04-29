@@ -1,10 +1,10 @@
 /**
- * 文章详情页面 - 独立展示页面
+ * 文章详情页面 - 精致编辑设计
  *
- * 功能：
- * - 纯文章详情展示，无管理后台布局
- * - 杂志级排版质量
- * - 沉浸式阅读体验
+ * 设计理念：
+ * - 内容为主，精致为辅
+ * - 温暖的阅读体验
+ * - 专业的排版质量
  */
 
 'use client';
@@ -19,17 +19,9 @@ import {
   Divider,
   Spin,
   Alert,
-  Row,
-  Col,
 } from 'antd';
 import {
   ArrowLeftOutlined,
-  CalendarOutlined,
-  EyeOutlined,
-  LikeOutlined,
-  UserOutlined,
-  TagOutlined,
-  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { Article } from '../../../../types/article';
 import { request } from '../../../../lib/request';
@@ -40,15 +32,15 @@ import 'dayjs/locale/zh-cn';
 // 设置 dayjs 使用中文
 dayjs.locale('zh-cn');
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 
 /**
  * 状态配置
  */
 const statusConfig = {
-  draft: { color: 'default', text: '草稿', bg: '#f5f5f5' },
-  published: { color: 'success', text: '已发布', bg: '#f6ffed' },
-  archived: { color: 'warning', text: '已归档', bg: '#fffbe6' },
+  draft: { color: 'default', text: '草稿' },
+  published: { color: 'success', text: '已发布' },
+  archived: { color: 'warning', text: '已归档' },
 };
 
 /**
@@ -106,16 +98,8 @@ export default function ArticleView() {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       }}>
-        <div style={{
-          background: 'rgba(255,255,255,0.95)',
-          padding: '40px 60px',
-          borderRadius: '20px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        }}>
-          <Spin size="large" tip={<span style={{ fontSize: '14px', color: '#667eea' }}>加载文章中...</span>} />
-        </div>
+        <Spin size="large" tip="加载中..." />
       </div>
     );
   }
@@ -129,393 +113,353 @@ export default function ArticleView() {
         padding: '40px',
         maxWidth: '800px',
         margin: '0 auto',
-        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
         minHeight: '100vh',
       }}>
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: '16px',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-          }}
-        >
-          <Alert
-            message={error || '文章不存在'}
-            description="抱歉，无法加载这篇文章，请返回重试"
-            type="error"
-            showIcon
-            closable
-            style={{ borderRadius: '8px' }}
-            action={
-              <Button
-                type="primary"
-                onClick={handleBack}
-                style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  border: 'none',
-                  borderRadius: '8px',
-                }}
-              >
-                返回列表
-              </Button>
-            }
-          />
-        </Card>
+        <Alert
+          message={error || '文章不存在'}
+          type="error"
+          showIcon
+          action={
+            <Button onClick={handleBack}>返回列表</Button>
+          }
+        />
       </div>
     );
   }
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #f5f7fa 0%, #e3e7ec 100%)',
+      background: '#fafafa',
       minHeight: '100vh',
-      padding: '0',
     }}>
-      {/* 顶部装饰条 */}
+      {/* 文章主体 */}
       <div style={{
-        height: '4px',
-        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-        width: '100%',
-      }} />
-
-      {/* 顶部导航栏 */}
-      <div style={{
-        maxWidth: '1000px',
-        margin: '0 auto',
-        padding: '24px 24px 0',
+        maxWidth: '840px',
+        margin: '0 auto 60px',
+        padding: '24px',
       }}>
-        <Button
-          onClick={handleBack}
-          icon={<ArrowLeftOutlined />}
-          size="large"
-          style={{
-            background: 'white',
-            border: 'none',
-            boxShadow: '0 2px 12px rgba(102,126,234,0.15)',
-            borderRadius: '12px',
-            padding: '0 24px',
-            height: '44px',
-            fontWeight: 500,
-            color: '#667eea',
-          }}
-        >
-          返回列表
-        </Button>
-      </div>
-
-      {/* 文章主卡片 */}
-      <div style={{
-        maxWidth: '1000px',
-        margin: '24px auto 40px',
-        padding: '0 24px',
-      }}>
+        {/* 文章卡片 */}
         <Card
           bordered={false}
           style={{
-            borderRadius: '20px',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.08)',
-            overflow: 'hidden',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
-          bodyStyle={{ padding: '0' }}
         >
-          {/* 顶部渐变背景 */}
-          <div style={{
-            height: '120px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            position: 'relative',
-          }}>
-            {/* 装饰性圆形 */}
-            <div style={{
-              position: 'absolute',
-              width: '200px',
-              height: '200px',
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.1)',
-              top: '-100px',
-              right: '-50px',
-            }} />
-            <div style={{
-              position: 'absolute',
-              width: '150px',
-              height: '150px',
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.08)',
-              bottom: '-50px',
-              left: '100px',
-            }} />
+          {/* 标题 */}
+          <Title
+            level={2}
+            style={{
+              marginTop: 0,
+              marginBottom: '12px',
+              fontSize: '32px',
+              fontWeight: 600,
+              color: '#1f1f1f',
+              lineHeight: 1.4,
+            }}
+          >
+            {article.title}
+          </Title>
+
+          {/* 状态标签 */}
+          <div style={{ marginBottom: '16px' }}>
+            <Tag
+              color={statusConfig[article.status].color}
+              style={{
+                fontSize: '12px',
+                padding: '2px 8px',
+                borderRadius: '4px',
+              }}
+            >
+              {statusConfig[article.status].text}
+            </Tag>
+            <Tag
+              color="blue"
+              style={{
+                fontSize: '12px',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                marginLeft: '8px',
+              }}
+            >
+              规划
+            </Tag>
+            <Tag
+              color="green"
+              style={{
+                fontSize: '12px',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                marginLeft: '8px',
+              }}
+            >
+              学习
+            </Tag>
           </div>
 
-          <div style={{ padding: '48px 56px' }}>
-            {/* 状态标签 */}
-            <div style={{ marginBottom: '20px' }}>
-              <Tag
-                color={statusConfig[article.status].color}
-                style={{
-                  fontSize: '13px',
-                  padding: '6px 16px',
-                  borderRadius: '20px',
-                  border: 'none',
-                  background: statusConfig[article.status].bg,
-                  fontWeight: 500,
-                }}
-              >
-                {statusConfig[article.status].text}
-              </Tag>
-            </div>
-
-            {/* 文章标题 */}
-            <Title
-              level={1}
+          {/* 摘要 */}
+          {article.summary && (
+            <Paragraph
               style={{
-                marginTop: 0,
-                marginBottom: '20px',
-                fontSize: '40px',
-                fontWeight: 800,
-                color: '#1a1a1a',
-                lineHeight: 1.2,
-                letterSpacing: '-0.5px',
+                fontSize: '15px',
+                lineHeight: 1.7,
+                color: '#666',
+                marginBottom: '24px',
               }}
             >
-              {article.title}
-            </Title>
+              {article.summary}
+            </Paragraph>
+          )}
 
-            {/* 文章摘要 */}
-            {article.summary && (
-              <Paragraph
+          {/* 元数据 */}
+          <div style={{
+            marginBottom: '24px',
+            padding: '12px 16px',
+            background: '#fafafa',
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: '#666',
+          }}>
+            <Space size={16} wrap>
+              <span>作者：<strong>{article.author}</strong></span>
+              <span style={{ color: '#d9d9d9' }}>|</span>
+              <span>{dayjs(article.createdAt).format('YYYY 年 MM 月 DD 日')}</span>
+              {article.category && (
+                <>
+                  <span style={{ color: '#d9d9d9' }}>|</span>
+                  <span>{article.category}</span>
+                </>
+              )}
+              <span style={{ color: '#d9d9d9' }}>|</span>
+              <span>{article.viewCount} 次阅读</span>
+            </Space>
+          </div>
+
+          {/* 封面图 */}
+          {article.coverImage && (
+            <div style={{ marginBottom: '32px' }}>
+              <img
+                src={article.coverImage}
+                alt="封面图"
                 style={{
-                  fontSize: '18px',
-                  lineHeight: 1.8,
-                  color: '#666',
-                  marginBottom: '40px',
-                  fontWeight: 300,
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: '8px',
+                  display: 'block',
                 }}
-              >
-                {article.summary}
-              </Paragraph>
-            )}
-
-            {/* 分隔线 */}
-            <Divider style={{ margin: '0 0 32px', borderColor: '#f0f0f0' }} />
-
-            {/* 文章元信息 */}
-            <Card
-              type="inner"
-              style={{
-                marginBottom: '40px',
-                background: 'linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%)',
-                borderRadius: '16px',
-                border: '1px solid #f0f0f0',
-              }}
-            >
-              <Row gutter={[24, 24]}>
-                <Col xs={24} sm={12} md={8}>
-                  <Space>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '18px',
-                    }}>
-                      <UserOutlined />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>作者</div>
-                      <div style={{ fontSize: '16px', fontWeight: 600, color: '#333' }}>{article.author}</div>
-                    </div>
-                  </Space>
-                </Col>
-                <Col xs={24} sm={12} md={8}>
-                  <Space>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '18px',
-                    }}>
-                      <TagOutlined />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>分类</div>
-                      <div style={{ fontSize: '16px', fontWeight: 600, color: '#333' }}>{article.category || '未分类'}</div>
-                    </div>
-                  </Space>
-                </Col>
-                <Col xs={24} sm={24} md={8}>
-                  <Space>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #faad14 0%, #d48806 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '18px',
-                    }}>
-                      <ClockCircleOutlined />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>发布时间</div>
-                      <div style={{ fontSize: '15px', fontWeight: 500, color: '#333' }}>
-                        {dayjs(article.createdAt).format('YYYY.MM.DD')}
-                      </div>
-                    </div>
-                  </Space>
-                </Col>
-                <Col xs={24} sm={12} md={8}>
-                  <Space>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '18px',
-                    }}>
-                      <EyeOutlined />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>阅读</div>
-                      <div style={{ fontSize: '16px', fontWeight: 600, color: '#333' }}>{article.viewCount}</div>
-                    </div>
-                  </Space>
-                </Col>
-                <Col xs={24} sm={12} md={8}>
-                  <Space>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #722ed1 0%, #531dab 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '18px',
-                    }}>
-                      <LikeOutlined />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13px', color: '#999', marginBottom: '4px' }}>点赞</div>
-                      <div style={{ fontSize: '16px', fontWeight: 600, color: '#333' }}>{article.likeCount}</div>
-                    </div>
-                  </Space>
-                </Col>
-              </Row>
-            </Card>
-
-            {/* 标签 */}
-            {article.tags && article.tags.length > 0 && (
-              <div style={{ marginBottom: '40px' }}>
-                <div style={{
-                  fontSize: '14px',
-                  color: '#999',
-                  marginBottom: '12px',
-                  fontWeight: 500,
-                  letterSpacing: '0.5px',
-                }}>
-                  TAGS
-                </div>
-                <Space size={8} wrap>
-                  {article.tags.map((tag) => (
-                    <Tag
-                      key={tag}
-                      style={{
-                        padding: '6px 16px',
-                        borderRadius: '20px',
-                        border: '1px solid #667eea',
-                        color: '#667eea',
-                        background: 'rgba(102,126,234,0.05)',
-                        fontSize: '14px',
-                        fontWeight: 500,
-                      }}
-                    >
-                      #{tag}
-                    </Tag>
-                  ))}
-                </Space>
-              </div>
-            )}
-
-            {/* 封面图 */}
-            {article.coverImage && (
-              <div style={{
-                marginBottom: '40px',
-                borderRadius: '16px',
-                overflow: 'hidden',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-              }}>
-                <img
-                  src={article.coverImage}
-                  alt="封面图"
-                  style={{
-                    width: '100%',
-                    height: '400px',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
-                />
-              </div>
-            )}
-
-            {/* 文章内容 */}
-            <div
-              className="article-content"
-              style={{
-                fontSize: '17px',
-                lineHeight: 1.9,
-                color: '#2c2c2c',
-                fontWeight: 400,
-              }}
-              dangerouslySetInnerHTML={{ __html: article.content }}
-            />
-
-            {/* 更新时间 */}
-            <Divider style={{ margin: '48px 0 24px', borderColor: '#f0f0f0' }} />
-            <div style={{
-              textAlign: 'center',
-              color: '#999',
-              fontSize: '13px',
-              padding: '20px 0',
-            }}>
-              <Space>
-                <ClockCircleOutlined style={{ fontSize: '14px' }} />
-                <span>最后更新：{dayjs(article.updatedAt).format('YYYY 年 MM 月 DD 日 HH:mm:ss')}</span>
-              </Space>
+              />
             </div>
+          )}
+
+          {/* 文章内容 */}
+          <div
+            className="article-content"
+            style={{
+              fontSize: '16px',
+              lineHeight: 1.8,
+              color: '#262626',
+            }}
+            dangerouslySetInnerHTML={{ __html: article.content }}
+          />
+
+          <style jsx global>{`
+            .article-content {
+              /* 标题样式 */
+              h1, h2, h3, h4, h5, h6 {
+                margin-top: 32px;
+                margin-bottom: 16px;
+                font-weight: 600;
+                line-height: 1.4;
+                color: #1f1f1f;
+              }
+
+              h1 {
+                font-size: 32px;
+                padding-bottom: 12px;
+                border-bottom: 2px solid #f0f0f0;
+              }
+
+              h2 {
+                font-size: 24px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid #f0f0f0;
+              }
+
+              h3 {
+                font-size: 20px;
+              }
+
+              h4 {
+                font-size: 18px;
+              }
+
+              h5 {
+                font-size: 16px;
+              }
+
+              h6 {
+                font-size: 14px;
+                color: #666;
+              }
+
+              /* 段落样式 */
+              p {
+                margin: 16px 0;
+                text-align: justify;
+                word-spacing: 2px;
+              }
+
+              /* 链接样式 */
+              a {
+                color: #1677ff;
+                text-decoration: none;
+                border-bottom: 1px solid transparent;
+                transition: border-color 0.2s;
+              }
+
+              a:hover {
+                border-bottom-color: #1677ff;
+              }
+
+              /* 代码块样式 */
+              pre {
+                margin: 16px 0;
+                padding: 16px;
+                background: #f5f5f5;
+                border-radius: 8px;
+                overflow-x: auto;
+                font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+                font-size: 14px;
+                line-height: 1.6;
+                border: 1px solid #e8e8e8;
+              }
+
+              code {
+                font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+                background: #f5f5f5;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 0.9em;
+                color: #e83e8c;
+              }
+
+              pre code {
+                background: transparent;
+                padding: 0;
+                color: inherit;
+              }
+
+              /* 引用块样式 */
+              blockquote {
+                margin: 16px 0;
+                padding: 12px 16px;
+                border-left: 4px solid #1677ff;
+                background: #f5f5f5;
+                border-radius: 0 4px 4px 0;
+                color: #666;
+                font-style: italic;
+              }
+
+              blockquote p {
+                margin: 8px 0;
+              }
+
+              /* 列表样式 */
+              ul, ol {
+                margin: 16px 0;
+                padding-left: 24px;
+              }
+
+              li {
+                margin: 8px 0;
+                line-height: 1.8;
+              }
+
+              ul li {
+                list-style-type: disc;
+              }
+
+              ol li {
+                list-style-type: decimal;
+              }
+
+              /* 表格样式 */
+              table {
+                width: 100%;
+                margin: 16px 0;
+                border-collapse: collapse;
+                border-radius: 8px;
+                overflow: hidden;
+              }
+
+              th, td {
+                padding: 12px 16px;
+                text-align: left;
+                border-bottom: 1px solid #e8e8e8;
+              }
+
+              th {
+                background: #fafafa;
+                font-weight: 600;
+                color: #1f1f1f;
+              }
+
+              tr:hover {
+                background: #fafafa;
+              }
+
+              /* 图片样式 */
+              img {
+                max-width: 100%;
+                height: auto;
+                margin: 16px 0;
+                border-radius: 8px;
+                display: block;
+              }
+
+              /* 分隔线样式 */
+              hr {
+                margin: 32px 0;
+                border: none;
+                border-top: 2px solid #f0f0f0;
+              }
+
+              /* 强调文本 */
+              strong {
+                font-weight: 600;
+                color: #1f1f1f;
+              }
+
+              em {
+                font-style: italic;
+                color: #666;
+              }
+
+              /* 删除线 */
+              del {
+                color: #999;
+                text-decoration: line-through;
+              }
+
+              /* 高亮 */
+              mark {
+                background: #fffbe6;
+                padding: 2px 4px;
+                border-radius: 2px;
+              }
+            }
+          `}</style>
+
+          {/* 更新时间 */}
+          <Divider style={{ margin: '40px 0 24px' }} />
+          <div style={{
+            textAlign: 'center',
+            color: '#999',
+            fontSize: '13px',
+          }}>
+            最后更新：{dayjs(article.updatedAt).format('YYYY 年 MM 月 DD 日 HH:mm:ss')}
           </div>
         </Card>
-
-        {/* 底部装饰 */}
-        <div style={{
-          textAlign: 'center',
-          marginTop: '40px',
-          color: '#999',
-          fontSize: '13px',
-        }}>
-          <div style={{
-            width: '40px',
-            height: '3px',
-            background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-            margin: '0 auto 16px',
-            borderRadius: '2px',
-          }} />
-          <div>— 完 —</div>
-        </div>
       </div>
     </div>
   );

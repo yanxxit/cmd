@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Head from 'next/head';
-import { Typography, Breadcrumb, Button, Space, message, Modal } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Typography, Button, Space, message, Modal, Tooltip } from 'antd';
+import { PlusOutlined, DeleteOutlined, ClearOutlined } from '@ant-design/icons';
 import { useRequest } from 'ahooks';
 import { AdminLayout } from '../../../components/admin/layout';
 import { TestCaseTable } from '../../../components/admin/test-case/TestCaseTable';
@@ -41,50 +41,51 @@ export default function TestCasesPage() {
   const testCases = data?.data || [];
   const total = data?.pagination?.total || 0;
 
-  const handleSearch = (values: any) => {
+  const handleSearch = useCallback((values: any) => {
     setFilters(values);
-    setPagination({ ...pagination, current: 1 });
-  };
+    setPagination(prev => ({ ...prev, current: 1 }));
+  }, []);
 
-  const handlePageChange = (page: number, pageSize: number) => {
+  const handlePageChange = useCallback((page: number, pageSize: number) => {
     setPagination({ current: page, pageSize });
-  };
+  }, []);
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     setModalMode('create');
     setCurrentRecord(null);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (record: TestCase) => {
+  const handleEdit = useCallback((record: TestCase) => {
     setModalMode('edit');
     setCurrentRecord(record);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleView = (record: TestCase) => {
+  const handleView = useCallback((record: TestCase) => {
     setCurrentRecord(record);
     setDetailOpen(true);
-  };
+  }, []);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
       await testCaseApi.deleteTestCase(id);
       message.success('删除成功');
       refresh();
-      setSelectedRowKeys(selectedRowKeys.filter((key) => key !== id));
+      setSelectedRowKeys(prev => prev.filter((key) => key !== id));
     } catch (e) {
       // 错误已经在 API 方法中提示
     }
-  };
+  }, [refresh]);
 
-  const handleBatchDelete = () => {
+  const handleBatchDelete = useCallback(() => {
     Modal.confirm({
       title: '确认批量删除',
       content: `确定要删除选中的 ${selectedRowKeys.length} 个测试案例吗？此操作不可恢复。`,
       okText: '确定',
       okType: 'danger',
       cancelText: '取消',
+      icon: null,
       onOk: async () => {
         try {
           await testCaseApi.batchDeleteTestCases(selectedRowKeys as string[]);
@@ -96,12 +97,17 @@ export default function TestCasesPage() {
         }
       },
     });
-  };
+  }, [selectedRowKeys.length, refresh]);
 
-  const handleModalSuccess = () => {
+  const handleClearSelection = useCallback(() => {
+    setSelectedRowKeys([]);
+    message.info('已取消选择');
+  }, []);
+
+  const handleModalSuccess = useCallback(() => {
     setModalOpen(false);
     refresh();
-  };
+  }, [refresh]);
 
   return (
     <AdminLayout>
@@ -109,22 +115,27 @@ export default function TestCasesPage() {
         <title>测试案例管理 - 后台系统</title>
       </Head>
 
-      <Breadcrumb
-        items={[
-          { title: '首页' },
-          { title: '测试案例管理' },
-          { title: '案例列表' },
-        ]}
-        style={{ marginBottom: 16 }}
-      />
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Title level={2} style={{ margin: 0 }}>案例列表</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Title level={2}>案例列表</Title>
         <Space>
           {selectedRowKeys.length > 0 && (
-            <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
-              批量删除 ({selectedRowKeys.length})
-            </Button>
+            <>
+              <Tooltip title="取消选择已选项">
+                <Button 
+                  icon={<ClearOutlined />} 
+                  onClick={handleClearSelection}
+                >
+                  取消选择 ({selectedRowKeys.length})
+                </Button>
+              </Tooltip>
+              <Button 
+                danger 
+                icon={<DeleteOutlined />} 
+                onClick={handleBatchDelete}
+              >
+                批量删除
+              </Button>
+            </>
           )}
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建案例
