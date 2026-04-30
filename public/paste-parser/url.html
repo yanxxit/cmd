@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL 参数解析工具</title>
+  <!-- Vue 3 -->
+  <script src="/libs/vue/dist/vue.global.prod.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .main-card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .input-section {
+      margin-bottom: 30px;
+    }
+
+    .input-label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .url-input {
+      width: 100%;
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      transition: all 0.3s ease;
+    }
+
+    .url-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid #667eea;
+      color: #667eea;
+    }
+
+    .btn-outline:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .result-section {
+      display: none;
+    }
+
+    .result-section.show {
+      display: block;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .stat-item {
+      background: #f8f9ff;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .stat-label {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+
+    .url-section {
+      margin-bottom: 30px;
+    }
+
+    .url-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .url-section-title {
+      font-size: 1.1rem;
+      color: #333;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .url-raw-section {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f9ff;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .url-raw-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .url-raw-label {
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+
+    .url-raw-value {
+      background: #1e1e1e;
+      border-radius: 6px;
+      padding: 12px;
+      color: #d4d4d4;
+      line-height: 1.6;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.85rem;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    .text-output {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      max-height: 600px;
+      overflow-y: auto;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #d4d4d4;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .syntax-json .json-key { color: #9cdcfe; }
+    .syntax-json .json-string { color: #ce9178; }
+    .syntax-json .json-number { color: #b5cea8; }
+    .syntax-json .json-boolean { color: #569cd6; }
+    .syntax-json .json-null { color: #569cd6; }
+
+    .url-actions {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .url-actions .btn {
+      padding: 10px 20px;
+    }
+
+    .format-info {
+      background: #f0f7ff;
+      border: 1px solid #b3d9ff;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .format-info-title {
+      font-weight: 600;
+      color: #0066cc;
+      margin-bottom: 10px;
+    }
+
+    .format-info-content {
+      font-size: 0.9rem;
+      color: #555;
+    }
+
+    .back-link {
+      display: inline-block;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .error-message {
+      background: #fee;
+      color: #c33;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    /* 测试案例下拉框样式 */
+    .test-case-select-section {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .test-case-select-label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .test-case-select-wrapper {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .test-case-select {
+      flex: 1;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 15px center;
+      padding-right: 40px;
+    }
+
+    .test-case-select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .test-case-select:hover {
+      border-color: #667eea;
+    }
+
+    .btn-use-case {
+      padding: 12px 24px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <a href="/paste-parser/" class="back-link">← 返回主页</a>
+
+      <div class="header">
+        <h1>🔗 URL 参数解析工具</h1>
+        <p>粘贴 URL 链接，自动解析并展示所有参数</p>
+      </div>
+
+      <div class="main-card">
+        <div class="input-section">
+          <!-- 测试案例下拉框 -->
+          <div class="test-case-select-section">
+            <label class="test-case-select-label" for="testCaseSelect">💡 或选择预设测试案例：</label>
+            <div class="test-case-select-wrapper">
+              <select 
+                class="test-case-select" 
+                id="testCaseSelect"
+                v-model="selectedTestCaseIndex"
+                @change="onTestCaseChange">
+                <option value="-1">-- 请选择测试案例 --</option>
+                <option v-for="(testCase, index) in testCases" :key="index" :value="index">
+                  {{ testCase.icon }} {{ testCase.name }} ({{ testCase.categoryName }})
+                </option>
+              </select>
+              <button class="btn btn-use-case" @click="useSelectedTestCase" :disabled="selectedTestCaseIndex < 0">
+                🔍 使用此案例
+              </button>
+            </div>
+          </div>
+
+          <label class="input-label" for="urlInput">请输入或粘贴 URL 链接：</label>
+          <textarea 
+            class="url-input" 
+            id="urlInput" 
+            rows="3" 
+            placeholder="例如：https://example.com/search?keyword=测试&page=1#section=docs"
+            v-model="inputUrl"
+            @keydown.enter.exact.prevent="parseURL"></textarea>
+          <div class="actions">
+            <button class="btn" @click="parseURL">🔍 解析 URL</button>
+            <button class="btn btn-outline" @click="clearAll">清空</button>
+          </div>
+        </div>
+
+        <div class="error-message" :class="{ show: errorMessage }" v-if="errorMessage">
+          {{ errorMessage }}
+        </div>
+
+        <div class="result-section" :class="{ show: hasResult }" v-if="hasResult">
+          <div class="stats">
+            <div class="stat-item">
+              <div class="stat-value">{{ urlStats.length }}</div>
+              <div class="stat-label">字符数</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ urlStats.queryCount }}</div>
+              <div class="stat-label">Query 参数</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ urlStats.hashCount }}</div>
+              <div class="stat-label">Hash 参数</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ urlStats.totalCount }}</div>
+              <div class="stat-label">总参数</div>
+            </div>
+          </div>
+
+          <div id="urlParts">
+            <!-- 原始链接和解码链接 -->
+            <div class="url-section">
+              <div class="url-raw-section">
+                <div class="url-raw-item">
+                  <div class="url-raw-label">📎 原始链接</div>
+                  <div class="url-raw-value">{{ result.originalUrl }}</div>
+                  <button class="btn btn-outline" @click="copyToClipboard(result.originalUrl, '原始链接')" style="margin-top: 10px;">
+                    📋 复制原始链接
+                  </button>
+                </div>
+              </div>
+              
+              <div class="url-raw-section">
+                <div class="url-raw-item">
+                  <div class="url-raw-label">🔓 解码链接</div>
+                  <div class="url-raw-value">{{ result.decodedUrl }}</div>
+                  <button class="btn btn-outline" @click="copyToClipboard(result.decodedUrl, '解码链接')" style="margin-top: 10px;">
+                    📋 复制解码链接
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Query 参数 -->
+            <div class="url-section" v-if="result.queryParams && Object.keys(result.queryParams).length > 0">
+              <h3 class="url-section-title">📊 Query 参数 ({{ Object.keys(result.queryParams).length }}个)</h3>
+              <div class="text-output syntax-json" style="max-height: 600px;" v-html="syntaxHighlightJSON(JSON.stringify(result.queryParams, null, 2))"></div>
+              <div class="url-actions">
+                <button class="btn" @click="copyToClipboard(JSON.stringify(result.queryParams), 'Query 参数')">📋 复制 Query 参数</button>
+              </div>
+            </div>
+
+            <!-- Hash 参数 -->
+            <div class="url-section" v-if="result.hashParams && Object.keys(result.hashParams).length > 0">
+              <h3 class="url-section-title">📊 Hash 参数 ({{ Object.keys(result.hashParams).length }}个)</h3>
+              <div class="text-output syntax-json" style="max-height: 600px;" v-html="syntaxHighlightJSON(JSON.stringify(result.hashParams, null, 2))"></div>
+              <div class="url-actions">
+                <button class="btn" @click="copyToClipboard(JSON.stringify(result.hashParams), 'Hash 参数')">📋 复制 Hash 参数</button>
+              </div>
+            </div>
+
+            <!-- 无参数提示 -->
+            <div class="format-info" v-if="urlStats.totalCount === 0">
+              <div class="format-info-title">💡 提示</div>
+              <div class="format-info-content">该 URL 没有查询参数或 hash 参数</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          inputUrl: '',
+          errorMessage: '',
+          hasResult: false,
+          urlStats: {
+            length: 0,
+            queryCount: 0,
+            hashCount: 0,
+            totalCount: 0
+          },
+          result: {
+            originalUrl: '',
+            decodedUrl: '',
+            urlInfo: {},
+            queryParams: {},
+            hashParams: {}
+          },
+          selectedTestCaseIndex: -1,
+          testCases: [
+            {
+              icon: '🔌',
+              name: 'REST API 接口',
+              category: 'api',
+              categoryName: 'API',
+              url: 'https://api.github.com/repos/facebook/react/issues?state=open&labels=bug&sort=created&direction=desc&page=1&per_page=30',
+              hint: 'GitHub Issues API - 分页、排序、标签过滤'
+            },
+            {
+              icon: '🔐',
+              name: 'OAuth 2.0 授权回调',
+              category: 'auth',
+              categoryName: '认证',
+              url: 'https://example.com/callback?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7&scope=email%20profile&state=xyz123#access_token=ya29.GlsXBq3kN5z8',
+              hint: '包含编码参数和 Hash Token'
+            },
+            {
+              icon: '🛒',
+              name: '电商网站筛选',
+              category: 'ecommerce',
+              categoryName: '电商',
+              url: 'https://shop.example.com/products?category=electronics&brand=Apple,Sony&price_min=1000&price_max=5000&sort=price_asc&page=2',
+              hint: '多值参数和范围筛选'
+            },
+            {
+              icon: '🇨🇳',
+              name: '中文搜索参数',
+              category: 'search',
+              categoryName: '搜索',
+              url: 'https://search.example.com/results?q=%E5%89%8D%E7%AB%AF%E5%BC%80%E5%8F%91&category=%E6%8A%80%E6%9C%AF%E6%96%87%E7%AB%A0&page=1',
+              hint: 'URL 编码的中文参数'
+            },
+            {
+              icon: '📱',
+              name: '社交媒体分享链接',
+              category: 'social',
+              categoryName: '社交',
+              url: 'https://twitter.com/intent/tweet?url=https%3A%2F%2Fexample.com%2Farticle%2F123&text=%E8%BF%99%E7%AF%87%E6%96%87%E7%AB%A0%E5%BE%88%E6%A3%92&hashtags=JavaScript,WebDev',
+              hint: '嵌套 URL 编码'
+            },
+            {
+              icon: '📊',
+              name: 'UTM 追踪参数',
+              category: 'analytics',
+              categoryName: '分析',
+              url: 'https://example.com/landing?utm_source=google&utm_medium=cpc&utm_campaign=spring_sale&utm_content=ad_variant_a&utm_term=running+shoes',
+              hint: 'Google Analytics 追踪参数'
+            },
+            {
+              icon: '🔄',
+              name: '双重编码参数',
+              category: 'api',
+              categoryName: 'API',
+              url: 'https://api.example.com/data?redirect=%252Fdashboard%253Fid%253D123&callback=%257B%2522type%2522%253A%2522json%2522%257D',
+              hint: '需要多次解码'
+            },
+            {
+              icon: '📦',
+              name: 'JSON 配置参数',
+              category: 'api',
+              categoryName: 'API',
+              url: 'https://app.example.com/view?config=%7B%22theme%22%3A%22dark%22%2C%22layout%22%3A%22grid%22%2C%22itemsPerPage%22%3A20%7D&debug=true',
+              hint: 'JSON 对象作为参数值'
+            },
+            {
+              icon: '⏰',
+              name: '时间范围查询',
+              category: 'analytics',
+              categoryName: '分析',
+              url: 'https://analytics.example.com/report?start_date=2024-01-01T00:00:00Z&end_date=2024-12-31T23:59:59Z&timezone=Asia/Shanghai&granularity=day',
+              hint: 'ISO 8601 时间格式'
+            },
+            {
+              icon: '🎯',
+              name: '单页应用路由',
+              category: 'spa',
+              categoryName: 'SPA',
+              url: 'https://app.example.com/#/dashboard/projects/456?tab=tasks&view=kanban&filter=mine#section=details',
+              hint: 'Hash 路由 + Query 参数'
+            },
+            {
+              icon: '📥',
+              name: '文件下载链接',
+              category: 'auth',
+              categoryName: '认证',
+              url: 'https://cdn.example.com/files/document.pdf?token=abc123xyz&expires=1704067200&signature=a1b2c3d4e5f6',
+              hint: '带签名的临时下载链接'
+            },
+            {
+              icon: '🏪',
+              name: '复杂电商 URL',
+              category: 'ecommerce',
+              categoryName: '电商',
+              url: 'https://mall.example.com/search?keyword=手机&brand=华为，小米，OPPO&price=1000-3000&features=5G,快充&sort=sales&stock=1&page=3',
+              hint: '中文 + 多筛选条件'
+            }
+          ]
+        };
+      },
+      computed: {
+        currentTestCase() {
+          return this.testCases[this.selectedTestCaseIndex];
+        }
+      },
+      methods: {
+        onTestCaseChange() {
+          // 下拉框改变时的回调，可以在此添加其他逻辑
+          console.log('选择的测试案例:', this.currentTestCase);
+        },
+        useSelectedTestCase() {
+          if (this.selectedTestCaseIndex >= 0) {
+            this.loadTestCase(this.currentTestCase);
+          }
+        },
+        parseURL() {
+          const urlText = this.inputUrl.trim();
+          if (!urlText) {
+            this.errorMessage = '请输入 URL 链接';
+            setTimeout(() => this.errorMessage = '', 3000);
+            return;
+          }
+          
+          try {
+            let urlStr = urlText;
+            if (!urlStr.startsWith('http://') && !urlStr.startsWith('https://')) {
+              urlStr = 'https://' + urlStr;
+            }
+            const url = new URL(urlStr);
+            this.showURLResult(url);
+            this.errorMessage = '';
+          } catch (err) {
+            this.errorMessage = '无效的 URL 格式：' + err.message;
+            this.hasResult = false;
+          }
+        },
+
+        showURLResult(url) {
+          // 解析 query 参数和 hash 参数
+          const queryParams = this.parseQueryString(url.search);
+          const hashParams = this.parseHashParams(url.hash);
+          
+          // 尝试对原始 URL 进行解码
+          let decodedUrl = url.href;
+          try {
+            decodedUrl = decodeURIComponent(url.href);
+          } catch (e) {
+            // 解码失败，使用原始 URL
+          }
+          
+          // 构建 URL 基本信息对象
+          const urlInfo = {
+            protocol: url.protocol,
+            host: url.host,
+            hostname: url.hostname,
+            port: url.port || '(默认)',
+            pathname: url.pathname,
+            search: url.search || null,
+            hash: url.hash || null,
+            href: url.href
+          };
+          
+          // 统计信息
+          const totalParams = Object.keys(queryParams).length + Object.keys(hashParams).length;
+          
+          this.urlStats = {
+            length: url.href.length,
+            queryCount: Object.keys(queryParams).length,
+            hashCount: Object.keys(hashParams).length,
+            totalCount: totalParams
+          };
+
+          this.result = {
+            originalUrl: url.href,
+            decodedUrl: decodedUrl,
+            urlInfo: urlInfo,
+            queryParams: queryParams,
+            hashParams: hashParams
+          };
+
+          this.hasResult = true;
+          
+          // 平滑滚动到结果区域
+          setTimeout(() => {
+            const resultSection = document.querySelector('.result-section');
+            if (resultSection) {
+              resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 100);
+        },
+
+        parseQueryString(searchString) {
+          const params = {};
+          if (!searchString) return params;
+          
+          const search = searchString.startsWith('?') ? searchString.substring(1) : searchString;
+          if (!search) return params;
+          
+          try {
+            const decoded = decodeURIComponent(search);
+            this.parseParamsString(decoded, params);
+          } catch (e) {
+            this.parseParamsString(search, params);
+          }
+          
+          return params;
+        },
+
+        parseHashParams(hashString) {
+          const params = {};
+          if (!hashString) return params;
+          
+          const hash = hashString.startsWith('#') ? hashString.substring(1) : hashString;
+          if (!hash) return params;
+          
+          try {
+            const decoded = decodeURIComponent(hash);
+            this.parseParamsString(decoded, params);
+          } catch (e) {
+            this.parseParamsString(hash, params);
+          }
+          
+          return params;
+        },
+
+        parseParamsString(str, paramsObj) {
+          str.split('&').forEach(param => {
+            if (!param) return;
+            const [key, ...valueParts] = param.split('=');
+            const value = valueParts.join('=');
+            
+            if (key) {
+              const decodedKey = key.trim();
+              let decodedValue = value ? value.trim() : '';
+              
+              // 检测并解析 JSON 字符串
+              decodedValue = this.tryParseJSONValue(decodedValue);
+              
+              paramsObj[decodedKey] = decodedValue;
+            }
+          });
+        },
+
+        /**
+         * 尝试解析 JSON 字符串值
+         * 如果参数值是 JSON 字符串，则解析为对象，方便查看
+         */
+        tryParseJSONValue(value) {
+          if (!value || typeof value !== 'string') {
+            return value;
+          }
+          
+          // 快速检查：JSON 字符串通常以 { 或 [ 开头
+          const trimmed = value.trim();
+          if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+            return value;
+          }
+          
+          try {
+            const parsed = JSON.parse(trimmed);
+            // 只返回解析后的对象，如果是简单值（字符串、数字等）则保持原样
+            if (parsed && (typeof parsed === 'object' || Array.isArray(parsed))) {
+              return parsed;
+            }
+            return value;
+          } catch (e) {
+            // 不是有效的 JSON，返回原始值
+            return value;
+          }
+        },
+
+        syntaxHighlightJSON(json) {
+          return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+            let cls = 'json-number';
+            if (/^"/.test(match)) {
+              cls = /:$/.test(match) ? 'json-key' : 'json-string';
+            } else if (/true|false/.test(match)) {
+              cls = 'json-boolean';
+            } else if (/null/.test(match)) {
+              cls = 'json-null';
+            }
+            return '<span class="' + cls + '">' + match + '</span>';
+          });
+        },
+
+        loadTestCase(testCase) {
+          // 找到对应的索引并设置选中状态
+          const index = this.testCases.findIndex(tc => tc.url === testCase.url);
+          if (index >= 0) {
+            this.selectedTestCaseIndex = index;
+          }
+          
+          this.inputUrl = testCase.url;
+          this.parseURL();
+        },
+
+        clearAll() {
+          this.inputUrl = '';
+          this.selectedTestCaseIndex = -1;
+          this.hasResult = false;
+          this.errorMessage = '';
+          this.result = {
+            originalUrl: '',
+            decodedUrl: '',
+            urlInfo: {},
+            queryParams: {},
+            hashParams: {}
+          };
+          this.urlStats = {
+            length: 0,
+            queryCount: 0,
+            hashCount: 0,
+            totalCount: 0
+          };
+          document.getElementById('urlInput').focus();
+        },
+
+        copyToClipboard(text, label) {
+          navigator.clipboard.writeText(text).then(() => {
+            const originalText = event.target.textContent;
+            event.target.textContent = '✓ 已复制';
+            setTimeout(() => {
+              event.target.textContent = originalText;
+            }, 2000);
+          }).catch(err => {
+            this.errorMessage = '复制失败：' + err.message;
+          });
+        }
+      },
+      mounted() {
+        this.$nextTick(() => {
+          document.getElementById('urlInput').focus();
+        });
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

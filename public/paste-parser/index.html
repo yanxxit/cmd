@@ -528,6 +528,64 @@
       word-break: break-all;
     }
 
+    /* URL 参数表格样式 */
+    .url-section {
+      margin-bottom: 30px;
+    }
+
+    .url-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .url-section-title {
+      font-size: 1.1rem;
+      color: #333;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 原始链接和解码链接样式 */
+    .url-raw-section {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f9ff;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .url-raw-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .url-raw-label {
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+
+    .url-raw-value {
+      background: #1e1e1e;
+      border-radius: 6px;
+      color: #d4d4d4;
+      line-height: 1.6;
+    }
+
+    .url-actions {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .url-actions .btn {
+      padding: 10px 20px;
+    }
+
     /* 文件列表 */
     .file-list {
       display: flex;
@@ -583,7 +641,7 @@
     .color-box {
       width: 100px;
       height: 100px;
-      border-radius: 8px;
+      border-radius: 50%;
       border: 2px solid #ddd;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
@@ -612,12 +670,29 @@
       font-size: 0.85rem;
       color: #666;
       border: 1px solid #ddd;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+
+    .color-format:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <a href="/file-viewer" class="back-link">← 返回文件查看器</a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <a href="/file-viewer" class="back-link">← 返回文件查看器</a>
+      <div style="display: flex; gap: 10px;">
+        <a href="/paste-parser/url-edit.html" class="back-link" style="background: rgba(255, 255, 255, 0.25);">🛠️ URL 编辑器</a>
+        <a href="/paste-parser/url.html" class="back-link" style="background: rgba(255, 255, 255, 0.3);">🔗 URL 解析工具</a>
+      </div>
+    </div>
 
     <div class="header">
       <h1>📋 粘贴解析工具</h1>
@@ -1034,10 +1109,25 @@
         if (isTableHTML(html)) {
           parseTableHTML(html);
           return;
-        } else {
-          parseRichText(html);
-          return;
         }
+        // 在解析为富文本之前，先检查纯文本是否是颜色代码等特殊格式
+        const text = clipboardData.getData('text/plain');
+        if (text && text.trim()) {
+          const trimmed = text.trim();
+          // 检测颜色代码（优先于富文本）
+          if (isColorCode(trimmed)) {
+            parseColor(trimmed);
+            return;
+          }
+          // 检测其他特殊格式
+          if (isJWT(trimmed) || isBase64(trimmed) || isURL(trimmed)) {
+            detectAndParse(trimmed);
+            return;
+          }
+        }
+        // 否则解析为富文本
+        parseRichText(html);
+        return;
       }
 
       // 检查普通文本（包括 CSV、制表符分隔的表格数据）
@@ -1878,39 +1968,189 @@
       pasteTypeIndicator.textContent = '🔗 URL';
       highlightBadge('url');
       
+      // 解析 query 参数和 hash 参数
+      const queryParams = parseQueryString(url.search);
+      const hashParams = parseHashParams(url.hash);
+      
+      // 尝试对原始 URL 进行解码
+      let decodedUrl = url.href;
+      try {
+        decodedUrl = decodeURIComponent(url.href);
+      } catch (e) {
+        // 解码失败，使用原始 URL
+      }
+      
+      // 构建 URL 基本信息对象
+      const urlInfo = {
+        protocol: url.protocol,
+        host: url.host,
+        hostname: url.hostname,
+        port: url.port || '(默认)',
+        pathname: url.pathname,
+        search: url.search || null,
+        hash: url.hash || null,
+        href: url.href
+      };
+      
+      // 统计信息
+      const totalParams = Object.keys(queryParams).length + Object.keys(hashParams).length;
+      
       document.getElementById('urlStats').innerHTML = `
         <div class="stat-item"><div class="stat-value">${url.href.length}</div><div class="stat-label">字符数</div></div>
+        <div class="stat-item"><div class="stat-value">${Object.keys(queryParams).length}</div><div class="stat-label">Query 参数</div></div>
+        <div class="stat-item"><div class="stat-value">${Object.keys(hashParams).length}</div><div class="stat-label">Hash 参数</div></div>
+        <div class="stat-item"><div class="stat-value">${totalParams}</div><div class="stat-label">总参数</div></div>
       `;
 
-      document.getElementById('urlParts').innerHTML = `
-        <div class="url-part-item">
-          <div class="url-part-label">协议</div>
-          <div class="url-part-value">${url.protocol}</div>
-        </div>
-        <div class="url-part-item">
-          <div class="url-part-label">主机</div>
-          <div class="url-part-value">${url.host}</div>
-        </div>
-        <div class="url-part-item">
-          <div class="url-part-label">路径</div>
-          <div class="url-part-value">${url.pathname}</div>
-        </div>
-        <div class="url-part-item">
-          <div class="url-part-label">参数</div>
-          <div class="url-part-value">${url.search || '(无)'}</div>
-        </div>
-        <div class="url-part-item">
-          <div class="url-part-label">哈希</div>
-          <div class="url-part-value">${url.hash || '(无)'}</div>
-        </div>
-        <div class="url-part-item">
-          <div class="url-part-label">完整 URL</div>
-          <div class="url-part-value">${url.href}</div>
+      // 构建 HTML 内容
+      let html = '';
+      
+      // 原始链接和解码链接
+      html += `
+        <div class="url-section">
+          <div class="url-raw-section">
+            <div class="url-raw-item">
+              <div class="url-raw-label">📎 原始链接</div>
+              <div class="url-raw-value text-output" style="padding: 12px; font-size: 0.85rem; word-break: break-all; white-space: pre-wrap;">${escapeHtml(url.href)}</div>
+              <button class="btn btn-outline copy-raw-btn" data-value="${escapeHtml(url.href)}" style="margin-top: 10px;">📋 复制原始链接</button>
+            </div>
+          </div>
+          
+          <div class="url-raw-section">
+            <div class="url-raw-item">
+              <div class="url-raw-label">🔓 解码链接</div>
+              <div class="url-raw-value text-output" style="padding: 12px; font-size: 0.85rem; word-break: break-all; white-space: pre-wrap;">${escapeHtml(decodedUrl)}</div>
+              <button class="btn btn-outline copy-raw-btn" data-value="${escapeHtml(decodedUrl)}" style="margin-top: 10px;">📋 复制解码链接</button>
+            </div>
+          </div>
         </div>
       `;
+      
+      // URL 基本信息
+      html += `
+        <div class="url-section">
+          <h3 class="url-section-title">📍 URL 基本信息</h3>
+          <div class="text-output syntax-json" style="max-height: 600px;">${syntaxHighlightJSON(JSON.stringify(urlInfo, null, 2))}</div>
+        </div>
+      `;
+      
+      // Query 参数（如果有）
+      if (Object.keys(queryParams).length > 0) {
+        html += `
+          <div class="url-section">
+            <h3 class="url-section-title">📊 Query 参数 (${Object.keys(queryParams).length}个)</h3>
+            <div class="text-output syntax-json" style="max-height: 600px;">${syntaxHighlightJSON(JSON.stringify(queryParams, null, 2))}</div>
+            <div class="url-actions">
+              <button class="btn copy-json-btn" data-json='${JSON.stringify(queryParams)}'>📋 复制 Query 参数</button>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Hash 参数（如果有）
+      if (Object.keys(hashParams).length > 0) {
+        html += `
+          <div class="url-section">
+            <h3 class="url-section-title">📊 Hash 参数 (${Object.keys(hashParams).length}个)</h3>
+            <div class="text-output syntax-json" style="max-height: 600px;">${syntaxHighlightJSON(JSON.stringify(hashParams, null, 2))}</div>
+            <div class="url-actions">
+              <button class="btn copy-json-btn" data-json='${JSON.stringify(hashParams)}'>📋 复制 Hash 参数</button>
+            </div>
+          </div>
+        `;
+      }
+      
+      // 如果没有参数，显示提示
+      if (totalParams === 0) {
+        html += `
+          <div class="format-info">
+            <div class="format-info-title">💡 提示</div>
+            <div class="format-info-content">该 URL 没有查询参数或 hash 参数</div>
+          </div>
+        `;
+      }
+
+      document.getElementById('urlParts').innerHTML = html;
+      
+      // 添加复制事件
+      document.getElementById('urlParts').querySelectorAll('.copy-json-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const json = btn.dataset.json;
+          copyToClipboard(json, 'JSON');
+        });
+      });
+      
+      // 添加原始链接复制事件
+      document.getElementById('urlParts').querySelectorAll('.copy-raw-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const value = btn.dataset.value;
+          copyToClipboard(value, '链接');
+        });
+      });
 
       showResultTab('url');
       resultSection.classList.add('show');
+    }
+
+    /**
+     * 解析 Query 字符串为对象
+     */
+    function parseQueryString(searchString) {
+      const params = {};
+      if (!searchString) return params;
+      
+      const search = searchString.startsWith('?') ? searchString.substring(1) : searchString;
+      if (!search) return params;
+      
+      // 先尝试解码，如果失败则使用原始值
+      try {
+        const decoded = decodeURIComponent(search);
+        parseParamsString(decoded, params);
+      } catch (e) {
+        // 解码失败，使用原始值
+        parseParamsString(search, params);
+      }
+      
+      return params;
+    }
+
+    /**
+     * 解析 Hash 字符串为对象
+     */
+    function parseHashParams(hashString) {
+      const params = {};
+      if (!hashString) return params;
+      
+      const hash = hashString.startsWith('#') ? hashString.substring(1) : hashString;
+      if (!hash) return params;
+      
+      // 先尝试解码，如果失败则使用原始值
+      try {
+        const decoded = decodeURIComponent(hash);
+        parseParamsString(decoded, params);
+      } catch (e) {
+        // 解码失败，使用原始值
+        parseParamsString(hash, params);
+      }
+      
+      return params;
+    }
+
+    /**
+     * 解析参数字符串为对象
+     */
+    function parseParamsString(str, paramsObj) {
+      str.split('&').forEach(param => {
+        if (!param) return;
+        const [key, ...valueParts] = param.split('=');
+        const value = valueParts.join('='); // 处理值中包含 = 的情况
+        
+        if (key) {
+          const decodedKey = key.trim();
+          const decodedValue = value ? value.trim() : '';
+          paramsObj[decodedKey] = decodedValue;
+        }
+      });
     }
 
     function showJWTResult(header, payload, signature, raw) {
@@ -1963,16 +2203,33 @@
       pasteTypeIndicator.textContent = '🎨 颜色';
       highlightBadge('color');
       
+      // 转换为所有格式
+      const formats = convertColorFormats(color);
+      
       const preview = document.getElementById('colorPreview');
       preview.innerHTML = `
         <div class="color-box" style="background-color: ${color}"></div>
         <div class="color-info">
           <div class="color-value">${color}</div>
           <div class="color-formats">
-            <span class="color-format">${color}</span>
+            <span class="color-format" title="十六进制（6 位）" data-color="${formats.hex}">${formats.hex}</span>
+            ${formats.hex3 ? `<span class="color-format" title="十六进制（3 位）" data-color="${formats.hex3}">${formats.hex3}</span>` : ''}
+            <span class="color-format" title="十六进制（8 位，带透明度）" data-color="${formats.hex8}">${formats.hex8}</span>
+            <span class="color-format" title="RGB" data-color="${formats.rgb}">${formats.rgb}</span>
+            <span class="color-format" title="RGBA" data-color="${formats.rgba}">${formats.rgba}</span>
+            <span class="color-format" title="HSL" data-color="${formats.hsl}">${formats.hsl}</span>
+            <span class="color-format" title="HSLA" data-color="${formats.hsla}">${formats.hsla}</span>
           </div>
         </div>
       `;
+
+      // 添加点击复制事件
+      preview.querySelectorAll('.color-format').forEach(span => {
+        span.addEventListener('click', () => {
+          const colorValue = span.dataset.color;
+          copyToClipboard(colorValue, '颜色值');
+        });
+      });
 
       document.getElementById('colorCode').textContent = color;
       
@@ -1981,6 +2238,147 @@
     }
 
     // ===== 辅助函数 =====
+
+    /**
+     * 将颜色转换为 RGBA 对象
+     * 支持十六进制、RGB、RGBA、HSL、HSLA 格式
+     */
+    function parseColorToRGBA(color) {
+      let r = 0, g = 0, b = 0, a = 1;
+      
+      // 处理十六进制颜色
+      if (color.startsWith('#')) {
+        const hex = color.slice(1);
+        if (hex.length === 3) {
+          r = parseInt(hex[0] + hex[0], 16);
+          g = parseInt(hex[1] + hex[1], 16);
+          b = parseInt(hex[2] + hex[2], 16);
+        } else if (hex.length === 6) {
+          r = parseInt(hex.slice(0, 2), 16);
+          g = parseInt(hex.slice(2, 4), 16);
+          b = parseInt(hex.slice(4, 6), 16);
+        } else if (hex.length === 8) {
+          r = parseInt(hex.slice(0, 2), 16);
+          g = parseInt(hex.slice(2, 4), 16);
+          b = parseInt(hex.slice(4, 6), 16);
+          a = parseInt(hex.slice(6, 8), 16) / 255;
+        }
+      }
+      // 处理 rgb/rgba 格式
+      else if (color.startsWith('rgb')) {
+        const match = color.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/);
+        if (match) {
+          r = parseInt(match[1]);
+          g = parseInt(match[2]);
+          b = parseInt(match[3]);
+          a = match[4] !== undefined ? parseFloat(match[4]) : 1;
+        }
+      }
+      // 处理 hsl/hsla 格式
+      else if (color.startsWith('hsl')) {
+        const match = color.match(/hsla?\s*\(\s*(\d+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*(?:,\s*([\d.]+)\s*)?\)/);
+        if (match) {
+          const h = parseInt(match[1]) / 360;
+          const s = parseFloat(match[2]) / 100;
+          const l = parseFloat(match[3]) / 100;
+          a = match[4] !== undefined ? parseFloat(match[4]) : 1;
+          const rgb = hslToRgb(h, s, l);
+          r = rgb[0];
+          g = rgb[1];
+          b = rgb[2];
+        }
+      }
+      
+      return { r, g, b, a };
+    }
+
+    /**
+     * HSL 转 RGB
+     */
+    function hslToRgb(h, s, l) {
+      let r, g, b;
+      
+      if (s === 0) {
+        r = g = b = l;
+      } else {
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+        
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    /**
+     * RGB 转 HSL
+     */
+    function rgbToHsl(r, g, b) {
+      r /= 255;
+      g /= 255;
+      b /= 255;
+      
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      let h, s, l = (max + min) / 2;
+      
+      if (max === min) {
+        h = s = 0;
+      } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        
+        switch (max) {
+          case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+          case g: h = ((b - r) / d + 2) / 6; break;
+          case b: h = ((r - g) / d + 4) / 6; break;
+        }
+      }
+      
+      return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+    }
+
+    /**
+     * 将颜色转换为所有格式
+     */
+    function convertColorFormats(color) {
+      const rgba = parseColorToRGBA(color);
+      const { r, g, b, a } = rgba;
+      const hsl = rgbToHsl(r, g, b);
+      
+      // 十六进制（6 位）
+      const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+      
+      // 3 位十六进制（如果可以）
+      let hex3 = null;
+      if (r % 17 === 0 && g % 17 === 0 && b % 17 === 0) {
+        hex3 = '#' + [r, g, b].map(x => (x / 17).toString(16)).join('').toUpperCase();
+      }
+      
+      // 8 位十六进制（带透明度）
+      const alphaHex = Math.round(a * 255).toString(16).padStart(2, '0').toUpperCase();
+      const hex8 = hex + alphaHex;
+      
+      return {
+        hex: hex,
+        hex3: hex3,
+        hex8: hex8,
+        rgb: `rgb(${r}, ${g}, ${b})`,
+        rgba: `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`,
+        hsl: `hsl(${hsl[0]}, ${hsl[1]}%, ${hsl[2]}%)`,
+        hsla: `hsla(${hsl[0]}, ${hsl[1]}%, ${hsl[2]}%, ${a.toFixed(2)})`
+      };
+    }
 
     /**
      * 表格数据导出为 CSV 文件

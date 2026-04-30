@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL 编辑器</title>
+  <!-- Vue 3 -->
+  <script src="/libs/vue/dist/vue.global.prod.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .main-card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .input-label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .url-input, .text-input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      transition: all 0.3s ease;
+    }
+
+    .url-input:focus, .text-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid #667eea;
+      color: #667eea;
+    }
+
+    .btn-outline:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .btn-danger:hover {
+      box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .back-link {
+      display: inline-block;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* 参数编辑区域 */
+    .params-section {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 2px solid #f0f0f0;
+    }
+
+    .params-title {
+      font-size: 1.3rem;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .param-item {
+      background: #f8f9ff;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .param-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .param-row {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      gap: 15px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .param-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .param-label {
+      font-size: 0.9rem;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .param-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .add-param-btn {
+      margin-top: 15px;
+    }
+
+    .preview-section {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 2px solid #f0f0f0;
+    }
+
+    .preview-box {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 20px;
+      color: #d4d4d4;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      word-break: break-all;
+      margin-bottom: 15px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .stat-item {
+      background: #f8f9ff;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .stat-label {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+
+    /* 测试案例下拉框 */
+    .test-case-select-section {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .test-case-select-label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .test-case-select-wrapper {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .test-case-select {
+      flex: 1;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 15px center;
+      padding-right: 40px;
+    }
+
+    .test-case-select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .test-case-select:hover {
+      border-color: #667eea;
+    }
+
+    .btn-use-case {
+      padding: 12px 24px;
+      white-space: nowrap;
+    }
+
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .checkbox-wrapper label {
+      font-size: 0.85rem;
+      color: #666;
+      cursor: pointer;
+    }
+
+    .error-message {
+      background: #fee;
+      color: #c33;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .success-message {
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .success-message.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <a href="/paste-parser/" class="back-link">← 返回主页</a>
+      <a href="/paste-parser/url.html" class="back-link" style="margin-left: 10px;">🔗 URL 解析工具</a>
+
+      <div class="header">
+        <h1>🛠️ URL 编辑器</h1>
+        <p>可视化编辑 URL 链接，支持 Query 和 Hash 参数配置</p>
+      </div>
+
+      <div class="main-card">
+        <!-- 测试案例下拉框 -->
+        <div class="test-case-select-section">
+          <label class="test-case-select-label" for="testCaseSelect">💡 或选择预设模板：</label>
+          <div class="test-case-select-wrapper">
+            <select 
+              class="test-case-select" 
+              id="testCaseSelect"
+              v-model="selectedTestCaseIndex"
+              @change="onTestCaseChange">
+              <option value="-1">-- 请选择测试案例 --</option>
+              <option v-for="(testCase, index) in testCases" :key="index" :value="index">
+                {{ testCase.icon }} {{ testCase.name }} ({{ testCase.categoryName }})
+              </option>
+            </select>
+            <button class="btn btn-use-case" @click="loadTestCase" :disabled="selectedTestCaseIndex < 0">
+              📥 加载模板
+            </button>
+          </div>
+        </div>
+
+        <!-- 基本信息编辑 -->
+        <div class="input-section">
+          <div class="input-group">
+            <label class="input-label" for="baseUrl">📍 基础地址（协议 + 域名）</label>
+            <input 
+              type="text" 
+              class="url-input" 
+              id="baseUrl"
+              v-model="baseUrl"
+              @input="updatePreview"
+              placeholder="例如：https://example.com">
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" for="pathname">📄 路径</label>
+            <input 
+              type="text" 
+              class="url-input" 
+              id="pathname"
+              v-model="pathname"
+              @input="updatePreview"
+              placeholder="例如：/api/users 或 /search">
+          </div>
+        </div>
+
+        <!-- Query 参数编辑 -->
+        <div class="params-section">
+          <h2 class="params-title">📊 Query 参数</h2>
+          
+          <div class="param-item" v-for="(param, index) in queryParams" :key="param.id">
+            <div class="param-row">
+              <div>
+                <div class="param-label">参数名</div>
+                <input 
+                  type="text" 
+                  class="text-input" 
+                  v-model="param.key"
+                  @input="updatePreview"
+                  placeholder="key">
+              </div>
+              <div>
+                <div class="param-label">
+                  参数值
+                  <div class="checkbox-wrapper">
+                    <input type="checkbox" :id="'encode-query-' + param.id" v-model="param.encode" @change="updatePreview">
+                    <label :for="'encode-query-' + param.id">URL 编码 (encodeURIComponent)</label>
+                  </div>
+                  <div class="checkbox-wrapper">
+                    <input type="checkbox" :id="'json-query-' + param.id" v-model="param.asJSON" @change="updatePreview">
+                    <label :for="'json-query-' + param.id">JSON 转 String (JSON.stringify)</label>
+                  </div>
+                </div>
+                <input 
+                  type="text" 
+                  class="text-input" 
+                  v-model="param.value"
+                  @input="updatePreview"
+                  placeholder="value">
+                <div class="checkbox-wrapper" style="margin-top: 8px;" v-if="param.asJSON && isJSON(param.value)">
+                  <label style="font-size: 0.8rem; color: #999;">
+                    ℹ️ 将自动执行 JSON.stringify() 后再进行 URL 编码
+                  </label>
+                </div>
+              </div>
+              <div>
+                <div class="param-label">操作</div>
+                <div class="param-actions">
+                  <button class="btn btn-sm btn-danger" @click="removeQueryParam(index)">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-outline add-param-btn" @click="addQueryParam">+ 添加 Query 参数</button>
+        </div>
+
+        <!-- Hash 参数编辑 -->
+        <div class="params-section">
+          <h2 class="params-title">📊 Hash 参数</h2>
+          
+          <div class="param-item" v-for="(param, index) in hashParams" :key="param.id">
+            <div class="param-row">
+              <div>
+                <div class="param-label">参数名</div>
+                <input 
+                  type="text" 
+                  class="text-input" 
+                  v-model="param.key"
+                  @input="updatePreview"
+                  placeholder="key">
+              </div>
+              <div>
+                <div class="param-label">
+                  参数值
+                  <div class="checkbox-wrapper">
+                    <input type="checkbox" :id="'encode-hash-' + param.id" v-model="param.encode" @change="updatePreview">
+                    <label :for="'encode-hash-' + param.id">URL 编码 (encodeURIComponent)</label>
+                  </div>
+                  <div class="checkbox-wrapper">
+                    <input type="checkbox" :id="'json-hash-' + param.id" v-model="param.asJSON" @change="updatePreview">
+                    <label :for="'json-hash-' + param.id">JSON 转 String (JSON.stringify)</label>
+                  </div>
+                </div>
+                <input 
+                  type="text" 
+                  class="text-input" 
+                  v-model="param.value"
+                  @input="updatePreview"
+                  placeholder="value">
+                <div class="checkbox-wrapper" style="margin-top: 8px;" v-if="param.asJSON && isJSON(param.value)">
+                  <label style="font-size: 0.8rem; color: #999;">
+                    ℹ️ 将自动执行 JSON.stringify() 后再进行 URL 编码
+                  </label>
+                </div>
+              </div>
+              <div>
+                <div class="param-label">操作</div>
+                <div class="param-actions">
+                  <button class="btn btn-sm btn-danger" @click="removeHashParam(index)">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-outline add-param-btn" @click="addHashParam">+ 添加 Hash 参数</button>
+        </div>
+
+        <!-- 预览区域 -->
+        <div class="preview-section">
+          <h2 class="params-title">🔗 生成的 URL</h2>
+          
+          <div class="stats">
+            <div class="stat-item">
+              <div class="stat-value">{{ fullUrl.length }}</div>
+              <div class="stat-label">总字符数</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ queryParams.length }}</div>
+              <div class="stat-label">Query 参数</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ hashParams.length }}</div>
+              <div class="stat-label">Hash 参数</div>
+            </div>
+          </div>
+
+          <div class="preview-box">{{ fullUrl }}</div>
+
+          <div class="actions">
+            <button class="btn" @click="copyUrl">📋 复制 URL</button>
+            <button class="btn btn-outline" @click="clearAll">🗑️ 清空所有</button>
+          </div>
+
+          <div class="success-message" :class="{ show: showSuccess }">
+            ✓ {{ successMessage }}
+          </div>
+
+          <div class="error-message" :class="{ show: errorMessage }">
+            {{ errorMessage }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          baseUrl: 'https://example.com',
+          pathname: '/api/search',
+          queryParams: [],
+          hashParams: [],
+          fullUrl: '',
+          selectedTestCaseIndex: -1,
+          showSuccess: false,
+          successMessage: '',
+          errorMessage: '',
+          testCases: [
+            {
+              icon: '🔌',
+              name: 'REST API 接口',
+              category: 'api',
+              categoryName: 'API',
+              baseUrl: 'https://api.github.com',
+              pathname: '/repos/facebook/react/issues',
+              queryParams: [
+                { key: 'state', value: 'open', encode: false, asJSON: false },
+                { key: 'labels', value: 'bug', encode: false, asJSON: false },
+                { key: 'sort', value: 'created', encode: false, asJSON: false },
+                { key: 'direction', value: 'desc', encode: false, asJSON: false },
+                { key: 'page', value: '1', encode: false, asJSON: false },
+                { key: 'per_page', value: '30', encode: false, asJSON: false }
+              ],
+              hashParams: []
+            },
+            {
+              icon: '🔐',
+              name: 'OAuth 2.0 授权回调',
+              category: 'auth',
+              categoryName: '认证',
+              baseUrl: 'https://example.com',
+              pathname: '/callback',
+              queryParams: [
+                { key: 'code', value: '4/P7q7W91a-oMsCeLvIaQm6bTrgtp7', encode: false, asJSON: false },
+                { key: 'scope', value: 'email profile', encode: true, asJSON: false },
+                { key: 'state', value: 'xyz123', encode: false, asJSON: false }
+              ],
+              hashParams: [
+                { key: 'access_token', value: 'ya29.GlsXBq3kN5z8', encode: false, asJSON: false }
+              ]
+            },
+            {
+              icon: '🛒',
+              name: '电商网站筛选',
+              category: 'ecommerce',
+              categoryName: '电商',
+              baseUrl: 'https://shop.example.com',
+              pathname: '/products',
+              queryParams: [
+                { key: 'category', value: 'electronics', encode: false, asJSON: false },
+                { key: 'brand', value: 'Apple,Sony', encode: false, asJSON: false },
+                { key: 'price_min', value: '1000', encode: false, asJSON: false },
+                { key: 'price_max', value: '5000', encode: false, asJSON: false },
+                { key: 'sort', value: 'price_asc', encode: false, asJSON: false },
+                { key: 'page', value: '2', encode: false, asJSON: false }
+              ],
+              hashParams: []
+            },
+            {
+              icon: '🇨🇳',
+              name: '中文搜索参数',
+              category: 'search',
+              categoryName: '搜索',
+              baseUrl: 'https://search.example.com',
+              pathname: '/results',
+              queryParams: [
+                { key: 'q', value: '前端开发', encode: true, asJSON: false },
+                { key: 'category', value: '技术文章', encode: true, asJSON: false },
+                { key: 'page', value: '1', encode: false, asJSON: false }
+              ],
+              hashParams: []
+            },
+            {
+              icon: '📱',
+              name: '社交媒体分享',
+              category: 'social',
+              categoryName: '社交',
+              baseUrl: 'https://twitter.com',
+              pathname: '/intent/tweet',
+              queryParams: [
+                { key: 'url', value: 'https://example.com/article/123', encode: true, asJSON: false },
+                { key: 'text', value: '这篇文章很棒', encode: true, asJSON: false },
+                { key: 'hashtags', value: 'JavaScript,WebDev', encode: false, asJSON: false }
+              ],
+              hashParams: []
+            },
+            {
+              icon: '📊',
+              name: 'UTM 追踪参数',
+              category: 'analytics',
+              categoryName: '分析',
+              baseUrl: 'https://example.com',
+              pathname: '/landing',
+              queryParams: [
+                { key: 'utm_source', value: 'google', encode: false, asJSON: false },
+                { key: 'utm_medium', value: 'cpc', encode: false, asJSON: false },
+                { key: 'utm_campaign', value: 'spring_sale', encode: false, asJSON: false },
+                { key: 'utm_content', value: 'ad_variant_a', encode: false, asJSON: false },
+                { key: 'utm_term', value: 'running shoes', encode: true, asJSON: false }
+              ],
+              hashParams: []
+            },
+            {
+              icon: '📦',
+              name: 'JSON 配置参数',
+              category: 'api',
+              categoryName: 'API',
+              baseUrl: 'https://app.example.com',
+              pathname: '/view',
+              queryParams: [
+                { key: 'config', value: '{"theme":"dark","layout":"grid","itemsPerPage":20}', encode: true, asJSON: true },
+                { key: 'debug', value: 'true', encode: false, asJSON: false }
+              ],
+              hashParams: []
+            },
+            {
+              icon: '🎯',
+              name: '单页应用路由',
+              category: 'spa',
+              categoryName: 'SPA',
+              baseUrl: 'https://app.example.com',
+              pathname: '/',
+              queryParams: [
+                { key: 'tab', value: 'tasks', encode: false, asJSON: false },
+                { key: 'view', value: 'kanban', encode: false, asJSON: false },
+                { key: 'filter', value: 'mine', encode: false, asJSON: false }
+              ],
+              hashParams: [
+                { key: 'section', value: 'details', encode: false, asJSON: false }
+              ]
+            }
+          ]
+        };
+      },
+      methods: {
+        generateId() {
+          return Date.now() + Math.random().toString(36).substr(2, 9);
+        },
+
+        /**
+         * 检测值是否为 JSON 格式
+         */
+        isJSON(value) {
+          // 只处理字符串类型
+          if (typeof value !== 'string') {
+            return false;
+          }
+          
+          // 空字符串或纯空格字符串不是 JSON
+          const trimmed = value.trim();
+          if (!trimmed) {
+            return false;
+          }
+          
+          // 快速检查：JSON 必须以 { 或 [ 开头
+          if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+            return false;
+          }
+          
+          // 尝试解析
+          try {
+            const parsed = JSON.parse(trimmed);
+            // 确保解析结果是对象或数组，而不是字符串、数字、布尔
+            return parsed && (typeof parsed === 'object' || Array.isArray(parsed));
+          } catch (e) {
+            return false;
+          }
+        },
+
+        onTestCaseChange() {
+          console.log('选择的测试案例:', this.testCases[this.selectedTestCaseIndex]);
+        },
+
+        loadTestCase() {
+          if (this.selectedTestCaseIndex < 0) return;
+          
+          const testCase = this.testCases[this.selectedTestCaseIndex];
+          
+          this.baseUrl = testCase.baseUrl;
+          this.pathname = testCase.pathname;
+          
+          // 深拷贝参数，添加 id 和 asJSON 属性
+          this.queryParams = testCase.queryParams.map(p => ({
+            ...p,
+            id: this.generateId(),
+            asJSON: p.asJSON || false
+          }));
+          
+          this.hashParams = testCase.hashParams.map(p => ({
+            ...p,
+            id: this.generateId(),
+            asJSON: p.asJSON || false
+          }));
+          
+          this.updatePreview();
+          this.showSuccessMsg('模板已加载');
+        },
+
+        addQueryParam() {
+          this.queryParams.push({
+            id: this.generateId(),
+            key: '',
+            value: '',
+            encode: false,
+            asJSON: false
+          });
+          this.updatePreview();
+        },
+
+        removeQueryParam(index) {
+          this.queryParams.splice(index, 1);
+          this.updatePreview();
+        },
+
+        addHashParam() {
+          this.hashParams.push({
+            id: this.generateId(),
+            key: '',
+            value: '',
+            encode: false,
+            asJSON: false
+          });
+          this.updatePreview();
+        },
+
+        removeHashParam(index) {
+          this.hashParams.splice(index, 1);
+          this.updatePreview();
+        },
+
+        updatePreview() {
+          try {
+            // 构建基础 URL
+            let url = this.baseUrl.trim();
+            
+            // 添加路径
+            if (this.pathname.trim()) {
+              const path = this.pathname.trim();
+              if (!url.endsWith('/') && !path.startsWith('/')) {
+                url += '/';
+              }
+              url += path;
+            }
+            
+            // 添加 Query 参数
+            const queryStrings = [];
+            this.queryParams.forEach(param => {
+              if (param.key.trim()) {
+                let value = param.value;
+                
+                // 如果勾选了 asJSON 且值是 JSON 格式，执行 JSON.stringify 标准化
+                if (param.asJSON && this.isJSON(value)) {
+                  try {
+                    const jsonObj = JSON.parse(value);
+                    value = JSON.stringify(jsonObj);
+                  } catch (e) {
+                    // JSON 解析失败，使用原始值（理论上不会发生，因为 isJSON 已经验证过）
+                    console.warn('JSON 解析失败，使用原始值:', value);
+                  }
+                }
+                
+                // 如果需要 URL 编码
+                if (param.encode) {
+                  value = encodeURIComponent(value);
+                }
+                
+                queryStrings.push(`${encodeURIComponent(param.key)}=${value}`);
+              }
+            });
+            
+            if (queryStrings.length > 0) {
+              url += '?' + queryStrings.join('&');
+            }
+            
+            // 添加 Hash 参数
+            const hashStrings = [];
+            this.hashParams.forEach(param => {
+              if (param.key.trim()) {
+                let value = param.value;
+                
+                // 如果勾选了 asJSON 且值是 JSON 格式，执行 JSON.stringify 标准化
+                if (param.asJSON && this.isJSON(value)) {
+                  try {
+                    const jsonObj = JSON.parse(value);
+                    value = JSON.stringify(jsonObj);
+                  } catch (e) {
+                    // JSON 解析失败，使用原始值（理论上不会发生，因为 isJSON 已经验证过）
+                    console.warn('JSON 解析失败，使用原始值:', value);
+                  }
+                }
+                
+                // 如果需要 URL 编码
+                if (param.encode) {
+                  value = encodeURIComponent(value);
+                }
+                
+                hashStrings.push(`${encodeURIComponent(param.key)}=${value}`);
+              }
+            });
+            
+            if (hashStrings.length > 0) {
+              url += '#' + hashStrings.join('&');
+            }
+            
+            this.fullUrl = url;
+            this.errorMessage = '';
+          } catch (err) {
+            this.errorMessage = '生成 URL 失败：' + err.message;
+          }
+        },
+
+        copyUrl() {
+          if (!this.fullUrl) {
+            this.showErrMsg('请先生成 URL');
+            return;
+          }
+          
+          navigator.clipboard.writeText(this.fullUrl).then(() => {
+            this.showSuccessMsg('URL 已复制到剪贴板');
+          }).catch(err => {
+            this.showErrMsg('复制失败：' + err.message);
+          });
+        },
+
+        clearAll() {
+          this.baseUrl = 'https://example.com';
+          this.pathname = '';
+          this.queryParams = [];
+          this.hashParams = [];
+          this.selectedTestCaseIndex = -1;
+          this.fullUrl = '';
+          this.errorMessage = '';
+          this.showSuccess = false;
+          this.updatePreview();
+        },
+
+        showSuccessMsg(msg) {
+          this.successMessage = msg;
+          this.showSuccess = true;
+          setTimeout(() => {
+            this.showSuccess = false;
+          }, 3000);
+        },
+
+        showErrMsg(msg) {
+          this.errorMessage = msg;
+          setTimeout(() => {
+            this.errorMessage = '';
+          }, 3000);
+        }
+      },
+      mounted() {
+        this.updatePreview();
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
