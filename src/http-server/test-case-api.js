@@ -35,6 +35,7 @@ router.get('/', async (req, res) => {
     const { 
       apiName,
       title,
+      collectionId,
       search,
       tags,
       page = '1',
@@ -49,6 +50,7 @@ router.get('/', async (req, res) => {
     const result = await testCaseModel.find({
       apiName,
       title,
+      collectionId,
       search,
       tags: tagsArray,
       page: parseInt(page),
@@ -139,6 +141,82 @@ router.get('/tags', async (req, res) => {
 });
 
 /**
+ * GET /api/test-cases/:id/sub-cases
+ * 获取子案例列表
+ */
+router.get('/:id/sub-cases', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const list = await testCaseModel.listSubCases(id);
+    if (list === null) {
+      return res.status(404).json({ success: false, error: '父案例不存在' });
+    }
+    res.json({ success: true, data: list });
+  } catch (err) {
+    console.error('获取子案例列表失败:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/test-cases/:id/sub-cases
+ * 新增子案例
+ */
+router.post('/:id/sub-cases', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, remark } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, error: '子案例标题不能为空' });
+    }
+    const sub = await testCaseModel.addSubCase(id, { title, content, remark });
+    if (!sub) {
+      return res.status(404).json({ success: false, error: '父案例不存在' });
+    }
+    res.status(201).json({ success: true, data: sub });
+  } catch (err) {
+    console.error('新增子案例失败:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * PUT /api/test-cases/:id/sub-cases/:subId
+ * 更新子案例
+ */
+router.put('/:id/sub-cases/:subId', async (req, res) => {
+  try {
+    const { id, subId } = req.params;
+    const updated = await testCaseModel.updateSubCase(id, subId, req.body || {});
+    if (!updated) {
+      return res.status(404).json({ success: false, error: '子案例不存在' });
+    }
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    console.error('更新子案例失败:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/test-cases/:id/sub-cases/:subId
+ * 删除子案例
+ */
+router.delete('/:id/sub-cases/:subId', async (req, res) => {
+  try {
+    const { id, subId } = req.params;
+    const ok = await testCaseModel.deleteSubCase(id, subId);
+    if (!ok) {
+      return res.status(404).json({ success: false, error: '子案例不存在' });
+    }
+    res.json({ success: true, message: '子案例已删除' });
+  } catch (err) {
+    console.error('删除子案例失败:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * GET /api/test-cases/:id
  * 获取单个案例详情
  */
@@ -175,6 +253,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { 
+      collectionId,
       apiName, 
       title, 
       requestParams, 
@@ -201,6 +280,7 @@ router.post('/', async (req, res) => {
 
     // 创建案例
     const testCase = await testCaseModel.create({
+      collectionId,
       apiName,
       title,
       requestParams,

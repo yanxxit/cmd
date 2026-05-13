@@ -12,6 +12,7 @@ import todoApiRouter from './todo-api.js';
 import pomodoroApiRouter from './pomodoro-api.js';
 import taskManagerApiRouter from './task-manager-api.js';
 import testCaseApiRouter from './test-case-api.js';
+import testCaseCollectionApiRouter from './test-case-collection-api.js';
 import authApiRouter from './auth-api.js';
 import httpbinApiRouter from './httpbin-api.js';
 import mockApiRouter from './mock-api.js';
@@ -35,7 +36,7 @@ const ROOT_DIR = path.join(__dirname, '../..');
 
 export default function (options = { port: 3000, dir: __dirname }) {
   const app = express();
-  /**
+  /** 
    * Get port from environment and store in Express.
    */
   app.set('port', options.port);
@@ -104,6 +105,7 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/api/pomodoro', pomodoroApiRouter);
   app.use('/api/tasks', taskManagerApiRouter);
   app.use('/api/test-cases', testCaseApiRouter);
+  app.use('/api/test-case-collections', testCaseCollectionApiRouter);
 
   // 挂载文件查看器路由（通用 /api 路由，放在最后）
   app.use('/api', fileViewerRouter);

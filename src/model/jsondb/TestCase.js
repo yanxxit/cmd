@@ -116,12 +116,14 @@ export class TestCaseModel {
     await this._ensureConnected();
 
     const testCase = await this.collection.insertOne({
+      collectionId: data.collectionId || '',
       apiName: data.apiName?.trim() || '',
       title: data.title?.trim() || '',
       requestParams: data.requestParams || {},
       responseData: data.responseData || {},
       remark: data.remark || '',
       tags: data.tags || [],
+      subCases: Array.isArray(data.subCases) ? data.subCases : [],
       requestTime: data.requestTime || new Date().toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -151,6 +153,7 @@ export class TestCaseModel {
     const {
       apiName,
       title,
+      collectionId,
       search,
       tags,
       page = 1,
@@ -166,13 +169,23 @@ export class TestCaseModel {
       query.apiName = apiName;
     }
 
-    if (tags && Array.isArray(tags) && tags.length > 0) {
-      query.tags = { $in: tags };
+    if (collectionId) {
+      query.collectionId = collectionId;
     }
 
     // 执行查询
     let cursor = this.collection.find(query);
     let allCases = await cursor.toArray();
+
+    // 标签过滤（在 JS 层做，确保数组字段过滤稳定可靠）
+    if (tags && Array.isArray(tags) && tags.length > 0) {
+      const tagSet = new Set(tags.filter(Boolean));
+      if (tagSet.size > 0) {
+        allCases = allCases.filter(item =>
+          Array.isArray(item.tags) && item.tags.some(t => tagSet.has(t))
+        );
+      }
+    }
 
     // 搜索功能（接口名、标题模糊匹配）
     if (search) {
@@ -343,6 +356,108 @@ export class TestCaseModel {
     });
 
     return [...tagSet].sort();
+  }
+
+  /**
+   * 生成子案例 ID
+   * @private
+   */
+  _genSubId() {
+    return 'sub_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  /**
+   * 获取案例的子案例列表
+   * @param {string} caseId - 父案例 ID
+   * @returns {Promise<Array>} 子案例数组
+   */
+  async listSubCases(caseId) {
+    await this._ensureConnected();
+    const parent = await this.collection.findOne({ _id: caseId });
+    if (!parent) return null;
+    return Array.isArray(parent.subCases) ? parent.subCases : [];
+  }
+
+  /**
+   * 添加子案例
+   * @param {string} caseId - 父案例 ID
+   * @param {Object} data - 子案例数据 { title, content, remark }
+   * @returns {Promise<Object|null>} 新增的子案例
+   */
+  async addSubCase(caseId, data) {
+    await this._ensureConnected();
+    const parent = await this.collection.findOne({ _id: caseId });
+    if (!parent) return null;
+
+    const now = new Date().toISOString();
+    const subCase = {
+      _id: this._genSubId(),
+      title: (data.title || '').trim(),
+      content: data.content !== undefined ? data.content : '',
+      remark: data.remark || '',
+      createdAt: now,
+      updatedAt: now
+    };
+
+    const subCases = Array.isArray(parent.subCases) ? [...parent.subCases, subCase] : [subCase];
+    await this.collection.updateOne(
+      { _id: caseId },
+      { $set: { subCases, updatedAt: now } }
+    );
+    return subCase;
+  }
+
+  /**
+   * 更新子案例
+   * @param {string} caseId - 父案例 ID
+   * @param {string} subId - 子案例 ID
+   * @param {Object} updates - 更新字段
+   * @returns {Promise<Object|null>} 更新后的子案例
+   */
+  async updateSubCase(caseId, subId, updates) {
+    await this._ensureConnected();
+    const parent = await this.collection.findOne({ _id: caseId });
+    if (!parent || !Array.isArray(parent.subCases)) return null;
+
+    const idx = parent.subCases.findIndex(s => s._id === subId);
+    if (idx < 0) return null;
+
+    const now = new Date().toISOString();
+    const updated = {
+      ...parent.subCases[idx],
+      ...updates,
+      _id: subId,
+      updatedAt: now
+    };
+    const subCases = [...parent.subCases];
+    subCases[idx] = updated;
+
+    await this.collection.updateOne(
+      { _id: caseId },
+      { $set: { subCases, updatedAt: now } }
+    );
+    return updated;
+  }
+
+  /**
+   * 删除子案例
+   * @param {string} caseId - 父案例 ID
+   * @param {string} subId - 子案例 ID
+   * @returns {Promise<boolean>}
+   */
+  async deleteSubCase(caseId, subId) {
+    await this._ensureConnected();
+    const parent = await this.collection.findOne({ _id: caseId });
+    if (!parent || !Array.isArray(parent.subCases)) return false;
+
+    const subCases = parent.subCases.filter(s => s._id !== subId);
+    if (subCases.length === parent.subCases.length) return false;
+
+    await this.collection.updateOne(
+      { _id: caseId },
+      { $set: { subCases, updatedAt: new Date().toISOString() } }
+    );
+    return true;
   }
 }
 

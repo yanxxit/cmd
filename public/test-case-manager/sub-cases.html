@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>子测试案例管理</title>
+
+  <!-- React & ReactDOM (本地 libs) -->
+  <script crossorigin src="/libs/react/umd/react.production.min.js"></script>
+  <script crossorigin src="/libs/react-dom/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel for JSX (本地 libs) -->
+  <script src="/libs/@babel/standalone/babel.min.js"></script>
+
+  <!-- Day.js (本地 libs，需在 antd 之前加载) -->
+  <script src="/libs/dayjs/dayjs.min.js"></script>
+  <script src="/libs/dayjs/locale/zh-cn.js"></script>
+
+  <!-- Ant Design v5 (本地 libs) -->
+  <script src="/libs/antd/dist/antd.min.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f0f2f5;
+    }
+    #root { min-height: 100vh; }
+    .page-header {
+      background: #fff;
+      padding: 16px 24px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .page-header .title { font-size: 18px; font-weight: 600; }
+    .page-header .meta { color: #8c8c8c; font-size: 12px; margin-top: 4px; }
+    .content {
+      padding: 24px;
+    }
+    .json-editor {
+      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const {
+      Layout, Table, Button, Input, Space, Modal, Form, Tag,
+      message, Popconfirm, Typography, Empty, Tooltip
+    } = antd;
+
+    const { Title, Text } = Typography;
+
+    // 解析 query 参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const caseId = urlParams.get('caseId');
+
+    async function apiRequest(url, options = {}) {
+      const response = await fetch(url, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+      });
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || '请求失败');
+      }
+      return result;
+    }
+
+    function App() {
+      const [parentCase, setParentCase] = useState(null);
+      const [subCases, setSubCases] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [showModal, setShowModal] = useState(false);
+      const [editing, setEditing] = useState(null);
+      const [form] = Form.useForm();
+
+      const loadParent = async () => {
+        try {
+          const result = await apiRequest(`/api/test-cases/${caseId}`);
+          setParentCase(result.data);
+        } catch (err) {
+          message.error('加载父案例失败：' + err.message);
+        }
+      };
+
+      const loadSubCases = async () => {
+        if (!caseId) return;
+        setLoading(true);
+        try {
+          const result = await apiRequest(`/api/test-cases/${caseId}/sub-cases`);
+          setSubCases(result.data || []);
+        } catch (err) {
+          message.error('加载子案例失败：' + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        if (!caseId) return;
+        loadParent();
+        loadSubCases();
+      }, []);
+
+      const handleSave = async (values) => {
+        try {
+          // content 支持 JSON 字符串
+          let payload = { ...values };
+          if (typeof payload.content === 'string' && payload.content.trim()) {
+            try {
+              payload.content = JSON.parse(payload.content);
+            } catch (e) {
+              // 非 JSON 时按字符串保存
+            }
+          }
+          if (editing) {
+            await apiRequest(`/api/test-cases/${caseId}/sub-cases/${editing._id}`, {
+              method: 'PUT',
+              body: JSON.stringify(payload)
+            });
+            message.success('子案例已更新');
+          } else {
+            await apiRequest(`/api/test-cases/${caseId}/sub-cases`, {
+              method: 'POST',
+              body: JSON.stringify(payload)
+            });
+            message.success('子案例已创建');
+          }
+          setShowModal(false);
+          setEditing(null);
+          form.resetFields();
+          loadSubCases();
+        } catch (err) {
+          message.error('保存失败：' + err.message);
+        }
+      };
+
+      const handleEdit = (record) => {
+        setEditing(record);
+        form.setFieldsValue({
+          title: record.title,
+          remark: record.remark,
+          content: typeof record.content === 'string'
+            ? record.content
+            : JSON.stringify(record.content || {}, null, 2)
+        });
+        setShowModal(true);
+      };
+
+      const handleView = (record) => {
+        Modal.info({
+          title: `查看子案例：${record.title}`,
+          width: 700,
+          content: (
+            <div style={{ marginTop: 16 }}>
+              <p><Text type="secondary">备注：</Text>{record.remark || '-'}</p>
+              <p style={{ marginTop: 12 }}><Text type="secondary">创建时间：</Text>{dayjs(record.createdAt).format('YYYY-MM-DD HH:mm:ss')}</p>
+              <p><Text type="secondary">更新时间：</Text>{dayjs(record.updatedAt).format('YYYY-MM-DD HH:mm:ss')}</p>
+              <div style={{ marginTop: 12 }}>
+                <Text type="secondary">内容：</Text>
+                <pre style={{
+                  background: '#fafafa',
+                  padding: 12,
+                  borderRadius: 4,
+                  maxHeight: 360,
+                  overflow: 'auto',
+                  fontSize: 12,
+                  marginTop: 8
+                }}>
+                  {typeof record.content === 'string'
+                    ? record.content
+                    : JSON.stringify(record.content, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )
+        });
+      };
+
+      const handleDelete = async (id) => {
+        try {
+          await apiRequest(`/api/test-cases/${caseId}/sub-cases/${id}`, { method: 'DELETE' });
+          message.success('已删除');
+          loadSubCases();
+        } catch (err) {
+          message.error('删除失败：' + err.message);
+        }
+      };
+
+      const columns = [
+        {
+          title: '#',
+          key: 'index',
+          width: 60,
+          render: (_, __, idx) => idx + 1
+        },
+        {
+          title: '子标题',
+          dataIndex: 'title',
+          key: 'title',
+          width: 220,
+          render: (text, record) => (
+            <a onClick={() => handleView(record)} style={{ color: '#1890ff' }}>{text}</a>
+          )
+        },
+        {
+          title: '内容',
+          dataIndex: 'content',
+          key: 'content',
+          ellipsis: true,
+          render: (content) => {
+            const text = typeof content === 'string' ? content : JSON.stringify(content);
+            return (
+              <Tooltip title={text} placement="topLeft">
+                <span style={{ color: '#595959' }}>{text || '-'}</span>
+              </Tooltip>
+            );
+          }
+        },
+        {
+          title: '备注',
+          dataIndex: 'remark',
+          key: 'remark',
+          width: 200,
+          ellipsis: true,
+          render: (text) => text || '-'
+        },
+        {
+          title: '创建时间',
+          dataIndex: 'createdAt',
+          key: 'createdAt',
+          width: 170,
+          render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm')
+        },
+        {
+          title: '操作',
+          key: 'action',
+          width: 200,
+          render: (_, record) => (
+            <Space>
+              <Button type="link" size="small" onClick={() => handleView(record)}>查看</Button>
+              <Button type="link" size="small" onClick={() => handleEdit(record)}>编辑</Button>
+              <Popconfirm
+                title="确定要删除此子案例？"
+                okText="确定"
+                cancelText="取消"
+                onConfirm={() => handleDelete(record._id)}
+              >
+                <Button type="link" size="small" danger>删除</Button>
+              </Popconfirm>
+            </Space>
+          )
+        }
+      ];
+
+      if (!caseId) {
+        return (
+          <div style={{ padding: 60 }}>
+            <Empty description="缺少 caseId 参数，无法加载子案例" />
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <div className="page-header">
+            <div>
+              <div className="title">
+                子案例管理
+                {parentCase && (
+                  <Tag color="blue" style={{ marginLeft: 12 }}>{parentCase.apiName}</Tag>
+                )}
+              </div>
+              <div className="meta">
+                {parentCase
+                  ? <span>父案例：{parentCase.title} · 共 {subCases.length} 个子案例</span>
+                  : '加载中...'}
+              </div>
+            </div>
+            <Space>
+              <Button onClick={() => window.close()}>关闭</Button>
+              <Button type="primary" onClick={() => {
+                setEditing(null);
+                form.resetFields();
+                setShowModal(true);
+              }}>
+                新增子案例
+              </Button>
+            </Space>
+          </div>
+
+          <div className="content">
+            <Table
+              columns={columns}
+              dataSource={subCases}
+              loading={loading}
+              rowKey="_id"
+              pagination={{ pageSize: 20, showSizeChanger: true }}
+              locale={{ emptyText: <Empty description="暂无子案例" /> }}
+            />
+          </div>
+
+          <Modal
+            title={editing ? '编辑子案例' : '新增子案例'}
+            open={showModal}
+            onCancel={() => {
+              setShowModal(false);
+              setEditing(null);
+              form.resetFields();
+            }}
+            onOk={() => form.submit()}
+            width={720}
+            destroyOnClose
+          >
+            <Form form={form} layout="vertical" onFinish={handleSave}>
+              <Form.Item
+                name="title"
+                label="子标题"
+                rules={[{ required: true, message: '请输入子标题' }]}
+              >
+                <Input placeholder="例如：边界值场景 - 用户名为空" />
+              </Form.Item>
+
+              <Form.Item
+                name="content"
+                label="内容"
+                tooltip="可粘贴 JSON 字符串，自动识别为 JSON 对象"
+              >
+                <Input.TextArea
+                  className="json-editor"
+                  autoSize={{ minRows: 6, maxRows: 16 }}
+                  placeholder='{"input": "...", "expected": "..."}'
+                />
+              </Form.Item>
+
+              <Form.Item name="remark" label="备注">
+                <Input.TextArea autoSize={{ minRows: 2, maxRows: 6 }} placeholder="补充说明..." />
+              </Form.Item>
+            </Form>
+          </Modal>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

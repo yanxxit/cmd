@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试案例记录系统 - 测试页面</title>
+  
+  <!-- React & ReactDOM (本地 libs) -->
+  <script crossorigin src="/libs/react/umd/react.production.min.js"></script>
+  <script crossorigin src="/libs/react-dom/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel for JSX (本地 libs) -->
+  <script src="/libs/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Day.js (本地 libs) -->
+  <script src="/libs/dayjs/dayjs.min.js"></script>
+  <script src="/libs/dayjs/locale/zh-cn.js"></script>
+  
+  <!-- Ant Design v5 (本地 libs，依赖 dayjs) -->
+  <script src="/libs/antd/dist/antd.min.js"></script>
+  
+  <style>
+    body {
+      padding: 50px;
+      font-family: sans-serif;
+    }
+    .test-result {
+      margin: 20px 0;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .success {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #52c41a;
+    }
+    .error {
+      background: #fff2f0;
+      border: 1px solid #ffccc7;
+      color: #ff4d4f;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Ant Design 加载测试</h1>
+  <div id="result"></div>
+  
+  <script>
+    // 测试 antd 是否加载成功
+    const resultDiv = document.getElementById('result');
+    
+    if (typeof antd !== 'undefined') {
+      resultDiv.innerHTML = `
+        <div class="test-result success">
+          <h2>✅ Ant Design 加载成功!</h2>
+          <p>antd 版本：5.x</p>
+          <p>可用组件数量：${Object.keys(antd).length}</p>
+          <p>示例组件：${Object.keys(antd).slice(0, 10).join(', ')}</p>
+        </div>
+      `;
+    } else {
+      resultDiv.innerHTML = `
+        <div class="test-result error">
+          <h2>❌ Ant Design 加载失败!</h2>
+          <p>请检查网络连接或 CDN 可用性</p>
+        </div>
+      `;
+    }
+  </script>
+  
+  <script type="text/babel">
+    const { Button, message } = antd;
+    
+    function TestApp() {
+      const handleClick = () => {
+        message.success('✅ Ant Design 工作正常！');
+      };
+      
+      return (
+        <div style={{ marginTop: '20px' }}>
+          <h2>🎯 React + Ant Design 测试</h2>
+          <Button type="primary" onClick={handleClick}>
+            点击测试 Ant Design
+          </Button>
+        </div>
+      );
+    }
+    
+    const root = ReactDOM.createRoot(document.createElement('div'));
+    document.body.appendChild(root.container);
+    root.render(<TestApp />);
+  </script>
+</body>
+</html>
