@@ -19,6 +19,32 @@
   <!-- Ant Design v5 (本地 libs) -->
   <script src="/libs/antd/dist/antd.min.js"></script>
 
+  <!-- ===== 原生 ESM 模块系统 ===== -->
+  <script>
+    const G_VER = Date.now();
+    window.G_VER = G_VER;
+    window.getModuleUrl = (path) => `${path}?v=${G_VER}`;
+  </script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@api":    "./js/api.js",
+      "@format": "./js/format.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    const get = (path) => `${path}?v=${window.G_VER}`;
+    const [apiMod, formatMod] = await Promise.all([
+      import(get('./js/api.js')),
+      import(get('./js/format.js')),
+    ]);
+    window.__APP__ = { api: apiMod.api, format: formatMod };
+    window.dispatchEvent(new CustomEvent('esm-ready'));
+  </script>
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -49,6 +75,15 @@
   <div id="root"></div>
 
   <script type="text/babel">
+    // 等待 ESM 模块就绪后启动
+    (async () => {
+      if (!window.__APP__) {
+        await new Promise((r) => window.addEventListener('esm-ready', r, { once: true }));
+      }
+      bootstrap();
+    })();
+
+    function bootstrap() {
     const { useState, useEffect } = React;
     const {
       Layout, Table, Button, Input, Space, Modal, Form, Tag,
@@ -57,10 +92,15 @@
 
     const { Title, Text } = Typography;
 
+    // 来自 ESM 模块
+    const { api } = window.__APP__;
+    const { contentToText, tryParseJSON } = window.__APP__.format;
+
     // 解析 query 参数
     const urlParams = new URLSearchParams(window.location.search);
     const caseId = urlParams.get('caseId');
 
+    // 兼容旧调用约定：返回完整响应（含 data 字段）
     async function apiRequest(url, options = {}) {
       const response = await fetch(url, {
         ...options,
@@ -351,6 +391,8 @@
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
+
+    } // bootstrap end
   </script>
 </body>
 </html>

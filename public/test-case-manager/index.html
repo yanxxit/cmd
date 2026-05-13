@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>测试案例记录系统</title>
   
-  <!-- React & ReactDOM (本地 libs) -->
+  <!-- React & ReactDOM (本地 libs，UMD 全局变量) -->
   <script crossorigin src="/libs/react/umd/react.production.min.js"></script>
   <script crossorigin src="/libs/react-dom/umd/react-dom.production.min.js"></script>
   
@@ -21,6 +21,41 @@
   
   <!-- Lucide Icons (外部 CDN，libs 未包含) -->
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- ===== 原生 ESM 模块系统 ===== -->
+  <!-- 1. 全局版本号：每次刷新生成新时间戳，统一防缓存 -->
+  <script>
+    const G_VER = Date.now();
+    window.G_VER = G_VER;
+    window.getModuleUrl = (path) => `${path}?v=${G_VER}`;
+  </script>
+
+  <!-- 2. ImportMaps：仅声明用于 IDE/类型可读，本地模块加载使用直接路径 + 版本号 -->
+  <script type="importmap">
+  {
+    "imports": {
+      "@api":    "./js/api.js",
+      "@icons":  "./js/icons.js",
+      "@format": "./js/format.js"
+    }
+  }
+  </script>
+
+  <!-- 3. 引导：动态 import 直接路径 + ?v=G_VER 防缓存，挂载到 window.__APP__ -->
+  <script type="module">
+    const get = (path) => `${path}?v=${window.G_VER}`;
+    const [apiMod, iconsMod, formatMod] = await Promise.all([
+      import(get('./js/api.js')),
+      import(get('./js/icons.js')),
+      import(get('./js/format.js')),
+    ]);
+    window.__APP__ = {
+      api: apiMod.api,
+      icons: iconsMod,
+      format: formatMod,
+    };
+    window.dispatchEvent(new CustomEvent('esm-ready'));
+  </script>
   
   <style>
     * {
@@ -198,6 +233,18 @@
       `;
       throw new Error('antd is not defined');
     }
+
+    // 等待 ESM 业务模块就绪后再启动应用
+    (async () => {
+      if (!window.__APP__) {
+        await new Promise((resolve) => {
+          window.addEventListener('esm-ready', resolve, { once: true });
+        });
+      }
+      bootstrap();
+    })();
+
+    function bootstrap() {
     
     const { useState, useEffect, useCallback } = React;
     const { 
@@ -210,52 +257,10 @@
     const { Option } = Select;
     const { Header, Content, Sider } = Layout;
 
-    // API 工具函数
-    const api = {
-      async request(url, options = {}) {
-        try {
-          const response = await fetch(url, {
-            ...options,
-            headers: {
-              'Content-Type': 'application/json',
-              ...options.headers
-            }
-          });
-          const result = await response.json();
-          if (!result.success) {
-            throw new Error(result.error || '请求失败');
-          }
-          return result.data;
-        } catch (err) {
-          console.error('API 请求失败:', err);
-          throw err;
-        }
-      },
-      
-      async get(url) {
-        return this.request(url);
-      },
-      
-      async post(url, data) {
-        return this.request(url, {
-          method: 'POST',
-          body: JSON.stringify(data)
-        });
-      },
-      
-      async put(url, data) {
-        return this.request(url, {
-          method: 'PUT',
-          body: JSON.stringify(data)
-        });
-      },
-      
-      async delete(url) {
-        return this.request(url, {
-          method: 'DELETE'
-        });
-      }
-    };
+    // API 工具函数（来自 ESM 模块 @api）
+    const api = window.__APP__.api;
+    // 图标工具（来自 ESM 模块 @icons）
+    const { ICON_EMOJI_MAP, ICON_OPTIONS, renderIcon: renderIconFn } = window.__APP__.icons;
 
     // 集合列表组件
     function CollectionList({ onSelectCollection, selectedCollectionId }) {
@@ -524,18 +529,8 @@
         return map;
       }, [collections]);
 
-      const iconEmojiMap = {
-        FolderOpenOutlined: '📁',
-        AppstoreOutlined: '🧩',
-        ApiOutlined: '🔌',
-        BugOutlined: '🐞',
-        ExperimentOutlined: '🧪',
-        RocketOutlined: '🚀',
-        DatabaseOutlined: '🗄️',
-        CloudOutlined: '☁️',
-        TagsOutlined: '🏷️',
-        ProjectOutlined: '📋'
-      };
+      // 集合图标 emoji 映射来自 ESM 模块 @icons
+      const iconEmojiMap = ICON_EMOJI_MAP;
 
       const columns = [
         {
@@ -869,33 +864,10 @@
       const [form] = Form.useForm();
 
       // 可选 icon 列表（来自 antd 内置图标，使用 data-lucide 兼容渲染）
-      const iconOptions = [
-        { value: 'FolderOpenOutlined', label: '📁 文件夹' },
-        { value: 'AppstoreOutlined', label: '🧩 应用' },
-        { value: 'ApiOutlined', label: '🔌 API' },
-        { value: 'BugOutlined', label: '🐞 调试' },
-        { value: 'ExperimentOutlined', label: '🧪 实验' },
-        { value: 'RocketOutlined', label: '🚀 项目' },
-        { value: 'DatabaseOutlined', label: '🗄️ 数据' },
-        { value: 'CloudOutlined', label: '☁️ 云端' },
-        { value: 'TagsOutlined', label: '🏷️ 标签' },
-        { value: 'ProjectOutlined', label: '📋 项目' }
-      ];
-
-      const iconEmojiMap = {
-        FolderOpenOutlined: '📁',
-        AppstoreOutlined: '🧩',
-        ApiOutlined: '🔌',
-        BugOutlined: '🐞',
-        ExperimentOutlined: '🧪',
-        RocketOutlined: '🚀',
-        DatabaseOutlined: '🗄️',
-        CloudOutlined: '☁️',
-        TagsOutlined: '🏷️',
-        ProjectOutlined: '📋'
-      };
-
-      const renderIcon = (icon) => iconEmojiMap[icon] || '📁';
+      // 图标候选与映射来自 ESM 模块 @icons
+      const iconOptions = ICON_OPTIONS;
+      const iconEmojiMap = ICON_EMOJI_MAP;
+      const renderIcon = renderIconFn;
 
       const loadCollections = async () => {
         setLoading(true);
@@ -1217,6 +1189,8 @@
     setTimeout(() => {
       lucide.createIcons();
     }, 100);
+
+    } // bootstrap end
   </script>
 </body>
 </html>
