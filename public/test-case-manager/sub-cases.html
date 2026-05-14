@@ -20,56 +20,43 @@
   <script src="/libs/antd/dist/antd.min.js"></script>
 
   <!-- ===== 原生 ESM 模块系统 ===== -->
+  <!-- 1. 全局版本号 + 资源 URL 工具：必须最先执行，并同步注入基础样式（避免 FOUC） -->
   <script>
     const G_VER = Date.now();
     window.G_VER = G_VER;
     window.getModuleUrl = (path) => `${path}?v=${G_VER}`;
+    window.getAssetUrl  = (path) => `${path}?v=${G_VER}`;
+
+    (function injectBaseStyles() {
+      ['./css/base.css', './css/sub-cases.css'].forEach((href) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = window.getAssetUrl(href);
+        document.head.appendChild(link);
+      });
+    })();
   </script>
 
   <script type="importmap">
   {
     "imports": {
-      "@api":    "./js/api.js",
-      "@format": "./js/format.js"
+      "@api":          "./js/api.js",
+      "@format":       "./js/format.js",
+      "@style-loader": "./js/style-loader.js"
     }
   }
   </script>
 
   <script type="module">
     const get = (path) => `${path}?v=${window.G_VER}`;
-    const [apiMod, formatMod] = await Promise.all([
+    const [apiMod, formatMod, styleMod] = await Promise.all([
       import(get('./js/api.js')),
       import(get('./js/format.js')),
+      import(get('./js/style-loader.js')),
     ]);
-    window.__APP__ = { api: apiMod.api, format: formatMod };
+    window.__APP__ = { api: apiMod.api, format: formatMod, style: styleMod };
     window.dispatchEvent(new CustomEvent('esm-ready'));
   </script>
-
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: #f0f2f5;
-    }
-    #root { min-height: 100vh; }
-    .page-header {
-      background: #fff;
-      padding: 16px 24px;
-      border-bottom: 1px solid #f0f0f0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .page-header .title { font-size: 18px; font-weight: 600; }
-    .page-header .meta { color: #8c8c8c; font-size: 12px; margin-top: 4px; }
-    .content {
-      padding: 24px;
-    }
-    .json-editor {
-      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-      font-size: 12px;
-    }
-  </style>
 </head>
 <body>
   <div id="root"></div>

@@ -23,20 +23,31 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- ===== 原生 ESM 模块系统 ===== -->
-  <!-- 1. 全局版本号：每次刷新生成新时间戳，统一防缓存 -->
+  <!-- 1. 全局版本号 + 资源 URL 工具：必须最先执行，并同步注入基础样式（避免 FOUC） -->
   <script>
     const G_VER = Date.now();
     window.G_VER = G_VER;
     window.getModuleUrl = (path) => `${path}?v=${G_VER}`;
+    window.getAssetUrl  = (path) => `${path}?v=${G_VER}`;
+
+    (function injectBaseStyles() {
+      ['./css/base.css', './css/index.css'].forEach((href) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = window.getAssetUrl(href);
+        document.head.appendChild(link);
+      });
+    })();
   </script>
 
   <!-- 2. ImportMaps：仅声明用于 IDE/类型可读，本地模块加载使用直接路径 + 版本号 -->
   <script type="importmap">
   {
     "imports": {
-      "@api":    "./js/api.js",
-      "@icons":  "./js/icons.js",
-      "@format": "./js/format.js"
+      "@api":          "./js/api.js",
+      "@icons":        "./js/icons.js",
+      "@format":       "./js/format.js",
+      "@style-loader": "./js/style-loader.js"
     }
   }
   </script>
@@ -44,178 +55,20 @@
   <!-- 3. 引导：动态 import 直接路径 + ?v=G_VER 防缓存，挂载到 window.__APP__ -->
   <script type="module">
     const get = (path) => `${path}?v=${window.G_VER}`;
-    const [apiMod, iconsMod, formatMod] = await Promise.all([
+    const [apiMod, iconsMod, formatMod, styleMod] = await Promise.all([
       import(get('./js/api.js')),
       import(get('./js/icons.js')),
       import(get('./js/format.js')),
+      import(get('./js/style-loader.js')),
     ]);
     window.__APP__ = {
       api: apiMod.api,
       icons: iconsMod,
       format: formatMod,
+      style: styleMod,
     };
     window.dispatchEvent(new CustomEvent('esm-ready'));
   </script>
-  
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: #f0f2f5;
-    }
-    
-    #root {
-      height: 100vh;
-      overflow: hidden;
-    }
-    
-    .app-container {
-      display: flex;
-      height: 100vh;
-    }
-    
-    .sidebar {
-      width: 256px;
-      background: #001529;
-      color: rgba(255, 255, 255, 0.65);
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .logo {
-      height: 64px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #002140;
-      color: #fff;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    
-    .logo-icon {
-      margin-right: 10px;
-      background: #1890ff;
-      padding: 8px;
-      border-radius: 4px;
-    }
-    
-    .menu {
-      flex: 1;
-      padding: 16px 0;
-    }
-    
-    .menu-item {
-      padding: 12px 24px;
-      cursor: pointer;
-      transition: all 0.3s;
-      display: flex;
-      align-items: center;
-    }
-    
-    .menu-item:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
-    
-    .menu-item.active {
-      background: #1890ff;
-      color: #fff;
-    }
-    
-    .menu-item-icon {
-      margin-right: 10px;
-    }
-    
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    
-    .header {
-      height: 64px;
-      background: #fff;
-      box-shadow: 0 1px 4px rgba(0,21,41,0.08);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-    }
-    
-    .breadcrumb {
-      color: rgba(0, 0, 0, 0.45);
-      font-size: 14px;
-    }
-    
-    .content {
-      flex: 1;
-      overflow: auto;
-      padding: 24px;
-    }
-    
-    .stats-cards {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    
-    .stat-card {
-      background: #fff;
-      padding: 24px;
-      border-radius: 8px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-    
-    .stat-title {
-      color: rgba(0, 0, 0, 0.45);
-      font-size: 14px;
-      margin-bottom: 8px;
-    }
-    
-    .stat-value {
-      font-size: 30px;
-      font-weight: 600;
-      color: #000000;
-    }
-    
-    .stat-icon {
-      position: absolute;
-      right: 24px;
-      top: 24px;
-      font-size: 48px;
-      opacity: 0.1;
-    }
-    
-    .filter-section {
-      background: #fff;
-      padding: 24px;
-      border-radius: 8px;
-      margin-bottom: 24px;
-    }
-    
-    .table-container {
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    
-    .json-editor {
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
-      font-size: 13px;
-    }
-    
-    .tag-item {
-      margin-right: 8px;
-      margin-bottom: 8px;
-    }
-  </style>
 </head>
 <body>
   <div id="root"></div>
