@@ -1,0 +1,27 @@
+/* test-user-generator 全站基础样式 + 设计 token */
+:root {
+  --primary: #0ea5e9;
+  --primary-dark: #0284c7;
+  --bg-dark: #0f172a;
+  --bg-card: #1e293b;
+  --bg-input: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --success: #10b981;
+  --danger: #ef4444;
+  --border: #475569;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: linear-gradient(135deg, var(--bg-dark) 0%, #1e3a5f 50%, var(--bg-dark) 100%);
+  min-height: 100vh;
+  color: var(--text-primary);
+  padding: 20px;
+}

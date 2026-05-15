@@ -52,3 +52,19 @@ test-data
 
 test/result/
 next-app/data/articles/*
+
+
+harness
+
+# --- harness setup (managed) ---
+# 由 harness/skills/setup 管理的产物
+# - agents/rules/mcp.json 软链全指向仓内（harness/ 或 .sdlc/repo/），入库可移植，不再 ignore
+# - skills/ 下含大量转发到第三方 npx 装出的实目录（.agents/skills/<name>），
+#   入库会形成 dangling，保持 ignore
+# - .codex/config.toml 是用户手写 + MCP-AUTO 段混合区，保持 ignore
+.claude/skills/
+.agents/skills/
+.trae/skills/
+.codex/
+skills-lock.json
+# --- /harness setup ---

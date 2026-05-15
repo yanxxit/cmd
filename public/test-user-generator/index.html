@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>👥 测试用户生成器</title>
+
+  <!-- React & ReactDOM (本地 libs，UMD 全局变量) -->
+  <script crossorigin src="/libs/react/umd/react.production.min.js"></script>
+  <script crossorigin src="/libs/react-dom/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel for JSX -->
+  <script src="/libs/@babel/standalone/babel.min.js"></script>
+
+  <!-- Day.js 必须在 antd 之前加载 -->
+  <script src="/libs/dayjs/dayjs.min.js"></script>
+  <script src="/libs/dayjs/locale/zh-cn.js"></script>
+
+  <!-- Ant Design v5 -->
+  <script src="/libs/antd/dist/antd.min.js"></script>
+
+  <!-- ===== 原生 ESM 模块系统 ===== -->
+  <!-- 1. 全局版本号 + 同步注入基础样式（避免 FOUC） -->
+  <script>
+    const G_VER = Date.now();
+    window.G_VER = G_VER;
+    window.getModuleUrl = (path) => `${path}?v=${G_VER}`;
+    window.getAssetUrl  = (path) => `${path}?v=${G_VER}`;
+    (function injectBaseStyles() {
+      ['./css/base.css', './css/index.css'].forEach((href) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = window.getAssetUrl(href);
+        document.head.appendChild(link);
+      });
+    })();
+  </script>
+
+  <!-- 2. ImportMaps（仅声明给 IDE/类型；动态 import 走真实路径 + 版本号） -->
+  <script type="importmap">
+  {
+    "imports": {
+      "@user":         "./js/user.js",
+      "@address":      "./js/address.js",
+      "@style-loader": "./js/style-loader.js"
+    }
+  }
+  </script>
+
+  <!-- 3. 引导：动态 import + ?v=G_VER 防缓存，挂载到 window.__APP__ -->
+  <script type="module">
+    const get = (path) => `${path}?v=${window.G_VER}`;
+    const [userMod, addrMod, styleMod] = await Promise.all([
+      import(get('./js/user.js')),
+      import(get('./js/address.js')),
+      import(get('./js/style-loader.js')),
+    ]);
+    window.__APP__ = {
+      user: userMod,
+      countries: addrMod.COUNTRIES,
+      style: styleMod,
+    };
+    window.dispatchEvent(new CustomEvent('esm-ready'));
+  </script>
+</head>
+<body>
+  <div id="root">
+    <div class="container">
+      <div class="header">
+        <h1>👥 测试用户生成器</h1>
+        <p>一键生成包含姓名 / 身份证 / 国籍 / 地址 / 手机 / 邮箱 的测试数据</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="copy-toast" id="copyToast">已复制</div>
+
+  <script type="text/babel">
+    if (typeof antd === 'undefined') {
+      console.error('❌ Ant Design 未加载成功');
+      document.body.innerHTML = '<div style="color:#ef4444;padding:24px">Ant Design 未加载，请检查 /libs/antd/dist/antd.min.js</div>';
+    }
+
+    function bootstrap() {
+      const { user, countries, style } = window.__APP__;
+      const { useState, useMemo } = React;
+      const {
+        ConfigProvider, theme, Card, Form, Select, InputNumber, Button, Space,
+        Table, Tag, Typography, message,
+      } = antd;
+      const { Title } = Typography;
+
+      // 演示样式懒加载（按需）：当用户首次切到"批量"时加载补充样式
+      // style.loadCSS('./css/extras.css'); // 占位，按需启用
+
+      function showToast(text) {
+        const toast = document.getElementById('copyToast');
+        toast.textContent = text;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 1500);
+      }
+
+      function copy(text) {
+        navigator.clipboard.writeText(text).then(() => showToast('已复制：' + text));
+      }
+
+      function App() {
+        const [form] = Form.useForm();
+        const [list, setList] = useState([]);
+
+        const columns = useMemo(() => [
+          {
+            title: '姓名', dataIndex: 'name', width: 120,
+            render: (v) => <span style={{ fontWeight: 600 }}>{v}</span>,
+          },
+          {
+            title: '性别', dataIndex: 'gender', width: 60,
+            render: (g) => <Tag color={g === '男' ? 'blue' : 'magenta'}>{g}</Tag>,
+          },
+          {
+            title: '国籍', dataIndex: 'countryLabel', width: 100,
+            render: (v, r) => <span><span className="country-flag">{r.countryFlag}</span>{v}</span>,
+          },
+          {
+            title: '身份/证件号', dataIndex: 'idNumber',
+            render: (v) => <span className="user-id" onClick={() => copy(v)} style={{ cursor: 'pointer' }}>{v}</span>,
+          },
+          {
+            title: '手机', dataIndex: 'phone', width: 180,
+            render: (v) => <span onClick={() => copy(v)} style={{ cursor: 'pointer' }}>{v}</span>,
+          },
+          {
+            title: '邮箱', dataIndex: 'email', ellipsis: true,
+            render: (v) => <span onClick={() => copy(v)} style={{ cursor: 'pointer' }}>{v}</span>,
+          },
+          {
+            title: '地址', dataIndex: 'address', ellipsis: true,
+          },
+        ], []);
+
+        const handleGenerate = (n) => {
+          const v = form.getFieldsValue();
+          const opt = {};
+          if (v.country && v.country !== 'random') opt.country = v.country;
+          if (v.gender && v.gender !== 'random') opt.gender = v.gender;
+          const fresh = user.genUsers(n, opt);
+          setList(fresh);
+          message.success(`已生成 ${n} 条测试用户`);
+        };
+
+        const handleExport = () => {
+          if (!list.length) return message.warning('请先生成数据');
+          const blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `test-users-${Date.now()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+
+        return (
+          <ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#0ea5e9' } }}>
+            <Card title="生成参数" className="section">
+              <Form form={form} layout="inline" initialValues={{ country: 'random', gender: 'random', count: 10 }}>
+                <Form.Item label="国籍" name="country" style={{ minWidth: 200 }}>
+                  <Select
+                    options={[
+                      { value: 'random', label: '🎲 随机' },
+                      ...countries.map((c) => ({ value: c.code, label: `${c.flag} ${c.label}` })),
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="性别" name="gender">
+                  <Select
+                    style={{ width: 120 }}
+                    options={[
+                      { value: 'random', label: '🎲 随机' },
+                      { value: 'male', label: '男' },
+                      { value: 'female', label: '女' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="数量" name="count">
+                  <InputNumber min={1} max={1000} />
+                </Form.Item>
+              </Form>
+              <div className="actions" style={{ marginTop: 16 }}>
+                <Button type="primary" onClick={() => handleGenerate(form.getFieldValue('count') || 10)}>
+                  🎲 生成
+                </Button>
+                <Button onClick={() => handleGenerate(1)}>生成 1 条</Button>
+                <Button onClick={() => handleGenerate(50)}>批量 50 条</Button>
+                <Button onClick={handleExport}>📥 导出 JSON</Button>
+                <Button danger onClick={() => setList([])}>清空</Button>
+              </div>
+            </Card>
+
+            <Card title={`生成结果（共 ${list.length} 条，点击单元格可复制）`} className="section">
+              <Table
+                rowKey="key"
+                columns={columns}
+                dataSource={list}
+                pagination={{ pageSize: 10, showSizeChanger: true }}
+                size="middle"
+                scroll={{ x: 'max-content' }}
+              />
+            </Card>
+          </ConfigProvider>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    }
+
+    if (window.__APP__) bootstrap();
+    else window.addEventListener('esm-ready', bootstrap, { once: true });
+  </script>
+</body>
+</html>

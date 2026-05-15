@@ -1,0 +1,66 @@
+/* 主页布局：容器、表单卡片、结果卡片、用户表 */
+.container { max-width: 1080px; margin: 0 auto; }
+
+.header { text-align: center; margin-bottom: 24px; padding: 24px 16px; }
+.header h1 {
+  font-size: 2.4rem;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.header p { color: var(--text-secondary); font-size: 1.05rem; }
+
+/* antd Card 在深色背景下的微调 */
+.ant-card { background: var(--bg-card) !important; border: 1px solid var(--border) !important; }
+.ant-card-head { color: var(--text-primary) !important; border-bottom-color: var(--border) !important; }
+.ant-card-head-title { color: var(--text-primary) !important; }
+.ant-form-item-label > label { color: var(--text-secondary) !important; }
+.ant-input, .ant-select-selector, .ant-input-number-input,
+.ant-picker, .ant-input-number {
+  background: var(--bg-input) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+.ant-select-selection-item, .ant-select-arrow { color: var(--text-primary) !important; }
+.ant-input::placeholder { color: var(--text-secondary) !important; }
+.ant-select-dropdown { background: var(--bg-card) !important; }
+.ant-select-item { color: var(--text-primary) !important; }
+.ant-select-item-option-active,
+.ant-select-item-option-selected { background: var(--bg-input) !important; }
+
+.ant-table {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+.ant-table-thead > tr > th {
+  background: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-bottom-color: var(--border) !important;
+}
+.ant-table-tbody > tr > td {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-bottom-color: var(--border) !important;
+}
+.ant-table-tbody > tr.ant-table-row:hover > td {
+  background: var(--bg-input) !important;
+}
+.ant-empty-description { color: var(--text-secondary) !important; }
+.ant-pagination-item, .ant-pagination-item a { color: var(--text-primary) !important; }
+.ant-pagination-item-active { border-color: var(--primary) !important; }
+
+.section { margin-bottom: 16px; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.country-flag { font-size: 1.4rem; margin-right: 4px; }
+.user-id { font-family: 'Courier New', monospace; color: #93c5fd; }
+.copy-toast {
+  position: fixed; top: 24px; left: 50%;
+  transform: translateX(-50%) translateY(-120%);
+  background: var(--success); color: white;
+  padding: 10px 20px; border-radius: 8px;
+  z-index: 999; transition: transform 0.3s ease;
+  font-size: 0.9rem;
+}
+.copy-toast.show { transform: translateX(-50%) translateY(0); }
