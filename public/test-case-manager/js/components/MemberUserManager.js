@@ -51,6 +51,14 @@ function getSourceLabel(value) {
   return value || '-';
 }
 
+function buildMemberCenterUrl(phone = '') {
+  const url = new URL('./member-center.html', window.location.href);
+  if (phone) {
+    url.searchParams.set('phone', phone);
+  }
+  return `${url.pathname}${url.search}`;
+}
+
 function MemberUserManager({ currentAdmin }) {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
@@ -363,11 +371,16 @@ function MemberUserManager({ currentAdmin }) {
     {
       title: '操作',
       key: 'action',
-      width: 320,
+      width: 420,
       render: (_, record) => h(
         Space,
         null,
         h(Button, { type: 'link', size: 'small', onClick: () => openPlayground(record) }, '操作台'),
+        h(Button, {
+          type: 'link',
+          size: 'small',
+          onClick: () => window.open(buildMemberCenterUrl(record.phone), '_blank', 'noopener,noreferrer'),
+        }, '打开会员中心'),
         h(Button, { type: 'link', size: 'small', disabled: !canManage, onClick: () => openEditModal(record) }, '编辑'),
         h(Button, {
           type: 'link',
@@ -742,4 +755,3 @@ function MemberUserManager({ currentAdmin }) {
 }
 
 export default MemberUserManager;
-

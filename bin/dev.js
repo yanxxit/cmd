@@ -56,6 +56,7 @@ function printServerInfo(port, autoOpen = false) {
     console.log(`║    • 身份证生成器: ${`${baseUrl}/id-card-generator/`.padEnd(31)}║`);
     console.log(`║    • 手机号生成器： ${`${baseUrl}/phone-number-generator/`.padEnd(31)}║`);
     console.log(`║    • 测试案例管理： ${`${baseUrl}/test-case-manager/`.padEnd(31)}║`);
+    console.log(`║    • 会员中心： ${`${baseUrl}/test-case-manager/member-center`.padEnd(35)}║`);
     console.log(`║    • 测试用户生成： ${`${baseUrl}/test-user-generator/`.padEnd(31)}║`);
     console.log(`║    • 任务管理： ${`${baseUrl}/task-manager/`.padEnd(34)}║`);
     console.log('║                                                          ║');
@@ -100,4 +101,3 @@ try {
     console.error(err);
     process.exit(1);
 }
-

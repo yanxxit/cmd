@@ -381,6 +381,9 @@ export class CouponSystemModel {
       totalUsages: usages.length,
       totalClaimedCount: coupons.reduce((sum, item) => sum + Number(item.claimedCount || 0), 0),
       totalUsedCount: coupons.reduce((sum, item) => sum + Number(item.usedCount || 0), 0),
+      dailyRandomClaims: claims.filter((item) => item.source === 'daily_random').length,
+      luckyDrawClaims: claims.filter((item) => item.source === 'lucky_draw').length,
+      manualGrantClaims: claims.filter((item) => item.source === 'manual_grant').length,
     };
   }
 

@@ -29,7 +29,8 @@ router.post('/check-in', async (req, res) => {
 router.post('/claim-daily-coupon', async (req, res) => {
   try {
     const claim = await couponSystemModel.claimDailyRandomCoupon(req.currentUser);
-    res.json({ success: true, data: claim });
+    const coupon = await couponSystemModel.getCouponById(claim.couponId);
+    res.json({ success: true, data: { ...claim, coupon } });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }
@@ -38,7 +39,8 @@ router.post('/claim-daily-coupon', async (req, res) => {
 router.post('/lucky-draw', async (req, res) => {
   try {
     const claim = await couponSystemModel.luckyDraw(req.currentUser);
-    res.json({ success: true, data: claim });
+    const coupon = await couponSystemModel.getCouponById(claim.couponId);
+    res.json({ success: true, data: { ...claim, coupon } });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }
@@ -48,6 +50,15 @@ router.get('/coupons', async (req, res) => {
   try {
     const claims = await couponSystemModel.listUserCoupons(req.currentUser._id);
     res.json({ success: true, data: claims });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/prizes', async (req, res) => {
+  try {
+    const prizes = await couponSystemModel.listLuckyDrawPrizes();
+    res.json({ success: true, data: prizes });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

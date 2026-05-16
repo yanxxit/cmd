@@ -1,8 +1,8 @@
 // 主入口页面模块：布局壳（Sider + Header + Content） + 登录态与权限路由分发
-const { createElement: h, useEffect, useMemo, useState } = React;
+const { createElement: h, useEffect, useMemo, useRef, useState } = React;
 const {
   Layout, Menu, Breadcrumb, Button, Space, Tooltip, Badge, Avatar,
-  Dropdown, Divider, ConfigProvider, theme: antdTheme, Typography, Spin, message,
+  Dropdown, Divider, ConfigProvider, theme: antdTheme, Typography, Spin, message, Modal, Input, Empty, Tag,
 } = antd;
 const { Header, Content, Sider } = Layout;
 const { Text } = Typography;
@@ -171,6 +171,14 @@ function getInitials(name) {
   return text.slice(0, 2).toUpperCase();
 }
 
+function getHeaderQuickLinks(admin) {
+  const preferredKeys = ['dashboard', 'members', 'coupons', 'shortlinks', 'articles', 'account'];
+  const pages = getAvailablePages(admin).filter((page) => !page.hidden);
+  return preferredKeys
+    .map((key) => pages.find((page) => page.key === key))
+    .filter(Boolean);
+}
+
 function App() {
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [pagePayload, setPagePayload] = useState(null);
@@ -179,9 +187,13 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [currentAdmin, setCurrentAdmin] = useState(null);
   const [adminStats, setAdminStats] = useState(null);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState('');
+  const commandInputRef = useRef(null);
 
   const availablePages = useMemo(() => getAvailablePages(currentAdmin), [currentAdmin]);
   const menuItems = useMemo(() => buildMenuItems(currentAdmin), [currentAdmin]);
+  const quickLinkPages = useMemo(() => getHeaderQuickLinks(currentAdmin), [currentAdmin]);
 
   const navigate = (pageKey, payload = null) => {
     if (!PAGE_REGISTRY[pageKey]) return;
@@ -284,6 +296,7 @@ function App() {
   };
 
   const currentPage = PAGE_REGISTRY[activeMenu];
+  const currentAdminRoleText = currentAdmin?.roles?.map((role) => role.name).join(' / ') || '管理员';
   const breadcrumbItems = [
     {
       title: h(
@@ -313,6 +326,155 @@ function App() {
       }
     },
   };
+
+  const quickAccessMenu = {
+    items: quickLinkPages.map((page) => ({
+      key: page.key,
+      icon: h('i', { 'data-lucide': page.icon }),
+      label: page.title,
+    })),
+    onClick: ({ key }) => navigate(key, null),
+  };
+
+  const noticeMenu = {
+    items: [
+      {
+        key: 'notice-admins',
+        label: `当前启用管理员 ${adminStats?.activeAdmins || 0} 人`,
+      },
+      {
+        key: 'notice-roles',
+        label: `系统角色模板 ${adminStats?.totalRoles || 0} 个`,
+      },
+      {
+        key: 'notice-page',
+        label: `当前所在：${currentPage?.title || '未知页面'}`,
+      },
+    ],
+  };
+
+  const commandItems = useMemo(() => {
+    const pages = availablePages
+      .filter((page) => !page.hidden)
+      .map((page) => ({
+        key: `page:${page.key}`,
+        type: 'page',
+        group: '页面跳转',
+        title: page.title,
+        subtitle: page.section,
+        icon: page.icon,
+        keywords: `${page.title} ${page.section} ${page.key}`,
+        run: () => {
+          navigate(page.key, null);
+          setCommandOpen(false);
+          setCommandQuery('');
+        },
+      }));
+
+    const actions = [
+      {
+        key: 'action:refresh',
+        type: 'action',
+        group: '快捷操作',
+        title: '刷新当前页面',
+        subtitle: '重新加载整个后台页面',
+        icon: 'refresh-cw',
+        keywords: '刷新 reload refresh',
+        run: () => window.location.reload(),
+      },
+      {
+        key: 'action:theme',
+        type: 'action',
+        group: '快捷操作',
+        title: dark ? '切换到亮色主题' : '切换到暗色主题',
+        subtitle: '快速切换后台主题外观',
+        icon: dark ? 'sun' : 'moon',
+        keywords: `主题 dark light ${dark ? '亮色' : '暗色'}`,
+        run: () => {
+          setDark(!dark);
+          setCommandOpen(false);
+          setCommandQuery('');
+        },
+      },
+      {
+        key: 'action:account',
+        type: 'action',
+        group: '快捷操作',
+        title: '打开账号安全',
+        subtitle: '查看当前管理员账号与密码设置',
+        icon: 'user-circle-2',
+        keywords: '账号 安全 profile account',
+        run: () => {
+          navigate('account', null);
+          setCommandOpen(false);
+          setCommandQuery('');
+        },
+      },
+      {
+        key: 'action:logout',
+        type: 'action',
+        group: '快捷操作',
+        title: '退出登录',
+        subtitle: '退出当前管理员会话',
+        icon: 'log-out',
+        keywords: '退出 logout signout',
+        run: () => {
+          setCommandOpen(false);
+          setCommandQuery('');
+          handleLogout();
+        },
+      },
+    ];
+
+    return [...pages, ...actions];
+  }, [availablePages, dark]);
+
+  const filteredCommandItems = useMemo(() => {
+    const keyword = commandQuery.trim().toLowerCase();
+    if (!keyword) return commandItems;
+    return commandItems.filter((item) => {
+      const text = `${item.title} ${item.subtitle} ${item.keywords}`.toLowerCase();
+      return text.includes(keyword);
+    });
+  }, [commandItems, commandQuery]);
+
+  const groupedCommandItems = useMemo(() => {
+    const groups = new Map();
+    filteredCommandItems.forEach((item) => {
+      if (!groups.has(item.group)) {
+        groups.set(item.group, []);
+      }
+      groups.get(item.group).push(item);
+    });
+    return Array.from(groups.entries()).map(([group, items]) => ({ group, items }));
+  }, [filteredCommandItems]);
+
+  const firstCommandItem = filteredCommandItems[0] || null;
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
+      if (isShortcut) {
+        event.preventDefault();
+        setCommandOpen(true);
+        return;
+      }
+      if (event.key === 'Escape') {
+        setCommandOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!commandOpen) return;
+    const timer = setTimeout(() => {
+      commandInputRef.current?.focus?.();
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [commandOpen]);
 
   const renderContent = () => {
     if (!currentPage || !currentPage.Component) {
@@ -442,17 +604,51 @@ function App() {
               icon: h('i', { 'data-lucide': collapsed ? 'panel-left-open' : 'panel-left-close' }),
               onClick: () => setCollapsed(!collapsed),
             }),
-            h(Breadcrumb, { className: 'breadcrumb', items: breadcrumbItems })
+            h(
+              'div',
+              { className: 'header-page-meta' },
+              h(
+                'div',
+                { className: 'header-page-title-row' },
+                h('span', { className: 'header-page-title' }, currentPage?.title || '管理后台'),
+                h('span', { className: 'header-page-section' }, currentPage?.section || '系统导航')
+              ),
+              h(Breadcrumb, { className: 'breadcrumb', items: breadcrumbItems })
+            )
+          ),
+          h(
+            'div',
+            { className: 'header-center' },
+            h(Button, {
+              type: 'text',
+              className: 'command-trigger',
+              onClick: () => setCommandOpen(true),
+            },
+            h('i', { 'data-lucide': 'search', className: 'header-search-icon' }),
+            h('span', { className: 'command-trigger-placeholder' }, '搜索页面、执行命令'),
+            h('span', { className: 'command-trigger-shortcut' }, '⌘K'))
           ),
           h(
             Space,
-            { size: 4, className: 'header-right' },
+            { size: 8, className: 'header-right' },
+            h(
+              Dropdown,
+              { menu: quickAccessMenu, trigger: ['click'], placement: 'bottomRight' },
+              h(
+                Button,
+                {
+                  type: 'text',
+                  className: 'header-action-btn header-action-wide',
+                },
+                h(Space, { size: 6 }, h('i', { 'data-lucide': 'sparkles' }), h('span', null, '快捷入口'))
+              )
+            ),
             h(
               Tooltip,
               { title: '刷新' },
               h(Button, {
                 type: 'text',
-                shape: 'circle',
+                className: 'header-action-btn',
                 icon: h('i', { 'data-lucide': 'refresh-cw' }),
                 onClick: () => window.location.reload(),
               })
@@ -462,18 +658,22 @@ function App() {
               { title: dark ? '切换至亮色' : '切换至暗色' },
               h(Button, {
                 type: 'text',
-                shape: 'circle',
+                className: 'header-action-btn',
                 icon: h('i', { 'data-lucide': dark ? 'sun' : 'moon' }),
                 onClick: () => setDark(!dark),
               })
             ),
             h(
-              Tooltip,
-              { title: '系统角色数' },
+              Dropdown,
+              { menu: noticeMenu, trigger: ['click'], placement: 'bottomRight' },
               h(
                 Badge,
                 { count: adminStats?.totalRoles || 0, size: 'small' },
-                h(Button, { type: 'text', shape: 'circle', icon: h('i', { 'data-lucide': 'bell' }) })
+                h(Button, {
+                  type: 'text',
+                  className: 'header-action-btn',
+                  icon: h('i', { 'data-lucide': 'bell' }),
+                })
               )
             ),
             h(Divider, { type: 'vertical', style: { height: 24 } }),
@@ -482,19 +682,104 @@ function App() {
               { menu: userMenu, trigger: ['click'], placement: 'bottomRight' },
               h(
                 'div',
-                { className: 'user-profile' },
-                h(Avatar, { size: 28, style: { background: '#1677ff' } }, getInitials(currentAdmin.displayName || currentAdmin.username)),
+                {
+                  className: 'user-profile',
+                  title: `${currentAdmin.displayName || currentAdmin.username} · ${currentAdminRoleText}`,
+                },
+                h(
+                  'div',
+                  { className: 'user-avatar-wrap' },
+                  h(Avatar, { size: 32, className: 'user-avatar', style: { background: '#1677ff' } }, getInitials(currentAdmin.displayName || currentAdmin.username))
+                ),
                 h(
                   'div',
                   { className: 'user-identity' },
-                  h('span', { className: 'user-name' }, currentAdmin.displayName || currentAdmin.username),
-                  h('span', { className: 'user-role' }, currentAdmin.roles?.map((role) => role.name).join(' / ') || '管理员')
-                )
+                  h('span', { className: 'user-name' }, currentAdmin.displayName || currentAdmin.username)
+                ),
+                h('i', { 'data-lucide': 'chevrons-up-down', className: 'user-caret' })
               )
             )
           )
         ),
-        h(Content, { className: 'content' }, renderContent())
+        h(Content, { className: 'content' }, renderContent()),
+        h(
+          Modal,
+          {
+            open: commandOpen,
+            footer: null,
+            onCancel: () => {
+              setCommandOpen(false);
+              setCommandQuery('');
+            },
+            width: 680,
+            className: 'command-modal',
+            closable: false,
+            destroyOnClose: false,
+          },
+          h(
+            'div',
+            { className: 'command-panel' },
+            h(
+              'div',
+              { className: 'command-panel-header' },
+              h('i', { 'data-lucide': 'search', className: 'command-panel-search-icon' }),
+              h(Input, {
+                ref: commandInputRef,
+                value: commandQuery,
+                bordered: false,
+                className: 'command-panel-input',
+                placeholder: '输入页面名、分组名或动作关键词',
+                onChange: (event) => setCommandQuery(event.target.value),
+                onPressEnter: () => {
+                  if (firstCommandItem) {
+                    firstCommandItem.run();
+                  }
+                },
+              }),
+              h('span', { className: 'command-panel-shortcut' }, 'ESC')
+            ),
+            groupedCommandItems.length
+              ? h(
+                  'div',
+                  { className: 'command-panel-body' },
+                  ...groupedCommandItems.map((group) => h(
+                    'div',
+                    { className: 'command-group', key: group.group },
+                    h('div', { className: 'command-group-title' }, group.group),
+                    ...group.items.map((item, index) => h(
+                      'button',
+                      {
+                        type: 'button',
+                        key: item.key,
+                        className: `command-item${index === 0 && item.key === firstCommandItem?.key ? ' is-active' : ''}`,
+                        onClick: item.run,
+                      },
+                      h('div', { className: `command-item-icon command-item-icon-${item.type}` }, h('i', { 'data-lucide': item.icon })),
+                      h(
+                        'div',
+                        { className: 'command-item-meta' },
+                        h('div', { className: 'command-item-title-row' },
+                          h('span', { className: 'command-item-title' }, item.title),
+                          item.type === 'page'
+                            ? h(Tag, { bordered: false, className: 'command-item-tag' }, item.subtitle)
+                            : h(Tag, { bordered: false, className: 'command-item-tag command-item-tag-action' }, '操作')
+                        ),
+                        h('div', { className: 'command-item-subtitle' }, item.subtitle)
+                      ),
+                      h('i', { 'data-lucide': 'arrow-up-right', className: 'command-item-arrow' })
+                    ))
+                  ))
+                )
+              : h(
+                  'div',
+                  { className: 'command-empty' },
+                  h(Empty, {
+                    image: Empty.PRESENTED_IMAGE_SIMPLE,
+                    description: '没有匹配到命令，换个关键词试试',
+                  })
+                )
+          )
+        )
       )
     )
   );

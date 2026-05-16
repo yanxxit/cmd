@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会员中心</title>
+
+  <script crossorigin src="/libs/react/umd/react.production.min.js"></script>
+  <script crossorigin src="/libs/react-dom/umd/react-dom.production.min.js"></script>
+  <script src="/libs/dayjs/dayjs.min.js"></script>
+  <script src="/libs/dayjs/locale/zh-cn.js"></script>
+  <script src="/libs/antd/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    window.__TCM_MEMBER_CENTER_BOOTSTRAP__ = {
+      buildVersion: window.__APP_BUILD_VERSION__ || '__BUILD_VERSION__',
+      devFlags: ['dev', 'nocache'],
+      styles: ['./css/base.css', './css/member-center.css'],
+    };
+  </script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@core": "./js/lib/core.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { initCore, injectCSS, loadJS } from '@core';
+
+    const bootstrapConfig = window.__TCM_MEMBER_CENTER_BOOTSTRAP__ || {};
+    initCore(bootstrapConfig);
+    injectCSS(bootstrapConfig.styles || []);
+
+    const bootstrap = await loadJS('./js/member-center.bootstrap.js');
+    await bootstrap.startMemberCenterApp();
+  </script>
+</head>
+<body>
+  <div id="member-center-root"></div>
+</body>
+</html>
+

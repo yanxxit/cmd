@@ -335,6 +335,9 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.get('/test-case-manager', (req, res) => {
     res.sendFile(path.join(testCaseManagerDir, 'index.html'));
   });
+  app.get('/test-case-manager/member-center', (req, res) => {
+    res.sendFile(path.join(testCaseManagerDir, 'member-center.html'));
+  });
 
   // Web IDE
   const webIdeDir = path.join(ROOT_DIR, 'public/web-ide');

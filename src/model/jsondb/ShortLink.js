@@ -148,6 +148,17 @@ export class ShortLinkModel {
     return true;
   }
 
+  async getStats(filters = {}) {
+    await this._ensureConnected();
+    const items = await this.list(filters);
+    return {
+      total: items.length,
+      active: items.filter((item) => item.active !== false).length,
+      disabled: items.filter((item) => item.active === false).length,
+      totalHits: items.reduce((sum, item) => sum + Number(item.hitCount || 0), 0),
+    };
+  }
+
   async resolve(code) {
     await this._ensureConnected();
     const existing = await this.collection.findOne({ code });

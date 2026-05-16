@@ -30,6 +30,15 @@ router.get('/', requireAdminPermission('shortlinks.view'), async (req, res) => {
   }
 });
 
+router.get('/stats', requireAdminPermission('shortlinks.view'), async (req, res) => {
+  try {
+    const stats = await shortLinkModel.getStats(req.query || {});
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.post('/', requireAdminPermission('shortlinks.manage'), async (req, res) => {
   try {
     const item = await shortLinkModel.create(req.body || {});
