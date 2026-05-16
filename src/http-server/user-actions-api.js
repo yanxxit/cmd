@@ -20,7 +20,9 @@ router.use(async (req, res, next) => {
 router.post('/check-in', async (req, res) => {
   try {
     const result = await memberSystemModel.signIn(req.currentUser._id);
-    res.json({ success: true, data: result });
+    const user = await memberSystemModel.getUserById(req.currentUser._id);
+    const rewardProgress = await memberSystemModel.getSignInRewardProgress(req.currentUser._id);
+    res.json({ success: true, data: { ...result, user, rewardProgress } });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }
@@ -38,9 +40,27 @@ router.post('/claim-daily-coupon', async (req, res) => {
 
 router.post('/lucky-draw', async (req, res) => {
   try {
-    const claim = await couponSystemModel.luckyDraw(req.currentUser);
-    const coupon = await couponSystemModel.getCouponById(claim.couponId);
-    res.json({ success: true, data: { ...claim, coupon } });
+    const chanceState = await memberSystemModel.consumeLotteryChance(req.currentUser._id, {
+      source: 'lucky_draw',
+      dayKey: new Date().toISOString().slice(0, 10),
+      meta: { trigger: 'user_actions_api' },
+    });
+    let result;
+    try {
+      result = await couponSystemModel.luckyDraw(req.currentUser, {
+        allowEmpty: true,
+        emptyRate: 0.3,
+      });
+    } catch (error) {
+      await memberSystemModel.grantLotteryChance(req.currentUser._id, {
+        count: 1,
+        source: 'lucky_draw_refund',
+        meta: { reason: error.message },
+      });
+      throw error;
+    }
+    const user = await memberSystemModel.getUserById(req.currentUser._id);
+    res.json({ success: true, data: { ...result, chanceState, user } });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }
@@ -55,10 +75,37 @@ router.get('/coupons', async (req, res) => {
   }
 });
 
+router.get('/sign-ins', async (req, res) => {
+  try {
+    const signIns = await memberSystemModel.listSignIns({ userId: req.currentUser._id });
+    res.json({ success: true, data: signIns });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/sign-in-rewards', async (req, res) => {
+  try {
+    const progress = await memberSystemModel.getSignInRewardProgress(req.currentUser._id);
+    res.json({ success: true, data: progress });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.get('/prizes', async (req, res) => {
   try {
     const prizes = await couponSystemModel.listLuckyDrawPrizes();
     res.json({ success: true, data: prizes });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/draw-records', async (req, res) => {
+  try {
+    const records = await couponSystemModel.listLuckyDrawRecords({ userId: req.currentUser._id });
+    res.json({ success: true, data: records });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

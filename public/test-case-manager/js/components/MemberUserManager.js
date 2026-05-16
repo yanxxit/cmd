@@ -1,9 +1,10 @@
 const { createElement: h, useEffect, useMemo, useState } = React;
 const {
   Button, Card, Col, Descriptions, Divider, Drawer, Form, Input, InputNumber, Modal,
-  Popconfirm, Row, Select, Space, Switch, Table, Tag, message,
+  Popconfirm, Row, Select, Space, Switch, Table, Tag, DatePicker, message,
 } = antd;
 const { Search } = Input;
+const { RangePicker } = DatePicker;
 const [{ api }] = await Promise.all([
   import(window.getModuleUrl('./js/api.js')),
 ]);
@@ -51,8 +52,12 @@ function getSourceLabel(value) {
   return value || '-';
 }
 
-function buildMemberCenterUrl(phone = '') {
-  const url = new URL('./member-center.html', window.location.href);
+function getDrawResultLabel(value) {
+  return value === 'coupon' ? '中奖' : '空奖';
+}
+
+function buildMemberLoginUrl(phone = '') {
+  const url = new URL('./member-h5.html', window.location.href);
   if (phone) {
     url.searchParams.set('phone', phone);
   }
@@ -82,6 +87,11 @@ function MemberUserManager({ currentAdmin }) {
   const [playgroundSmsMeta, setPlaygroundSmsMeta] = useState(null);
   const [showUseCouponModal, setShowUseCouponModal] = useState(false);
   const [usingCoupon, setUsingCoupon] = useState(null);
+  const [drawRecordOpen, setDrawRecordOpen] = useState(false);
+  const [drawRecordTarget, setDrawRecordTarget] = useState(null);
+  const [drawRecords, setDrawRecords] = useState([]);
+  const [drawRecordsLoading, setDrawRecordsLoading] = useState(false);
+  const [drawRecordRange, setDrawRecordRange] = useState([]);
   const [form] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [useCouponForm] = Form.useForm();
@@ -318,6 +328,33 @@ function MemberUserManager({ currentAdmin }) {
     }
   };
 
+  const loadDrawRecords = async (record, range = []) => {
+    if (!record?._id) return;
+    setDrawRecordsLoading(true);
+    try {
+      const query = new URLSearchParams();
+      query.set('userId', record._id);
+      if (Array.isArray(range) && range[0] && range[1]) {
+        query.set('startAt', dayjs(range[0]).startOf('day').toISOString());
+        query.set('endAt', dayjs(range[1]).endOf('day').toISOString());
+      }
+      const records = await api.get(`/api/admin-coupons/draw-records?${query.toString()}`);
+      setDrawRecords(records || []);
+    } catch (error) {
+      message.error('加载抽奖记录失败：' + error.message);
+    } finally {
+      setDrawRecordsLoading(false);
+    }
+  };
+
+  const openDrawRecordDrawer = async (record) => {
+    setDrawRecordTarget(record);
+    setDrawRecordOpen(true);
+    setDrawRecords([]);
+    setDrawRecordRange([]);
+    await loadDrawRecords(record, []);
+  };
+
   const userColumns = [
     {
       title: '手机号 / 昵称',
@@ -379,8 +416,13 @@ function MemberUserManager({ currentAdmin }) {
         h(Button, {
           type: 'link',
           size: 'small',
-          onClick: () => window.open(buildMemberCenterUrl(record.phone), '_blank', 'noopener,noreferrer'),
-        }, '打开会员中心'),
+          onClick: () => window.open(buildMemberLoginUrl(record.phone), '_blank', 'noopener,noreferrer'),
+        }, 'H5 登录'),
+        h(Button, {
+          type: 'link',
+          size: 'small',
+          onClick: () => openDrawRecordDrawer(record),
+        }, '抽奖记录'),
         h(Button, { type: 'link', size: 'small', disabled: !canManage, onClick: () => openEditModal(record) }, '编辑'),
         h(Button, {
           type: 'link',
@@ -425,6 +467,42 @@ function MemberUserManager({ currentAdmin }) {
       key: 'createdAt',
       width: 180,
       render: (value) => value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '-',
+    },
+  ];
+
+  const drawRecordColumns = [
+    {
+      title: '抽奖时间',
+      dataIndex: 'drawAt',
+      key: 'drawAt',
+      width: 180,
+      render: (value) => value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '-',
+    },
+    {
+      title: '结果',
+      dataIndex: 'resultType',
+      key: 'resultType',
+      width: 100,
+      render: (value) => h(Tag, { color: value === 'coupon' ? 'success' : 'default' }, getDrawResultLabel(value)),
+    },
+    {
+      title: '奖品',
+      key: 'coupon',
+      render: (_, record) => record.resultType === 'coupon'
+        ? h(
+            Space,
+            { direction: 'vertical', size: 0 },
+            h('span', { style: { fontWeight: 600 } }, record.coupon?.title || '优惠券'),
+            h('span', { style: { color: 'var(--tcm-text-secondary)', fontSize: 12 } }, record.coupon?.type || '-')
+          )
+        : h('span', { style: { color: 'var(--tcm-text-secondary)' } }, '谢谢参与'),
+    },
+    {
+      title: '日标识',
+      dataIndex: 'dayKey',
+      key: 'dayKey',
+      width: 120,
+      render: (value) => value || '-',
     },
   ];
 
@@ -516,7 +594,18 @@ function MemberUserManager({ currentAdmin }) {
             { label: '停用', value: 'disabled' },
           ],
         })),
-        h(Col, { flex: 'auto', style: { textAlign: 'right' } }, h(Button, { type: 'primary', disabled: !canManage, onClick: openCreateModal }, '新增用户'))
+        h(
+          Col,
+          { flex: 'auto', style: { textAlign: 'right' } },
+          h(
+            Space,
+            { wrap: true },
+            h(Button, {
+              onClick: () => window.open(buildMemberLoginUrl(), '_blank', 'noopener,noreferrer'),
+            }, '用户登录页'),
+            h(Button, { type: 'primary', disabled: !canManage, onClick: openCreateModal }, '新增用户')
+          )
+        )
       )
     ),
     h(
@@ -749,6 +838,87 @@ function MemberUserManager({ currentAdmin }) {
           onFinish: handleUseCoupon,
         },
         h(Form.Item, { label: '订单金额', name: 'orderAmount', rules: [{ required: true, message: '请输入订单金额' }] }, h(InputNumber, { min: 0, style: { width: '100%' }, placeholder: '请输入订单金额' }))
+      )
+    ),
+    h(
+      Drawer,
+      {
+        open: drawRecordOpen,
+        width: 720,
+        title: drawRecordTarget ? `抽奖记录：${drawRecordTarget.nickname} (${drawRecordTarget.phone})` : '抽奖记录',
+        onClose: () => {
+          setDrawRecordOpen(false);
+          setDrawRecordTarget(null);
+          setDrawRecords([]);
+        },
+      },
+      h(
+        Space,
+        { direction: 'vertical', size: 16, style: { width: '100%' } },
+        drawRecordTarget
+          ? h(
+              Card,
+              { bordered: false, className: 'info-card' },
+              h(Descriptions, {
+                column: 2,
+                items: [
+                  { key: 'nickname', label: '昵称', children: drawRecordTarget.nickname || '-' },
+                  { key: 'phone', label: '手机号', children: drawRecordTarget.phone || '-' },
+                  { key: 'balance', label: '剩余机会', children: `${drawRecordTarget.lotteryChanceBalance || 0} 次` },
+                  { key: 'draws', label: '累计抽奖', children: `${drawRecordTarget.totalLotteryDraws || 0} 次` },
+                ],
+              })
+            )
+          : null,
+        h(
+          Card,
+          { bordered: false, className: 'info-card' },
+          h(
+            Space,
+            { direction: 'vertical', size: 16, style: { width: '100%' } },
+            h(
+              Row,
+              { gutter: [12, 12], align: 'middle' },
+              h(Col, { xs: 24, md: 16 },
+                h(RangePicker, {
+                  value: drawRecordRange,
+                  style: { width: '100%' },
+                  allowClear: true,
+                  onChange: async (value) => {
+                    const nextRange = value || [];
+                    setDrawRecordRange(nextRange);
+                    await loadDrawRecords(drawRecordTarget, nextRange);
+                  },
+                })
+              ),
+              h(Col, { xs: 24, md: 8, style: { textAlign: 'right' } },
+                h(
+                  Space,
+                  null,
+                  h(Button, {
+                    onClick: async () => {
+                      setDrawRecordRange([]);
+                      await loadDrawRecords(drawRecordTarget, []);
+                    },
+                  }, '清空筛选'),
+                  h(Button, {
+                    onClick: async () => loadDrawRecords(drawRecordTarget, drawRecordRange),
+                  }, '刷新')
+                )
+              )
+            ),
+            h('div', { style: { fontSize: 16, fontWeight: 600 } }, '开奖记录'),
+            h(Table, {
+              rowKey: '_id',
+              size: 'small',
+              loading: drawRecordsLoading,
+              pagination: { pageSize: 8 },
+              dataSource: drawRecords,
+              columns: drawRecordColumns,
+              locale: { emptyText: '当前用户暂无抽奖记录' },
+            })
+          )
+        )
       )
     )
   );

@@ -1,11 +1,14 @@
 import crypto from 'crypto';
 import dayjs from 'dayjs';
 import { getAdminDatabase } from './admin-db.js';
+import { environmentVariableModel } from './EnvironmentVariable.js';
 
 const USERS_COLLECTION = 'member_users';
 const USER_SESSIONS_COLLECTION = 'member_user_sessions';
 const USER_SMS_CODES_COLLECTION = 'member_user_sms_codes';
 const USER_SIGN_INS_COLLECTION = 'member_user_sign_ins';
+const USER_LOTTERY_CHANCE_LOGS_COLLECTION = 'member_user_lottery_chance_logs';
+const USER_SIGN_IN_REWARD_RECORDS_COLLECTION = 'member_user_sign_in_reward_records';
 
 const USER_SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
 const SMS_CODE_TTL = 5 * 60 * 1000;
@@ -46,6 +49,8 @@ export class MemberSystemModel {
     this.sessions = null;
     this.smsCodes = null;
     this.signIns = null;
+    this.lotteryChanceLogs = null;
+    this.signInRewardRecords = null;
   }
 
   async connect() {
@@ -54,12 +59,14 @@ export class MemberSystemModel {
     this.sessions = db.collection(USER_SESSIONS_COLLECTION);
     this.smsCodes = db.collection(USER_SMS_CODES_COLLECTION);
     this.signIns = db.collection(USER_SIGN_INS_COLLECTION);
+    this.lotteryChanceLogs = db.collection(USER_LOTTERY_CHANCE_LOGS_COLLECTION);
+    this.signInRewardRecords = db.collection(USER_SIGN_IN_REWARD_RECORDS_COLLECTION);
     await this._ensureDefaults();
     return this;
   }
 
   async _ensureConnected() {
-    if (!this.users || !this.sessions || !this.smsCodes || !this.signIns) {
+    if (!this.users || !this.sessions || !this.smsCodes || !this.signIns || !this.lotteryChanceLogs || !this.signInRewardRecords) {
       await this.connect();
     }
   }
@@ -81,8 +88,12 @@ export class MemberSystemModel {
       updatedAt: nowIso(),
       lastLoginAt: '',
       lastSignInDate: '',
+      currentSignInCycleStart: '',
       signInStreak: 0,
       totalSignInDays: 0,
+      lotteryChanceBalance: 0,
+      totalLotteryChances: 0,
+      totalLotteryDraws: 0,
     });
   }
 
@@ -99,8 +110,12 @@ export class MemberSystemModel {
       updatedAt: user.updatedAt,
       lastLoginAt: user.lastLoginAt || '',
       lastSignInDate: user.lastSignInDate || '',
+      currentSignInCycleStart: user.currentSignInCycleStart || '',
       signInStreak: Number(user.signInStreak || 0),
       totalSignInDays: Number(user.totalSignInDays || 0),
+      lotteryChanceBalance: Number(user.lotteryChanceBalance || 0),
+      totalLotteryChances: Number(user.totalLotteryChances || 0),
+      totalLotteryDraws: Number(user.totalLotteryDraws || 0),
       defaultPassword: user.defaultPassword || '',
     };
   }
@@ -160,8 +175,12 @@ export class MemberSystemModel {
       updatedAt: nowIso(),
       lastLoginAt: '',
       lastSignInDate: '',
+      currentSignInCycleStart: '',
       signInStreak: 0,
       totalSignInDays: 0,
+      lotteryChanceBalance: 0,
+      totalLotteryChances: 0,
+      totalLotteryDraws: 0,
     });
     return await this.sanitizeUser(inserted);
   }
@@ -333,11 +352,18 @@ export class MemberSystemModel {
         alreadySigned: true,
         signInStreak: Number(user.signInStreak || 0),
         totalSignInDays: Number(user.totalSignInDays || 0),
+        lotteryChanceBalance: Number(user.lotteryChanceBalance || 0),
+        totalLotteryChances: Number(user.totalLotteryChances || 0),
+        chanceGranted: 0,
+        streakRewardChanceGranted: 0,
       };
     }
 
     const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
     const nextStreak = user.lastSignInDate === yesterday ? Number(user.signInStreak || 0) + 1 : 1;
+    const cycleStartKey = user.lastSignInDate === yesterday
+      ? (user.currentSignInCycleStart || dayjs().subtract(nextStreak - 1, 'day').format('YYYY-MM-DD'))
+      : today;
     const totalSignInDays = Number(user.totalSignInDays || 0) + 1;
     await this.signIns.insertOne({
       userId,
@@ -349,17 +375,173 @@ export class MemberSystemModel {
       {
         $set: {
           lastSignInDate: today,
+          currentSignInCycleStart: cycleStartKey,
           signInStreak: nextStreak,
           totalSignInDays,
           updatedAt: nowIso(),
         },
       }
     );
+    const chanceState = await this.grantLotteryChance(userId, {
+      count: 1,
+      source: 'check_in',
+      dayKey: today,
+      meta: { signInStreak: nextStreak },
+    });
+    const streakRewardResult = await this.grantStreakRewards(userId, {
+      signInStreak: nextStreak,
+      dayKey: today,
+      cycleStartKey,
+    });
     return {
       alreadySigned: false,
       signInStreak: nextStreak,
       totalSignInDays,
       signedAt: nowIso(),
+      lotteryChanceBalance: chanceState.lotteryChanceBalance,
+      totalLotteryChances: chanceState.totalLotteryChances + Number(streakRewardResult.extraChanceGranted || 0),
+      chanceGranted: 1 + Number(streakRewardResult.extraChanceGranted || 0),
+      baseChanceGranted: 1,
+      streakRewardChanceGranted: Number(streakRewardResult.extraChanceGranted || 0),
+      streakRewardRecords: streakRewardResult.records || [],
+    };
+  }
+
+  async getSignInRewardDays() {
+    await this._ensureConnected();
+    const runtime = await environmentVariableModel.getRuntimeConfig(['member.sign_in_reward_days']);
+    const rawValue = Array.isArray(runtime['member.sign_in_reward_days'])
+      ? runtime['member.sign_in_reward_days']
+      : [3, 7, 14];
+    const values = rawValue
+      .map((item) => Number(item))
+      .filter((item) => Number.isFinite(item) && item > 0);
+    return uniqueList(values).sort((a, b) => a - b);
+  }
+
+  async grantStreakRewards(userId, options = {}) {
+    await this._ensureConnected();
+    const {
+      signInStreak = 0,
+      dayKey = todayKey(),
+      cycleStartKey = dayKey,
+    } = options;
+    const rewardDays = await this.getSignInRewardDays();
+    const rewardableDays = rewardDays.filter((day) => day <= Number(signInStreak || 0));
+    if (!rewardableDays.length) {
+      return { extraChanceGranted: 0, records: [] };
+    }
+    const existing = await this.signInRewardRecords.find({ userId, cycleStartKey }).toArray();
+    const grantedDays = new Set(existing.map((item) => Number(item.rewardDay || 0)));
+    const pendingDays = rewardableDays.filter((day) => !grantedDays.has(day));
+    if (!pendingDays.length) {
+      return { extraChanceGranted: 0, records: [] };
+    }
+    const records = [];
+    for (const rewardDay of pendingDays) {
+      await this.grantLotteryChance(userId, {
+        count: 1,
+        source: 'sign_in_streak_reward',
+        dayKey,
+        meta: {
+          rewardDay,
+          cycleStartKey,
+        },
+      });
+      const record = await this.signInRewardRecords.insertOne({
+        userId,
+        rewardDay,
+        rewardType: 'lottery_chance',
+        rewardCount: 1,
+        cycleStartKey,
+        signInStreak: Number(signInStreak || 0),
+        grantedAt: nowIso(),
+        dayKey,
+        status: 'claimed',
+      });
+      records.push(record);
+    }
+    return {
+      extraChanceGranted: pendingDays.length,
+      records,
+    };
+  }
+
+  async listSignInRewardRecords(filters = {}) {
+    await this._ensureConnected();
+    const { userId = '', cycleStartKey = '' } = filters;
+    let records = await this.signInRewardRecords.find({}).toArray();
+    if (userId) records = records.filter((item) => item.userId === userId);
+    if (cycleStartKey) records = records.filter((item) => item.cycleStartKey === cycleStartKey);
+    records.sort((a, b) => (a.grantedAt < b.grantedAt ? 1 : -1));
+    return records;
+  }
+
+  async getSignInRewardProgress(userId) {
+    await this._ensureConnected();
+    const user = await this.users.findOne({ _id: userId });
+    if (!user) throw new Error('用户不存在');
+    const rewardDays = await this.getSignInRewardDays();
+    const cycleStartKey = user.currentSignInCycleStart || '';
+    const records = cycleStartKey
+      ? await this.listSignInRewardRecords({ userId, cycleStartKey })
+      : [];
+    const recordMap = new Map(records.map((item) => [Number(item.rewardDay || 0), item]));
+    let prevDay = 0;
+    let nextTargetDay = rewardDays[rewardDays.length - 1] || 0;
+    let progressPercent = rewardDays.length ? 100 : 0;
+    let remainDays = 0;
+
+    for (const day of rewardDays) {
+      if (Number(user.signInStreak || 0) < day) {
+        nextTargetDay = day;
+        const span = Math.max(1, day - prevDay);
+        progressPercent = Math.min(100, Math.round((Math.max(0, Number(user.signInStreak || 0) - prevDay) / span) * 100));
+        remainDays = Math.max(0, day - Number(user.signInStreak || 0));
+        break;
+      }
+      prevDay = day;
+    }
+
+    const completed = rewardDays.length
+      ? Number(user.signInStreak || 0) >= rewardDays[rewardDays.length - 1]
+      : false;
+    if (completed) {
+      nextTargetDay = rewardDays[rewardDays.length - 1] || 0;
+      progressPercent = 100;
+      remainDays = 0;
+    }
+
+    return {
+      rewardDays,
+      currentStreak: Number(user.signInStreak || 0),
+      cycleStartKey,
+      completed,
+      nextTargetDay,
+      progressPercent,
+      remainDays,
+      stages: rewardDays.map((day) => {
+        const record = recordMap.get(day);
+        const reached = Number(user.signInStreak || 0) >= day;
+        let status = 'locked';
+        if (record) {
+          status = 'claimed';
+        } else if (reached) {
+          status = 'reached';
+        } else if (day === nextTargetDay) {
+          status = 'current';
+        }
+        return {
+          day,
+          rewardType: 'lottery_chance',
+          rewardCount: 1,
+          rewardLabel: '额外 1 次抽奖机会',
+          status,
+          reached,
+          claimedAt: record?.grantedAt || '',
+          cycleStartKey: record?.cycleStartKey || cycleStartKey,
+        };
+      }),
     };
   }
 
@@ -383,6 +565,116 @@ export class MemberSystemModel {
     }));
   }
 
+  async grantLotteryChance(userId, options = {}) {
+    await this._ensureConnected();
+    const {
+      count = 1,
+      source = 'manual',
+      dayKey = '',
+      meta = {},
+    } = options;
+    const user = await this.users.findOne({ _id: userId });
+    if (!user) throw new Error('用户不存在');
+    const nextCount = Math.max(1, Number(count || 1));
+    const nextBalance = Number(user.lotteryChanceBalance || 0) + nextCount;
+    const totalLotteryChances = Number(user.totalLotteryChances || 0) + nextCount;
+    const createdAt = nowIso();
+    const log = await this.lotteryChanceLogs.insertOne({
+      userId,
+      type: 'grant',
+      delta: nextCount,
+      balanceAfter: nextBalance,
+      source,
+      dayKey,
+      meta,
+      createdAt,
+    });
+    await this.users.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          lotteryChanceBalance: nextBalance,
+          totalLotteryChances,
+          updatedAt: createdAt,
+        },
+      }
+    );
+    return {
+      log,
+      lotteryChanceBalance: nextBalance,
+      totalLotteryChances,
+      totalLotteryDraws: Number(user.totalLotteryDraws || 0),
+    };
+  }
+
+  async consumeLotteryChance(userId, options = {}) {
+    await this._ensureConnected();
+    const {
+      count = 1,
+      source = 'lucky_draw',
+      dayKey = '',
+      meta = {},
+    } = options;
+    const user = await this.users.findOne({ _id: userId });
+    if (!user) throw new Error('用户不存在');
+    const nextCount = Math.max(1, Number(count || 1));
+    const currentBalance = Number(user.lotteryChanceBalance || 0);
+    if (currentBalance < nextCount) {
+      throw new Error('当前抽奖机会不足，请先签到获取抽奖机会');
+    }
+    const nextBalance = currentBalance - nextCount;
+    const totalLotteryDraws = Number(user.totalLotteryDraws || 0) + nextCount;
+    const createdAt = nowIso();
+    const log = await this.lotteryChanceLogs.insertOne({
+      userId,
+      type: 'consume',
+      delta: -nextCount,
+      balanceAfter: nextBalance,
+      source,
+      dayKey,
+      meta,
+      createdAt,
+    });
+    await this.users.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          lotteryChanceBalance: nextBalance,
+          totalLotteryDraws,
+          updatedAt: createdAt,
+        },
+      }
+    );
+    return {
+      log,
+      lotteryChanceBalance: nextBalance,
+      totalLotteryChances: Number(user.totalLotteryChances || 0),
+      totalLotteryDraws,
+    };
+  }
+
+  async listLotteryChanceLogs(filters = {}) {
+    await this._ensureConnected();
+    const { userId = '', source = '', type = '' } = filters;
+    let logs = await this.lotteryChanceLogs.find({}).toArray();
+    if (userId) logs = logs.filter((item) => item.userId === userId);
+    if (source) logs = logs.filter((item) => item.source === source);
+    if (type) logs = logs.filter((item) => item.type === type);
+    logs.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    const users = await this.users.find({}).toArray();
+    const userMap = new Map(users.map((item) => [item._id, item]));
+    return logs.map((item) => ({
+      ...item,
+      user: userMap.has(item.userId)
+        ? {
+            _id: item.userId,
+            phone: userMap.get(item.userId).phone,
+            nickname: userMap.get(item.userId).nickname,
+          }
+        : null,
+    }));
+  }
+
   async getDashboardStats() {
     await this._ensureConnected();
     const users = await this.users.find({}).toArray();
@@ -393,6 +685,7 @@ export class MemberSystemModel {
       todaySignedUsers: (await this.signIns.find({ dayKey: today }).toArray()).length,
       maleUsers: users.filter((item) => item.gender === 'male').length,
       femaleUsers: users.filter((item) => item.gender === 'female').length,
+      totalLotteryChanceBalance: users.reduce((sum, item) => sum + Number(item.lotteryChanceBalance || 0), 0),
     };
   }
 }

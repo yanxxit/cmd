@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 const COUPONS_COLLECTION = 'shopping_coupons';
 const COUPON_CLAIMS_COLLECTION = 'shopping_coupon_claims';
 const COUPON_USAGES_COLLECTION = 'shopping_coupon_usages';
+const LUCKY_DRAW_RECORDS_COLLECTION = 'shopping_coupon_lucky_draw_records';
 
 function nowIso() {
   return new Date().toISOString();
@@ -28,6 +29,7 @@ export class CouponSystemModel {
     this.coupons = null;
     this.claims = null;
     this.usages = null;
+    this.luckyDrawRecords = null;
   }
 
   async connect() {
@@ -35,12 +37,13 @@ export class CouponSystemModel {
     this.coupons = db.collection(COUPONS_COLLECTION);
     this.claims = db.collection(COUPON_CLAIMS_COLLECTION);
     this.usages = db.collection(COUPON_USAGES_COLLECTION);
+    this.luckyDrawRecords = db.collection(LUCKY_DRAW_RECORDS_COLLECTION);
     await this._ensureDefaults();
     return this;
   }
 
   async _ensureConnected() {
-    if (!this.coupons || !this.claims || !this.usages) {
+    if (!this.coupons || !this.claims || !this.usages || !this.luckyDrawRecords) {
       await this.connect();
     }
   }
@@ -244,6 +247,50 @@ export class CouponSystemModel {
     }));
   }
 
+  async listLuckyDrawRecords(filters = {}) {
+    await this._ensureConnected();
+    const { userId = '', resultType = '', startAt = '', endAt = '' } = filters;
+    let records = await this.luckyDrawRecords.find({}).toArray();
+    if (userId) records = records.filter((item) => item.userId === userId);
+    if (resultType) records = records.filter((item) => item.resultType === resultType);
+    if (startAt) {
+      const startValue = dayjs(startAt).valueOf();
+      if (Number.isFinite(startValue)) {
+        records = records.filter((item) => dayjs(item.drawAt).valueOf() >= startValue);
+      }
+    }
+    if (endAt) {
+      const endValue = dayjs(endAt).valueOf();
+      if (Number.isFinite(endValue)) {
+        records = records.filter((item) => dayjs(item.drawAt).valueOf() <= endValue);
+      }
+    }
+    records.sort((a, b) => (a.drawAt < b.drawAt ? 1 : -1));
+    const coupons = await this.coupons.find({}).toArray();
+    const users = await (await getAdminDatabase(this.options)).collection('member_users').find({}).toArray();
+    const couponMap = new Map(coupons.map((item) => [item._id, item]));
+    const userMap = new Map(users.map((item) => [item._id, item]));
+    return records.map((item) => ({
+      ...item,
+      coupon: item.couponId && couponMap.get(item.couponId)
+        ? {
+            _id: item.couponId,
+            title: couponMap.get(item.couponId).title,
+            type: couponMap.get(item.couponId).type,
+            conditionAmount: Number(couponMap.get(item.couponId).conditionAmount || 0),
+            benefitValue: Number(couponMap.get(item.couponId).benefitValue || 0),
+          }
+        : null,
+      user: userMap.get(item.userId)
+        ? {
+            _id: item.userId,
+            phone: userMap.get(item.userId).phone,
+            nickname: userMap.get(item.userId).nickname,
+          }
+        : null,
+    }));
+  }
+
   async _createClaimRecord({ coupon, user, source = 'manual_grant', operatorId = '', meta = {}, dayKey = '' }) {
     const claimCount = await this.claims.find({ couponId: coupon._id, userId: user._id }).toArray();
     if (coupon.perUserLimit > 0 && claimCount.length >= coupon.perUserLimit) {
@@ -306,24 +353,80 @@ export class CouponSystemModel {
     });
   }
 
-  async luckyDraw(user) {
-    await this._ensureConnected();
-    const today = todayKey();
-    const todayClaims = await this.claims.find({ userId: user._id, source: 'lucky_draw', dayKey: today }).toArray();
-    if (todayClaims.length > 0) {
-      throw new Error('今天已经参与过大转盘');
+  async _isCouponClaimableForUser(coupon, user) {
+    if (!coupon || !user) return false;
+    if (coupon.status !== 'active') return false;
+    if (coupon.totalQuantity > 0 && Number(coupon.claimedCount || 0) >= coupon.totalQuantity) {
+      return false;
     }
-    const prizes = (await this.coupons.find({ status: 'active' }).toArray()).slice(0, 10);
-    const coupon = randomPick(prizes);
-    if (!coupon) throw new Error('当前没有可抽取的奖品');
-    return await this._createClaimRecord({
-      coupon,
-      user,
-      source: 'lucky_draw',
-      meta: { reason: 'lucky_draw' },
-      operatorId: '',
+    const claimCount = await this.claims.find({ couponId: coupon._id, userId: user._id }).toArray();
+    if (coupon.perUserLimit > 0 && claimCount.length >= coupon.perUserLimit) {
+      return false;
+    }
+    return true;
+  }
+
+  async luckyDraw(user, options = {}) {
+    await this._ensureConnected();
+    const {
+      allowEmpty = true,
+      emptyRate = 0.25,
+      prizePoolSize = 10,
+      meta = {},
+      emptySlotCount = 2,
+    } = options;
+    const today = todayKey();
+    const activeCoupons = (await this.coupons.find({ status: 'active' }).toArray()).slice(0, prizePoolSize);
+    const eligibleCoupons = [];
+    for (const coupon of activeCoupons) {
+      if (await this._isCouponClaimableForUser(coupon, user)) {
+        eligibleCoupons.push(coupon);
+      }
+    }
+
+    let resultType = 'empty';
+    let coupon = null;
+    let claim = null;
+
+    const shouldUseEmpty = allowEmpty && (!eligibleCoupons.length || Math.random() < emptyRate);
+    if (!shouldUseEmpty && eligibleCoupons.length) {
+      coupon = randomPick(eligibleCoupons);
+      claim = await this._createClaimRecord({
+        coupon,
+        user,
+        source: 'lucky_draw',
+        meta: { reason: 'lucky_draw', ...meta },
+        operatorId: '',
+        dayKey: today,
+      });
+      resultType = 'coupon';
+    }
+
+    const drawAt = nowIso();
+    const emptySlotIndex = resultType === 'empty' ? Math.floor(Math.random() * Math.max(1, emptySlotCount)) : -1;
+    const record = await this.luckyDrawRecords.insertOne({
+      userId: user._id,
+      couponId: coupon?._id || '',
+      claimId: claim?._id || '',
+      resultType,
+      drawAt,
       dayKey: today,
+      emptySlotIndex,
+      meta: {
+        ...meta,
+        allowEmpty,
+        emptyRate,
+      },
     });
+
+    return {
+      recordId: record._id,
+      resultType,
+      drawAt,
+      emptySlotIndex: Number(emptySlotIndex || 0),
+      claimId: claim?._id || '',
+      coupon: coupon ? await this.sanitizeCoupon(coupon) : null,
+    };
   }
 
   async useCoupon({ userId, claimId, orderAmount = 0 }) {
@@ -374,6 +477,7 @@ export class CouponSystemModel {
     const coupons = await this.coupons.find({}).toArray();
     const claims = await this.claims.find({}).toArray();
     const usages = await this.usages.find({}).toArray();
+    const drawRecords = await this.luckyDrawRecords.find({}).toArray();
     return {
       totalCoupons: coupons.length,
       activeCoupons: coupons.filter((item) => item.status === 'active').length,
@@ -384,6 +488,8 @@ export class CouponSystemModel {
       dailyRandomClaims: claims.filter((item) => item.source === 'daily_random').length,
       luckyDrawClaims: claims.filter((item) => item.source === 'lucky_draw').length,
       manualGrantClaims: claims.filter((item) => item.source === 'manual_grant').length,
+      totalLuckyDraws: drawRecords.length,
+      emptyLuckyDraws: drawRecords.filter((item) => item.resultType === 'empty').length,
     };
   }
 

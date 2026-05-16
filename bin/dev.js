@@ -57,6 +57,7 @@ function printServerInfo(port, autoOpen = false) {
     console.log(`║    • 手机号生成器： ${`${baseUrl}/phone-number-generator/`.padEnd(31)}║`);
     console.log(`║    • 测试案例管理： ${`${baseUrl}/test-case-manager/`.padEnd(31)}║`);
     console.log(`║    • 会员中心： ${`${baseUrl}/test-case-manager/member-center`.padEnd(35)}║`);
+    console.log(`║    • 用户H5登录： ${`${baseUrl}/test-case-manager/member-h5`.padEnd(33)}║`);
     console.log(`║    • 测试用户生成： ${`${baseUrl}/test-user-generator/`.padEnd(31)}║`);
     console.log(`║    • 任务管理： ${`${baseUrl}/task-manager/`.padEnd(34)}║`);
     console.log('║                                                          ║');

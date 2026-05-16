@@ -69,6 +69,15 @@ router.get('/prizes', requireAdminPermission('lottery.view'), async (req, res) =
   }
 });
 
+router.get('/draw-records', requireAdminPermission('lottery.view'), async (req, res) => {
+  try {
+    const records = await couponSystemModel.listLuckyDrawRecords(req.query || {});
+    res.json({ success: true, data: records });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.post('/', requireAdminPermission('coupons.manage'), async (req, res) => {
   try {
     const coupon = await couponSystemModel.createCoupon(req.body || {});

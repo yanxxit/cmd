@@ -47,9 +47,6 @@ export class EnvironmentVariableModel {
   }
 
   async _ensureDefaults() {
-    const count = await this.collection.countDocuments();
-    if (count > 0) return;
-
     const defaults = [
       {
         key: 'site.title',
@@ -69,14 +66,28 @@ export class EnvironmentVariableModel {
         enabled: true,
         value: true,
       },
+      {
+        key: 'member.sign_in_reward_days',
+        title: '连续签到奖励天数',
+        group: '用户运营',
+        description: '用于控制连续签到奖励阈值，数组元素表示达到该天数后自动发放一次抽奖机会',
+        type: 'array',
+        arrayItemType: 'number',
+        enabled: true,
+        value: [3, 7, 14],
+      },
     ];
 
     for (const item of defaults) {
-      await this.collection.insertOne({
-        ...item,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
+      const existing = await this.collection.findOne({ key: item.key });
+      if (!existing) {
+        await this.collection.insertOne({
+          ...item,
+          valuePreview: getValuePreview(item.type, item.value),
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      }
     }
   }
 
