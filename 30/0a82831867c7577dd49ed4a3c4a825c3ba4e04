@@ -1,0 +1,98 @@
+libs.md
+  162aeb1483d9a2a0 24 gitai:{"mixed_line_ranges":[{"Single":24}],"operations":[]}
+  027ef3ed5f56bea7 23 gitai:{"mixed_line_ranges":[{"Single":23}],"operations":[]}
+public/libs/hello.js
+  d8c128fa11427ee4 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "300a82831867c7577dd49ed4a3c4a825c3ba4e04",
+  "prompts": {
+    "027ef3ed5f56bea7": {
+      "agent_id": {
+        "tool": "trae-cue",
+        "id": "ai_tab-icr-7425af49-c5bb-406f-9ad5-98c2f4c9f313",
+        "model": "default"
+      },
+      "human_author": "yanxxit <yanxxit@163.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 1
+    },
+    "162aeb1483d9a2a0": {
+      "agent_id": {
+        "tool": "trae-cue",
+        "id": "ai_tab-icr-2efdb0b0-aa76-43ea-ab5b-722db9d1c9a0",
+        "model": "default"
+      },
+      "human_author": "yanxxit <yanxxit@163.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 1
+    },
+    "22e10eb8f3109ca4": {
+      "agent_id": {
+        "tool": "trae-cue",
+        "id": "ai_tab-icr-53ca8437-c2e3-4565-b2ac-32b377807385",
+        "model": "default"
+      },
+      "human_author": "yanxxit <yanxxit@163.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    },
+    "d8c128fa11427ee4": {
+      "agent_id": {
+        "tool": "trae-cue",
+        "id": "ai_tab-icr-920b229b-30d3-444b-a966-d27262279ad8",
+        "model": "default"
+      },
+      "human_author": "yanxxit <yanxxit@163.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  },
+  "attestation_metadata": {
+    "libs.md": [
+      {
+        "hash": "162aeb1483d9a2a0",
+        "line_ranges": [
+          {
+            "Single": 24
+          }
+        ],
+        "mixed_line_ranges": [
+          {
+            "Single": 24
+          }
+        ],
+        "operations": []
+      },
+      {
+        "hash": "027ef3ed5f56bea7",
+        "line_ranges": [
+          {
+            "Single": 23
+          }
+        ],
+        "mixed_line_ranges": [
+          {
+            "Single": 23
+          }
+        ],
+        "operations": []
+      }
+    ]
+  },
+  "remote_transcripts": {}
+}
