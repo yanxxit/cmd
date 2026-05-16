@@ -10,8 +10,18 @@ const router = express.Router();
 
 router.use(ensureAdminSystemConnected);
 router.use(requireAdminAuth);
+router.use(async (req, res, next) => {
+  try {
+    if (!shortLinkModel.collection) {
+      await shortLinkModel.connect();
+    }
+    next();
+  } catch (error) {
+    res.status(500).json({ success: false, error: '短链接系统初始化失败：' + error.message });
+  }
+});
 
-router.get('/', requireAdminPermission('articles.view'), async (req, res) => {
+router.get('/', requireAdminPermission('shortlinks.view'), async (req, res) => {
   try {
     const items = await shortLinkModel.list(req.query || {});
     res.json({ success: true, data: items });
@@ -20,7 +30,7 @@ router.get('/', requireAdminPermission('articles.view'), async (req, res) => {
   }
 });
 
-router.post('/', requireAdminPermission('articles.manage'), async (req, res) => {
+router.post('/', requireAdminPermission('shortlinks.manage'), async (req, res) => {
   try {
     const item = await shortLinkModel.create(req.body || {});
     res.status(201).json({ success: true, data: item });
@@ -29,7 +39,7 @@ router.post('/', requireAdminPermission('articles.manage'), async (req, res) => 
   }
 });
 
-router.put('/:id', requireAdminPermission('articles.manage'), async (req, res) => {
+router.put('/:id', requireAdminPermission('shortlinks.manage'), async (req, res) => {
   try {
     const item = await shortLinkModel.update(req.params.id, req.body || {});
     res.json({ success: true, data: item });
@@ -39,7 +49,7 @@ router.put('/:id', requireAdminPermission('articles.manage'), async (req, res) =
   }
 });
 
-router.delete('/:id', requireAdminPermission('articles.manage'), async (req, res) => {
+router.delete('/:id', requireAdminPermission('shortlinks.manage'), async (req, res) => {
   try {
     await shortLinkModel.delete(req.params.id);
     res.json({ success: true, data: true });

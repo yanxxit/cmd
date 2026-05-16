@@ -445,6 +445,15 @@ body[data-theme="dark"] .user-profile:hover {
   white-space: nowrap;
 }
 
+.table-link-ellipsis {
+  display: inline-block;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
 .runtime-json-block {
   margin: 0;
   padding: 14px 16px;

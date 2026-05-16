@@ -40,7 +40,7 @@ export class ShortLinkModel {
 
   async list(filters = {}) {
     await this._ensureConnected();
-    const { type = '', resourceId = '', active = '' } = filters;
+    const { type = '', resourceId = '', active = '', keyword = '', sortBy = 'updatedAt' } = filters;
     let items = await this.collection.find({}).toArray();
     if (type) items = items.filter((item) => item.type === type);
     if (resourceId) items = items.filter((item) => item.resourceId === resourceId);
@@ -48,7 +48,24 @@ export class ShortLinkModel {
       const nextActive = String(active) === 'true';
       items = items.filter((item) => (item.active !== false) === nextActive);
     }
-    items.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+    if (keyword) {
+      const lower = String(keyword).toLowerCase();
+      items = items.filter((item) =>
+        String(item.code || '').toLowerCase().includes(lower) ||
+        String(item.title || '').toLowerCase().includes(lower) ||
+        String(item.targetUrl || '').toLowerCase().includes(lower) ||
+        String(item.resourceId || '').toLowerCase().includes(lower)
+      );
+    }
+    items.sort((a, b) => {
+      if (sortBy === 'hitCount') {
+        return Number(b.hitCount || 0) - Number(a.hitCount || 0);
+      }
+      if (sortBy === 'createdAt') {
+        return a.createdAt < b.createdAt ? 1 : -1;
+      }
+      return a.updatedAt < b.updatedAt ? 1 : -1;
+    });
     return await Promise.all(items.map((item) => this.sanitize(item)));
   }
 

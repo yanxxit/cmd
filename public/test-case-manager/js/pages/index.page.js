@@ -14,6 +14,12 @@ const [
   { default: CollectionsPage },
   { default: EnvsPage },
   { default: ArticlesPage },
+  { default: ShortLinksPage },
+  { default: MembersPage },
+  { default: CouponsPage },
+  { default: CouponClaimsPage },
+  { default: CouponUsagesPage },
+  { default: LotteryPage },
   { default: AdminUsersPage },
   { default: RolesPage },
   { default: AccountPage },
@@ -25,6 +31,12 @@ const [
   import(window.getModuleUrl('./js/pages/collections.page.js')),
   import(window.getModuleUrl('./js/pages/envs.page.js')),
   import(window.getModuleUrl('./js/pages/articles.page.js')),
+  import(window.getModuleUrl('./js/pages/shortlinks.page.js')),
+  import(window.getModuleUrl('./js/pages/members.page.js')),
+  import(window.getModuleUrl('./js/pages/coupons.page.js')),
+  import(window.getModuleUrl('./js/pages/coupon-claims.page.js')),
+  import(window.getModuleUrl('./js/pages/coupon-usages.page.js')),
+  import(window.getModuleUrl('./js/pages/lottery.page.js')),
   import(window.getModuleUrl('./js/pages/admin-users.page.js')),
   import(window.getModuleUrl('./js/pages/roles.page.js')),
   import(window.getModuleUrl('./js/pages/account.page.js')),
@@ -68,6 +80,50 @@ const PAGE_REGISTRY = {
     icon: 'newspaper',
     Component: ArticlesPage,
   },
+  shortlinks: {
+    title: '短链接管理',
+    section: '内容管理',
+    permission: 'shortlinks.view',
+    icon: 'link',
+    Component: ShortLinksPage,
+  },
+  members: {
+    title: '用户管理',
+    section: '用户运营',
+    permission: 'users.view',
+    icon: 'users',
+    Component: MembersPage,
+  },
+  coupons: {
+    title: '优惠券管理',
+    section: '用户运营',
+    permission: 'coupons.view',
+    icon: 'ticket-percent',
+    Component: CouponsPage,
+  },
+  couponClaims: {
+    title: '领取记录',
+    section: '用户运营',
+    permission: 'coupons.view',
+    icon: 'receipt-text',
+    Component: CouponClaimsPage,
+    hidden: true,
+  },
+  couponUsages: {
+    title: '使用记录',
+    section: '用户运营',
+    permission: 'coupons.view',
+    icon: 'scroll-text',
+    Component: CouponUsagesPage,
+    hidden: true,
+  },
+  lottery: {
+    title: '活动大转盘',
+    section: '用户运营',
+    permission: 'lottery.view',
+    icon: 'badge-percent',
+    Component: LotteryPage,
+  },
   admins: {
     title: '管理员列表',
     section: '系统管理',
@@ -102,7 +158,7 @@ function getAvailablePages(admin) {
 }
 
 function buildMenuItems(admin) {
-  return getAvailablePages(admin).map((page) => ({
+  return getAvailablePages(admin).filter((page) => !page.hidden).map((page) => ({
     key: page.key,
     icon: h('i', { 'data-lucide': page.icon, className: 'menu-svg' }),
     label: page.title,
@@ -117,6 +173,7 @@ function getInitials(name) {
 
 function App() {
   const [activeMenu, setActiveMenu] = useState('dashboard');
+  const [pagePayload, setPagePayload] = useState(null);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1');
   const [dark, setDark] = useState(() => localStorage.getItem(THEME_KEY) === 'dark');
   const [authLoading, setAuthLoading] = useState(true);
@@ -125,6 +182,12 @@ function App() {
 
   const availablePages = useMemo(() => getAvailablePages(currentAdmin), [currentAdmin]);
   const menuItems = useMemo(() => buildMenuItems(currentAdmin), [currentAdmin]);
+
+  const navigate = (pageKey, payload = null) => {
+    if (!PAGE_REGISTRY[pageKey]) return;
+    setActiveMenu(pageKey);
+    setPagePayload(payload);
+  };
 
   const refreshAdminStats = async () => {
     try {
@@ -187,7 +250,7 @@ function App() {
     if (!firstAvailableKey) return;
     const stillVisible = availablePages.some((page) => page.key === activeMenu);
     if (!stillVisible) {
-      setActiveMenu(firstAvailableKey);
+      navigate(firstAvailableKey, null);
     }
   }, [activeMenu, availablePages]);
 
@@ -204,6 +267,7 @@ function App() {
     setCurrentAdmin(null);
     setAdminStats(null);
     setActiveMenu('dashboard');
+    setPagePayload(null);
     if (showMessage) {
       message.success('已退出登录');
     }
@@ -215,7 +279,7 @@ function App() {
     await refreshAdminStats();
     const firstAvailableKey = getAvailablePages(admin)[0]?.key;
     if (firstAvailableKey) {
-      setActiveMenu(firstAvailableKey);
+      navigate(firstAvailableKey, null);
     }
   };
 
@@ -245,7 +309,7 @@ function App() {
         return;
       }
       if (PAGE_REGISTRY[key]) {
-        setActiveMenu(key);
+        navigate(key, null);
       }
     },
   };
@@ -258,6 +322,8 @@ function App() {
     return h(Page, {
       currentAdmin,
       adminStats,
+      navigate,
+      pagePayload,
       onPasswordChanged: () => handleLogout(false),
     });
   };
@@ -346,7 +412,7 @@ function App() {
           mode: 'inline',
           selectedKeys: [activeMenu],
           items: menuItems,
-          onClick: ({ key }) => setActiveMenu(key),
+          onClick: ({ key }) => navigate(key, null),
           className: 'app-menu',
         }),
         h(

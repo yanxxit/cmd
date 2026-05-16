@@ -9,3 +9,5 @@ export { AdminSystemModel, adminSystemModel, getAdminSystemModel, adminPermissio
 export { EnvironmentVariableModel, environmentVariableModel, getEnvironmentVariableModel } from './EnvironmentVariable.js';
 export { ArticleModel, articleModel, getArticleModel } from './Article.js';
 export { ShortLinkModel, shortLinkModel, getShortLinkModel } from './ShortLink.js';
+export { MemberSystemModel, memberSystemModel, getMemberSystemModel } from './MemberSystem.js';
+export { CouponSystemModel, couponSystemModel, getCouponSystemModel } from './CouponSystem.js';
