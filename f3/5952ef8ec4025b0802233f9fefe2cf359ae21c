@@ -1,0 +1,55 @@
+public/test-case-manager/index.html
+  e732bab2266a7ff8 25 gitai:{"mixed_line_ranges":[{"Single":25}],"operations":[]}
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "f35952ef8ec4025b0802233f9fefe2cf359ae21c",
+  "prompts": {
+    "8e7d39e17c937e0f": {
+      "agent_id": {
+        "tool": "trae-cue",
+        "id": "ai_tab-icr-51c35ac2-c7dc-4627-b2c3-0759256ee5f6",
+        "model": "default"
+      },
+      "human_author": "yanxxit <yanxxit@163.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    },
+    "e732bab2266a7ff8": {
+      "agent_id": {
+        "tool": "trae-cue",
+        "id": "ai_tab-icr-aec9c610-7cb6-4f93-bc77-74951994b88a",
+        "model": "default"
+      },
+      "human_author": "yanxxit <yanxxit@163.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 1
+    }
+  },
+  "attestation_metadata": {
+    "public/test-case-manager/index.html": [
+      {
+        "hash": "e732bab2266a7ff8",
+        "line_ranges": [
+          {
+            "Single": 25
+          }
+        ],
+        "mixed_line_ranges": [
+          {
+            "Single": 25
+          }
+        ],
+        "operations": []
+      }
+    ]
+  },
+  "remote_transcripts": {}
+}
