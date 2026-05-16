@@ -13,6 +13,9 @@ import pomodoroApiRouter from './pomodoro-api.js';
 import taskManagerApiRouter from './task-manager-api.js';
 import testCaseApiRouter from './test-case-api.js';
 import testCaseCollectionApiRouter from './test-case-collection-api.js';
+import adminAuthApiRouter from './admin-auth-api.js';
+import adminUsersApiRouter from './admin-users-api.js';
+import adminRolesApiRouter from './admin-roles-api.js';
 import authApiRouter from './auth-api.js';
 import httpbinApiRouter from './httpbin-api.js';
 import mockApiRouter from './mock-api.js';
@@ -106,6 +109,9 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/api/tasks', taskManagerApiRouter);
   app.use('/api/test-cases', testCaseApiRouter);
   app.use('/api/test-case-collections', testCaseCollectionApiRouter);
+  app.use('/api/admin-auth', adminAuthApiRouter);
+  app.use('/api/admin-users', adminUsersApiRouter);
+  app.use('/api/admin-roles', adminRolesApiRouter);
 
   // 挂载文件查看器路由（通用 /api 路由，放在最后）
   app.use('/api', fileViewerRouter);

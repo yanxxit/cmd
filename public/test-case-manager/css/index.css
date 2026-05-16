@@ -33,8 +33,60 @@ body[data-theme="dark"] {
   overflow: hidden;
 }
 
+.loading-shell {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tcm-bg);
+}
+
 .app-container {
   height: 100vh;
+}
+
+/* ============== 登录页 ============== */
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.2fr 520px;
+  background:
+    radial-gradient(circle at top left, rgba(22, 119, 255, 0.24), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(114, 46, 209, 0.2), transparent 26%),
+    linear-gradient(135deg, #06142b 0%, #0c1f3f 45%, #111b2e 100%);
+}
+
+.login-hero {
+  padding: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-hero-badge {
+  width: fit-content;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  margin-bottom: 20px;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+}
+
+.login-tip-item {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.login-card {
+  align-self: center;
+  justify-self: center;
+  width: min(420px, calc(100% - 40px));
+  border-radius: 18px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
 }
 
 /* ============== 侧边栏 ============== */
@@ -71,7 +123,8 @@ body[data-theme="dark"] {
   box-shadow: 0 2px 8px rgba(22, 119, 255, 0.4);
 }
 
-.sidebar .logo-icon i {
+.sidebar .logo-icon i,
+.sidebar .logo-icon .anticon {
   width: 18px;
   height: 18px;
   color: #fff;
@@ -186,6 +239,17 @@ body[data-theme="dark"] .user-profile:hover {
 .user-name {
   font-size: 13px;
   color: var(--tcm-text);
+}
+
+.user-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.user-role {
+  font-size: 12px;
+  color: var(--tcm-text-secondary);
 }
 
 /* ============== 内容区 ============== */
@@ -303,6 +367,28 @@ body[data-theme="dark"] .user-profile:hover {
   margin: 0 !important;
 }
 
+.info-card {
+  border-radius: var(--tcm-radius);
+  box-shadow: var(--tcm-shadow-sm);
+  border: 1px solid var(--tcm-border);
+}
+
+.permission-check-item {
+  padding: 10px 12px;
+  border: 1px solid var(--tcm-border);
+  border-radius: 8px;
+  min-height: 76px;
+  background: var(--tcm-card-bg);
+}
+
+.permission-desc {
+  margin-top: 8px;
+  padding-left: 24px;
+  font-size: 12px;
+  color: var(--tcm-text-secondary);
+  line-height: 1.5;
+}
+
 /* ============== 集合卡片 ============== */
 .ant-card-hoverable {
   transition: all 0.3s !important;
@@ -350,7 +436,21 @@ body[data-theme="dark"] .content::-webkit-scrollbar-thumb {
 
 /* 响应式：小屏隐藏用户名 */
 @media (max-width: 768px) {
+  .login-shell {
+    grid-template-columns: 1fr;
+  }
+  .login-hero {
+    padding: 32px 24px 0;
+  }
+  .login-card {
+    margin: 24px;
+    justify-self: stretch;
+    width: auto;
+  }
   .user-name {
+    display: none;
+  }
+  .user-role {
     display: none;
   }
   .breadcrumb {
