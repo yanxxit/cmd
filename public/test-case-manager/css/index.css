@@ -921,6 +921,93 @@ body[data-theme="dark"] .user-profile:hover {
   margin: 0 0 16px;
 }
 
+.jsondb-layout {
+  align-items: flex-start;
+}
+
+.jsondb-panel {
+  height: auto;
+}
+
+.jsondb-table-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 640px;
+  overflow: auto;
+}
+
+.jsondb-panel-empty {
+  padding: 24px 0;
+  color: var(--tcm-text-secondary);
+  text-align: center;
+}
+
+.jsondb-table-item {
+  width: 100%;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--tcm-border);
+  border-radius: 12px;
+  background: var(--tcm-card-bg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.jsondb-table-item:hover {
+  border-color: rgba(22, 119, 255, 0.28);
+  box-shadow: 0 8px 24px rgba(22, 119, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.jsondb-table-item.is-active {
+  border-color: rgba(22, 119, 255, 0.42);
+  background: rgba(22, 119, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(22, 119, 255, 0.16);
+}
+
+.jsondb-table-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.jsondb-table-name {
+  color: var(--tcm-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.jsondb-table-item-meta {
+  color: var(--tcm-text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.jsondb-sql-editor {
+  font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.jsondb-sql-editor.ant-input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  line-height: 1.7;
+}
+
+.jsondb-result-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--tcm-border);
+  background: rgba(0, 0, 0, 0.01);
+}
+
 .rich-editor-shell {
   border: 1px solid var(--tcm-border);
   border-radius: 10px;
@@ -1032,6 +1119,23 @@ body[data-theme="dark"] .table-container {
 
 body[data-theme="dark"] .runtime-json-block {
   background: rgba(255, 255, 255, 0.04);
+}
+
+body[data-theme="dark"] .jsondb-table-item {
+  background: #141414;
+}
+
+body[data-theme="dark"] .jsondb-table-item:hover {
+  border-color: rgba(22, 119, 255, 0.36);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+body[data-theme="dark"] .jsondb-table-item.is-active {
+  background: rgba(22, 119, 255, 0.12);
+}
+
+body[data-theme="dark"] .jsondb-result-toolbar {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 body[data-theme="dark"] .rich-editor-loading,

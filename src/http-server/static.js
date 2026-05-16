@@ -16,6 +16,7 @@ import testCaseCollectionApiRouter from './test-case-collection-api.js';
 import adminAuthApiRouter from './admin-auth-api.js';
 import adminUsersApiRouter from './admin-users-api.js';
 import adminRolesApiRouter from './admin-roles-api.js';
+import adminJsondbApiRouter from './admin-jsondb-api.js';
 import adminEnvsApiRouter from './admin-envs-api.js';
 import adminArticlesApiRouter from './admin-articles-api.js';
 import adminShortLinksApiRouter from './admin-short-links-api.js';
@@ -126,6 +127,7 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/api/admin-auth', adminAuthApiRouter);
   app.use('/api/admin-users', adminUsersApiRouter);
   app.use('/api/admin-roles', adminRolesApiRouter);
+  app.use('/api/admin-jsondb', adminJsondbApiRouter);
   app.use('/api/admin-envs', adminEnvsApiRouter);
   app.use('/api/admin-articles', adminArticlesApiRouter);
   app.use('/api/admin-short-links', adminShortLinksApiRouter);

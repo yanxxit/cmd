@@ -23,6 +23,7 @@ const [
   { default: DateCalendarPage },
   { default: PomodoroPage },
   { default: TodosPage },
+  { default: JsondbPage },
   { default: AdminUsersPage },
   { default: RolesPage },
   { default: AccountPage },
@@ -43,6 +44,7 @@ const [
   import(window.getModuleUrl('./js/pages/date-calendar.page.js')),
   import(window.getModuleUrl('./js/pages/pomodoro.page.js')),
   import(window.getModuleUrl('./js/pages/todos.page.js')),
+  import(window.getModuleUrl('./js/pages/jsondb.page.js')),
   import(window.getModuleUrl('./js/pages/admin-users.page.js')),
   import(window.getModuleUrl('./js/pages/roles.page.js')),
   import(window.getModuleUrl('./js/pages/account.page.js')),
@@ -57,6 +59,12 @@ const MENU_GROUPS = [
     title: '时间',
     icon: 'calendar-clock',
     pageKeys: ['dateCalendar', 'pomodoro', 'todos'],
+  },
+  {
+    key: 'database',
+    title: '数据库',
+    icon: 'database',
+    pageKeys: ['jsondb'],
   },
 ];
 const PAGE_REGISTRY = {
@@ -159,6 +167,13 @@ const PAGE_REGISTRY = {
     permission: 'todos.view',
     icon: 'list-todo',
     Component: TodosPage,
+  },
+  jsondb: {
+    title: 'JSONDB 管理',
+    section: '数据库',
+    permission: 'jsondb.view',
+    icon: 'table2',
+    Component: JsondbPage,
   },
   admins: {
     title: '管理员列表',
