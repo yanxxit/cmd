@@ -1,26 +1,25 @@
-// 全部案例子页面 ESM descriptor
+// 全部案例页面模块
+const { createElement: h } = React;
 const { Typography } = antd;
 const { Title, Text } = Typography;
+const [{ default: StatsPanel }, { default: TestCaseList }] = await Promise.all([
+  import(window.getModuleUrl('./js/components/StatsPanel.js')),
+  import(window.getModuleUrl('./js/components/TestCaseList.js')),
+]);
 
 function CasesPage({ collectionId }) {
-  const StatsPanel = window.__APP__.components.StatsPanel;
-  const TestCaseList = window.__APP__.components.TestCaseList;
-
-  return (
-    <>
-      <div className="page-header">
-        <Title level={4} style={{ margin: 0 }}>全部案例</Title>
-        <Text type="secondary">管理和查看所有测试用例，支持按接口、标签和集合筛选</Text>
-      </div>
-      <StatsPanel />
-      <TestCaseList collectionId={collectionId} />
-    </>
+  return h(
+    React.Fragment,
+    null,
+    h(
+      'div',
+      { className: 'page-header' },
+      h(Title, { level: 4, style: { margin: 0 } }, '全部案例'),
+      h(Text, { type: 'secondary' }, '管理和查看所有测试用例，支持按接口、标签和集合筛选')
+    ),
+    h(StatsPanel),
+    h(TestCaseList, { collectionId })
   );
 }
 
-export default {
-  type: 'page',
-  key: 'cases',
-  title: '全部案例',
-  component: CasesPage,
-};
+export default CasesPage;

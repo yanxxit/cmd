@@ -1,24 +1,21 @@
-// 集合管理子页面 ESM descriptor
+// 集合管理页面模块
+const { createElement: h } = React;
 const { Typography } = antd;
 const { Title, Text } = Typography;
+const { default: CollectionManager } = await import(window.getModuleUrl('./js/components/CollectionManager.js'));
 
 function CollectionsPage() {
-  const CollectionManager = window.__APP__.components.CollectionManager;
-
-  return (
-    <>
-      <div className="page-header">
-        <Title level={4} style={{ margin: 0 }}>集合管理</Title>
-        <Text type="secondary">通过集合组织测试用例，便于分类管理与协作</Text>
-      </div>
-      <CollectionManager />
-    </>
+  return h(
+    React.Fragment,
+    null,
+    h(
+      'div',
+      { className: 'page-header' },
+      h(Title, { level: 4, style: { margin: 0 } }, '集合管理'),
+      h(Text, { type: 'secondary' }, '通过集合组织测试用例，便于分类管理与协作')
+    ),
+    h(CollectionManager)
   );
 }
 
-export default {
-  type: 'page',
-  key: 'collections',
-  title: '集合管理',
-  component: CollectionsPage,
-};
+export default CollectionsPage;

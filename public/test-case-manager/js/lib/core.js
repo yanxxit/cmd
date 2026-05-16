@@ -69,7 +69,6 @@ export function getModuleUrl(path) {
 // ============================================================
 
 const jsCache = new Map();
-let descriptorLoaderPromise;
 
 /**
  * 动态加载 JS 模块（自动拼版本号 + 去重）
@@ -92,86 +91,6 @@ export async function loadJSBatch(paths) {
     modules.push(await loadJS(p));
   }
   return modules;
-}
-
-function getDescriptorLoader() {
-  if (!descriptorLoaderPromise) {
-    descriptorLoaderPromise = loadJS('./js/util/jsx-loader.js');
-  }
-  return descriptorLoaderPromise;
-}
-
-/**
- * 注册 descriptor 到全局 __APP__ 命名空间
- *
- * @param {Object} descriptor descriptor 模块默认导出
- * @param {Object} [app=window.__APP__] 目标 app 命名空间
- */
-export function registerDescriptor(descriptor, app = window.__APP__) {
-  if (!descriptor || typeof descriptor !== 'object') {
-    throw new Error('模块未导出有效的 descriptor');
-  }
-
-  if (!app) {
-    throw new Error('__APP__ 尚未初始化，无法注册 descriptor');
-  }
-
-  if (descriptor.type === 'component') {
-    if (!descriptor.name || typeof descriptor.component !== 'function') {
-      throw new Error('component descriptor 缺少 name 或 component');
-    }
-    app.components = app.components || {};
-    app.components[descriptor.name] = descriptor.component;
-    return descriptor;
-  }
-
-  if (descriptor.type === 'page') {
-    if (!descriptor.key) {
-      throw new Error('page descriptor 缺少 key');
-    }
-
-    const pageRecord = {
-      title: descriptor.title || descriptor.key,
-    };
-
-    if (typeof descriptor.component === 'function') {
-      pageRecord.Component = descriptor.component;
-    }
-    if (typeof descriptor.App === 'function') {
-      pageRecord.App = descriptor.App;
-    }
-    if (descriptor.registeredKeys) {
-      pageRecord.registeredKeys = descriptor.registeredKeys;
-    }
-
-    app.pages = app.pages || {};
-    app.pages[descriptor.key] = pageRecord;
-    return descriptor;
-  }
-
-  throw new Error(`未知 descriptor 类型: ${descriptor.type}`);
-}
-
-/**
- * 批量加载 JSX descriptor 模块并注册到 __APP__
- *
- * @param {string[]} paths descriptor 文件路径
- * @param {Object} [options]
- * @param {Object} [options.app=window.__APP__] 目标 app 命名空间
- */
-export async function loadDescriptorModules(paths, options = {}) {
-  const { app = window.__APP__ } = options;
-  const { importBabelModule } = await getDescriptorLoader();
-  const descriptors = [];
-
-  for (const path of paths) {
-    const mod = await importBabelModule(path);
-    const descriptor = mod.default || mod.descriptor;
-    registerDescriptor(descriptor, app);
-    descriptors.push(descriptor);
-  }
-
-  return descriptors;
 }
 
 // ============================================================
@@ -262,80 +181,6 @@ export async function bootstrapPage(config) {
   }
 
   return { module: mod, result };
-}
-
-/**
- * 等待某个页面 App 就绪，适用于 descriptor 页面启动链路
- *
- * @param {Object} options
- * @param {string} [options.pageKey='index'] 页面 key
- * @param {number} [options.timeout=10000] 超时时间
- * @param {string} [options.eventName='esm-ready'] 等待的全局事件
- */
-export async function waitForDescriptorApp(options = {}) {
-  const {
-    pageKey = 'index',
-    timeout = 10000,
-    eventName = 'esm-ready',
-  } = options;
-
-  if (!window.__APP__) {
-    await new Promise((resolve) => {
-      window.addEventListener(eventName, resolve, { once: true });
-    });
-  }
-
-  await new Promise((resolve, reject) => {
-    const start = Date.now();
-    const tick = () => {
-      if (window.__APP__?.pages?.[pageKey]?.App) return resolve();
-      if (Date.now() - start > timeout) {
-        return reject(new Error('页面加载超时'));
-      }
-      setTimeout(tick, 30);
-    };
-    tick();
-  });
-}
-
-/**
- * 启动 descriptor 页面：等待 App、挂载 React、执行渲染后钩子
- *
- * @param {Object} options
- * @param {string} [options.pageKey='index'] 页面 key
- * @param {string} [options.rootId='root'] 挂载根节点 id
- * @param {number} [options.timeout=10000] 页面等待超时
- * @param {string} [options.fallbackHTML] 渲染失败时的降级 HTML
- * @param {() => void | Promise<void>} [options.afterRender] 渲染完成后的钩子
- */
-export async function startDescriptorApp(options = {}) {
-  const {
-    pageKey = 'index',
-    rootId = 'root',
-    timeout = 10000,
-    fallbackHTML = '<p style="padding:24px;color:#ff4d4f">页面加载失败，请刷新重试</p>',
-    afterRender,
-  } = options;
-
-  const rootNode = document.getElementById(rootId);
-  if (!rootNode) {
-    throw new Error(`root element not found: #${rootId}`);
-  }
-
-  try {
-    await waitForDescriptorApp({ pageKey, timeout });
-  } catch (error) {
-    console.error(error);
-    rootNode.innerHTML = fallbackHTML;
-    return;
-  }
-
-  const App = window.__APP__.pages[pageKey].App;
-  ReactDOM.createRoot(rootNode).render(React.createElement(App));
-
-  if (typeof afterRender === 'function') {
-    await afterRender();
-  }
 }
 
 /**

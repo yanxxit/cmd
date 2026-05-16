@@ -1,15 +1,28 @@
-// 主入口页面 ESM descriptor：布局壳（Sider + Header + Content） + 子页面路由分发
-const { useState, useEffect } = React;
+// 主入口页面模块：布局壳（Sider + Header + Content） + 子页面路由分发
+const { createElement: h, useState, useEffect } = React;
 const {
   Layout, Menu, Breadcrumb, Button, Space, Tooltip, Badge,
   Avatar, Dropdown, Divider, ConfigProvider, theme: antdTheme, Typography,
 } = antd;
 const { Header, Content, Sider } = Layout;
 const { Text } = Typography;
+const [{ default: CasesPage }, { default: CollectionsPage }] = await Promise.all([
+  import(window.getModuleUrl('./js/pages/cases.page.js')),
+  import(window.getModuleUrl('./js/pages/collections.page.js')),
+]);
 
 const THEME_KEY = 'tcm-theme';
 const COLLAPSED_KEY = 'tcm-sider-collapsed';
-const PAGE_KEYS = ['cases', 'collections'];
+const PAGE_REGISTRY = {
+  cases: {
+    title: '全部案例',
+    Component: CasesPage,
+  },
+  collections: {
+    title: '集合管理',
+    Component: CollectionsPage,
+  },
+};
 
 function App() {
   const [activeMenu, setActiveMenu] = useState('cases');
@@ -33,44 +46,52 @@ function App() {
   const menuItems = [
     {
       key: 'cases',
-      icon: <i data-lucide="layout-list" className="menu-svg"></i>,
+      icon: h('i', { 'data-lucide': 'layout-list', className: 'menu-svg' }),
       label: '全部案例',
     },
     {
       key: 'collections',
-      icon: <i data-lucide="folder-tree" className="menu-svg"></i>,
+      icon: h('i', { 'data-lucide': 'folder-tree', className: 'menu-svg' }),
       label: '集合管理',
     },
   ];
 
   const userMenu = {
     items: [
-      { key: 'profile', icon: <i data-lucide="user"></i>, label: '个人中心' },
-      { key: 'settings', icon: <i data-lucide="settings"></i>, label: '偏好设置' },
+      { key: 'profile', icon: h('i', { 'data-lucide': 'user' }), label: '个人中心' },
+      { key: 'settings', icon: h('i', { 'data-lucide': 'settings' }), label: '偏好设置' },
       { type: 'divider' },
-      { key: 'logout', icon: <i data-lucide="log-out"></i>, label: '退出登录' },
+      { key: 'logout', icon: h('i', { 'data-lucide': 'log-out' }), label: '退出登录' },
     ],
   };
 
   const renderContent = () => {
-    const pageMod = window.__APP__.pages?.[activeMenu];
+    const pageMod = PAGE_REGISTRY[activeMenu];
     if (!pageMod || !pageMod.Component) {
-      return <div style={{ padding: 24 }}>页面 "{activeMenu}" 未找到</div>;
+      return h('div', { style: { padding: 24 } }, `页面 "${activeMenu}" 未找到`);
     }
     const Page = pageMod.Component;
-    return <Page />;
+    return h(Page);
   };
 
-  const currentPage = window.__APP__.pages?.[activeMenu];
+  const currentPage = PAGE_REGISTRY[activeMenu];
   const breadcrumbItems = [
-    { title: <span><i data-lucide="home" style={{ width: 14, height: 14, verticalAlign: '-2px' }}></i> 首页</span> },
+    {
+      title: h(
+        'span',
+        null,
+        h('i', { 'data-lucide': 'home', style: { width: 14, height: 14, verticalAlign: '-2px' } }),
+        ' 首页'
+      ),
+    },
     { title: '测试案例管理' },
     { title: currentPage?.title || activeMenu },
   ];
 
-  return (
-    <ConfigProvider
-      theme={{
+  return h(
+    ConfigProvider,
+    {
+      theme: {
         algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {
           colorPrimary: '#1677ff',
@@ -90,94 +111,120 @@ function App() {
             darkSubMenuItemBg: '#000c17',
           },
         },
-      }}
-    >
-      <Layout className="app-container">
-        <Sider
-          className="sidebar"
-          theme="dark"
-          collapsible
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-          width={232}
-          collapsedWidth={64}
-          trigger={null}
-        >
-          <div className="logo">
-            <div className="logo-icon">
-              <i data-lucide="square-check-big"></i>
-            </div>
-            {!collapsed && <span className="logo-text">案例管理</span>}
-          </div>
-          <Menu
-            theme="dark"
-            mode="inline"
-            selectedKeys={[activeMenu]}
-            items={menuItems}
-            onClick={({ key }) => setActiveMenu(key)}
-            className="app-menu"
-          />
-          <div className="sider-footer">
-            {!collapsed && (
-              <div className="sider-version">
-                <Text type="secondary" style={{ fontSize: 12 }}>v1.0.0 · ESM</Text>
-              </div>
-            )}
-          </div>
-        </Sider>
-        <Layout>
-          <Header className="header">
-            <div className="header-left">
-              <Button
-                type="text"
-                className="collapse-btn"
-                icon={<i data-lucide={collapsed ? 'panel-left-open' : 'panel-left-close'}></i>}
-                onClick={() => setCollapsed(!collapsed)}
-              />
-              <Breadcrumb className="breadcrumb" items={breadcrumbItems} />
-            </div>
-            <Space size={4} className="header-right">
-              <Tooltip title="搜索">
-                <Button type="text" shape="circle" icon={<i data-lucide="search"></i>} />
-              </Tooltip>
-              <Tooltip title="刷新">
-                <Button type="text" shape="circle" icon={<i data-lucide="refresh-cw"></i>} onClick={() => window.location.reload()} />
-              </Tooltip>
-              <Tooltip title={dark ? '切换至亮色' : '切换至暗色'}>
-                <Button
-                  type="text"
-                  shape="circle"
-                  icon={<i data-lucide={dark ? 'sun' : 'moon'}></i>}
-                  onClick={() => setDark(!dark)}
-                />
-              </Tooltip>
-              <Tooltip title="消息">
-                <Badge count={0} dot={false}>
-                  <Button type="text" shape="circle" icon={<i data-lucide="bell"></i>} />
-                </Badge>
-              </Tooltip>
-              <Divider type="vertical" style={{ height: 24 }} />
-              <Dropdown menu={userMenu} trigger={['click']} placement="bottomRight">
-                <div className="user-profile">
-                  <Avatar size={28} style={{ background: '#1677ff' }}>QA</Avatar>
-                  <span className="user-name">测试工程师</span>
-                </div>
-              </Dropdown>
-            </Space>
-          </Header>
-          <Content className="content">
-            {renderContent()}
-          </Content>
-        </Layout>
-      </Layout>
-    </ConfigProvider>
+      },
+    },
+    h(
+      Layout,
+      { className: 'app-container' },
+      h(
+        Sider,
+        {
+          className: 'sidebar',
+          theme: 'dark',
+          collapsible: true,
+          collapsed,
+          onCollapse: setCollapsed,
+          width: 232,
+          collapsedWidth: 64,
+          trigger: null,
+        },
+        h(
+          'div',
+          { className: 'logo' },
+          h('div', { className: 'logo-icon' }, h('i', { 'data-lucide': 'square-check-big' })),
+          !collapsed ? h('span', { className: 'logo-text' }, '案例管理') : null
+        ),
+        h(Menu, {
+          theme: 'dark',
+          mode: 'inline',
+          selectedKeys: [activeMenu],
+          items: menuItems,
+          onClick: ({ key }) => setActiveMenu(key),
+          className: 'app-menu',
+        }),
+        h(
+          'div',
+          { className: 'sider-footer' },
+          !collapsed
+            ? h(
+                'div',
+                { className: 'sider-version' },
+                h(Text, { type: 'secondary', style: { fontSize: 12 } }, 'v1.0.0 · ESM')
+              )
+            : null
+        )
+      ),
+      h(
+        Layout,
+        null,
+        h(
+          Header,
+          { className: 'header' },
+          h(
+            'div',
+            { className: 'header-left' },
+            h(Button, {
+              type: 'text',
+              className: 'collapse-btn',
+              icon: h('i', { 'data-lucide': collapsed ? 'panel-left-open' : 'panel-left-close' }),
+              onClick: () => setCollapsed(!collapsed),
+            }),
+            h(Breadcrumb, { className: 'breadcrumb', items: breadcrumbItems })
+          ),
+          h(
+            Space,
+            { size: 4, className: 'header-right' },
+            h(
+              Tooltip,
+              { title: '搜索' },
+              h(Button, { type: 'text', shape: 'circle', icon: h('i', { 'data-lucide': 'search' }) })
+            ),
+            h(
+              Tooltip,
+              { title: '刷新' },
+              h(Button, {
+                type: 'text',
+                shape: 'circle',
+                icon: h('i', { 'data-lucide': 'refresh-cw' }),
+                onClick: () => window.location.reload(),
+              })
+            ),
+            h(
+              Tooltip,
+              { title: dark ? '切换至亮色' : '切换至暗色' },
+              h(Button, {
+                type: 'text',
+                shape: 'circle',
+                icon: h('i', { 'data-lucide': dark ? 'sun' : 'moon' }),
+                onClick: () => setDark(!dark),
+              })
+            ),
+            h(
+              Tooltip,
+              { title: '消息' },
+              h(
+                Badge,
+                { count: 0, dot: false },
+                h(Button, { type: 'text', shape: 'circle', icon: h('i', { 'data-lucide': 'bell' }) })
+              )
+            ),
+            h(Divider, { type: 'vertical', style: { height: 24 } }),
+            h(
+              Dropdown,
+              { menu: userMenu, trigger: ['click'], placement: 'bottomRight' },
+              h(
+                'div',
+                { className: 'user-profile' },
+                h(Avatar, { size: 28, style: { background: '#1677ff' } }, 'QA'),
+                h('span', { className: 'user-name' }, '测试工程师')
+              )
+            )
+          )
+        ),
+        h(Content, { className: 'content' }, renderContent())
+      )
+    )
   );
 }
 
-export default {
-  type: 'page',
-  key: 'index',
-  title: '首页',
-  App,
-  registeredKeys: PAGE_KEYS,
-};
+export default App;

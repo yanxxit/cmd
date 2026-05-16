@@ -1,26 +1,53 @@
-// 统计面板组件 ESM descriptor
-const { useState, useEffect } = React;
+// 统计面板组件模块
+const { createElement: h, useState, useEffect } = React;
 const { Row, Col, Card } = antd;
+const { api } = await import(window.getModuleUrl('./js/api.js'));
+
+function renderStatCard(card) {
+  return h(
+    Col,
+    { xs: 24, sm: 12, md: 12, lg: 6, key: card.key },
+    h(
+      Card,
+      { className: 'stat-card', bordered: false },
+      h(
+        'div',
+        { className: 'stat-card-inner' },
+        h(
+          'div',
+          { className: 'stat-icon-badge', style: { background: card.bg, color: card.color } },
+          h('i', { 'data-lucide': card.icon })
+        ),
+        h(
+          'div',
+          { className: 'stat-meta' },
+          h('div', { className: 'stat-title' }, card.title),
+          h('div', { className: 'stat-value', style: { color: card.color } }, card.value),
+          h('div', { className: 'stat-desc' }, card.desc)
+        )
+      )
+    )
+  );
+}
 
 function StatsPanel() {
-  const api = window.__APP__.api;
   const [stats, setStats] = useState({ total: 0, byApiName: {}, byTags: {} });
   const [collectionStats, setCollectionStats] = useState({ totalCollections: 0, totalCases: 0 });
 
-  const loadStats = async () => {
-    try {
-      const [testCaseStats, collectionData] = await Promise.all([
-        api.get('/api/test-cases/stats'),
-        api.get('/api/test-case-collections/stats'),
-      ]);
-      setStats(testCaseStats);
-      setCollectionStats(collectionData);
-    } catch (err) {
-      console.error('加载统计失败:', err);
-    }
-  };
-
   useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const [testCaseStats, collectionData] = await Promise.all([
+          api.get('/api/test-cases/stats'),
+          api.get('/api/test-case-collections/stats'),
+        ]);
+        setStats(testCaseStats);
+        setCollectionStats(collectionData);
+      } catch (err) {
+        console.error('加载统计失败:', err);
+      }
+    };
+
     loadStats();
   }, []);
 
@@ -47,30 +74,11 @@ function StatsPanel() {
     },
   ];
 
-  return (
-    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-      {cards.map((c) => (
-        <Col xs={24} sm={12} md={12} lg={6} key={c.key}>
-          <Card className="stat-card" bordered={false}>
-            <div className="stat-card-inner">
-              <div className="stat-icon-badge" style={{ background: c.bg, color: c.color }}>
-                <i data-lucide={c.icon}></i>
-              </div>
-              <div className="stat-meta">
-                <div className="stat-title">{c.title}</div>
-                <div className="stat-value" style={{ color: c.color }}>{c.value}</div>
-                <div className="stat-desc">{c.desc}</div>
-              </div>
-            </div>
-          </Card>
-        </Col>
-      ))}
-    </Row>
+  return h(
+    Row,
+    { gutter: [16, 16], style: { marginBottom: 24 } },
+    ...cards.map(renderStatCard)
   );
 }
 
-export default {
-  type: 'component',
-  name: 'StatsPanel',
-  component: StatsPanel,
-};
+export default StatsPanel;

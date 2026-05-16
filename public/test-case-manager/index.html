@@ -9,9 +9,6 @@
   <script crossorigin src="/libs/react/umd/react.production.min.js"></script>
   <script crossorigin src="/libs/react-dom/umd/react-dom.production.min.js"></script>
 
-  <!-- Babel for JSX (本地 libs) -->
-  <script src="/libs/@babel/standalone/babel.min.js"></script>
-
   <!-- Day.js (本地 libs，需在 antd 之前加载) -->
   <script src="/libs/dayjs/dayjs.min.js"></script>
   <script src="/libs/dayjs/locale/zh-cn.js"></script>
@@ -39,13 +36,12 @@
       "@core":         "./js/lib/core.js",
       "@api":          "./js/api.js",
       "@icons":        "./js/icons.js",
-      "@format":       "./js/format.js",
-      "@style-loader": "./js/style-loader.js"
+      "@format":       "./js/format.js"
     }
   }
   </script>
 
-  <!-- 3. 引导：通过 js/lib/core.js 统一初始化，再加载 js/bootstrap.js 启动页面 -->
+  <!-- 3. 引导：通过 js/lib/core.js 统一初始化，再加载 js/bootstrap.js 直接启动页面 -->
   <script type="module">
     import { initCore, injectCSS, loadJS } from '@core';
 
@@ -66,8 +62,6 @@
     }
 
     const bootstrap = await loadJS('./js/bootstrap.js');
-    await bootstrap.initCoreApp();
-    await bootstrap.loadAppModules();
     await bootstrap.startApp();
   </script>
 </head>
