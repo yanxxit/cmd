@@ -19,27 +19,20 @@
   <!-- Ant Design v5 (本地 libs) -->
   <script src="/libs/antd/dist/antd.min.js"></script>
 
-  <!-- ===== 原生 ESM 模块系统 ===== -->
-  <!-- 1. 全局版本号 + 资源 URL 工具：必须最先执行，并同步注入基础样式（避免 FOUC） -->
+  <!-- ===== 原生 ESM 模块系统（参考 native-esm-importmaps skill） ===== -->
+  <!-- 1. 页面引导配置：由 js/lib/core.js 统一处理版本号、资源 URL 与样式注入 -->
   <script>
-    const G_VER = Date.now();
-    window.G_VER = G_VER;
-    window.getModuleUrl = (path) => `${path}?v=${G_VER}`;
-    window.getAssetUrl  = (path) => `${path}?v=${G_VER}`;
-
-    (function injectBaseStyles() {
-      ['./css/base.css', './css/sub-cases.css'].forEach((href) => {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = window.getAssetUrl(href);
-        document.head.appendChild(link);
-      });
-    })();
+    window.__TCM_SUB_CASES_BOOTSTRAP__ = {
+      buildVersion: window.__APP_BUILD_VERSION__ || '__BUILD_VERSION__',
+      devFlags: ['dev', 'nocache'],
+      styles: ['./css/base.css', './css/sub-cases.css'],
+    };
   </script>
 
   <script type="importmap">
   {
     "imports": {
+      "@core":         "./js/lib/core.js",
       "@api":          "./js/api.js",
       "@format":       "./js/format.js",
       "@style-loader": "./js/style-loader.js"
@@ -48,11 +41,28 @@
   </script>
 
   <script type="module">
-    const get = (path) => `${path}?v=${window.G_VER}`;
-    const [apiMod, formatMod, styleMod] = await Promise.all([
-      import(get('./js/api.js')),
-      import(get('./js/format.js')),
-      import(get('./js/style-loader.js')),
+    import { initCore, injectCSS, loadJSBatch } from '@core';
+
+    const bootstrapConfig = window.__TCM_SUB_CASES_BOOTSTRAP__ || {};
+    initCore(bootstrapConfig);
+    injectCSS(bootstrapConfig.styles || []);
+
+    if (typeof antd === 'undefined') {
+      console.error('❌ Ant Design 未加载成功，请检查网络连接');
+      document.body.innerHTML = `
+        <div style="padding: 50px; text-align: center; font-family: sans-serif;">
+          <h1 style="color: #ff4d4f;">❌ 资源加载失败</h1>
+          <p>Ant Design 组件库未加载，请检查网络连接后刷新页面</p>
+          <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">刷新页面</button>
+        </div>
+      `;
+      throw new Error('antd is not defined');
+    }
+
+    const [apiMod, formatMod, styleMod] = await loadJSBatch([
+      './js/api.js',
+      './js/format.js',
+      './js/style-loader.js',
     ]);
     window.__APP__ = { api: apiMod.api, format: formatMod, style: styleMod };
     window.dispatchEvent(new CustomEvent('esm-ready'));

@@ -1,8 +1,7 @@
 // js/style-loader.js - 按需加载并去重的样式工具
 // 与 SKILL.md (native-esm-importmaps) 中样式管理方案保持一致
 const loaded = new Map(); // href -> Promise<HTMLLinkElement>
-
-const ver = () => window.G_VER || Date.now();
+const { getAssetUrl } = await import(window.getModuleUrl('./js/util/assets.js'));
 
 /**
  * 异步加载一个 CSS 文件，自动拼版本号防缓存。
@@ -17,7 +16,7 @@ export function loadCSS(href) {
   const p = new Promise((resolve, reject) => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = `${href}?v=${ver()}`;
+    link.href = getAssetUrl(href);
     link.dataset.lazy = '1';
     link.onload = () => resolve(link);
     link.onerror = () => reject(new Error(`CSS load failed: ${href}`));
