@@ -56,7 +56,7 @@ export default function (options = { port: 3000, dir: __dirname }) {
    * Get port from environment and store in Express.
    */
   app.set('port', options.port);
-  
+
   // 设置默认目录
   if (!options.dir) {
     options.dir = process.cwd();
@@ -150,7 +150,7 @@ export default function (options = { port: 3000, dir: __dirname }) {
     return res.redirect(shortLink.targetUrl);
   });
 
- 
+
 
   // TODO 应用前端页面
   const todoDir = path.join(ROOT_DIR, 'public/todo');
@@ -368,14 +368,14 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 轻量级 Web IDE v2 (模块化版本)
   const webIdeLiteV2Dir = path.join(ROOT_DIR, 'public/web-ide-lite-v2');
-  
+
   // 添加 hash 中间件（在静态文件服务之前）
   app.use('/web-ide-lite-v2', createHashMiddleware(webIdeLiteV2Dir, { hashLength: 8 }));
   app.use('/web-ide-lite-v2', express.static(webIdeLiteV2Dir));
-  
+
   // HTML 文件 hash 注入
   app.use(createStaticWithHashInjection(webIdeLiteV2Dir, { hashLength: 8 }));
-  
+
   app.get('/web-ide-lite-v2', (req, res) => {
     res.sendFile(path.join(webIdeLiteV2Dir, 'index.html'));
   });
@@ -472,7 +472,7 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 用户目录静态资源（最后）
   app.use('/files', express.static(options.dir));
-  
+
   app.use(favicon(__dirname + '../../../favicon.ico'));
 
 

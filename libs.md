@@ -14,10 +14,15 @@
 - `prismjs@1.30.0`: `/libs/prismjs/themes/prism-tomorrow.min.css`
 - `prismjs@1.30.0`: `/libs/prismjs/themes/prism.min.css`
 - `marked@15.0.12`: `/libs/marked/marked.min.js`
+- `marked@16.3.0`: `/libs/marked/16.3.0/marked.umd.min.js`
+- `marked@16.3.0`: `/libs/marked/16.3.0/marked.esm.min.js`
+
 - `mermaid@10.9.1`: `/libs/mermaid/dist/mermaid.min.js`
 - `mermaid@10.9.1`: `/libs/mermaid/dist/mermaid.esm.min.mjs`
-- <https://cdn.bootcdn.net/ajax/libs/marked/16.3.0/lib/marked.umd.min.js>
-- <https://cdn.bootcdn.net/ajax/libs/marked/16.3.0/lib/marked.esm.min.js>
+
+- `lunar-javascript`: `/libs/lunar-javascript/lunar.js`
+- `quill@1.3.7`: `/libs/quill/1.3.7/quill.min.js`
+- `quill@1.3.7`: `/libs/quill/1.3.7/quill.snow.css`
 
 ## umd vs esm
 
