@@ -16,6 +16,10 @@ import testCaseCollectionApiRouter from './test-case-collection-api.js';
 import adminAuthApiRouter from './admin-auth-api.js';
 import adminUsersApiRouter from './admin-users-api.js';
 import adminRolesApiRouter from './admin-roles-api.js';
+import adminEnvsApiRouter from './admin-envs-api.js';
+import adminArticlesApiRouter from './admin-articles-api.js';
+import adminShortLinksApiRouter from './admin-short-links-api.js';
+import publicArticlesApiRouter from './public-articles-api.js';
 import authApiRouter from './auth-api.js';
 import httpbinApiRouter from './httpbin-api.js';
 import mockApiRouter from './mock-api.js';
@@ -112,6 +116,10 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/api/admin-auth', adminAuthApiRouter);
   app.use('/api/admin-users', adminUsersApiRouter);
   app.use('/api/admin-roles', adminRolesApiRouter);
+  app.use('/api/admin-envs', adminEnvsApiRouter);
+  app.use('/api/admin-articles', adminArticlesApiRouter);
+  app.use('/api/admin-short-links', adminShortLinksApiRouter);
+  app.use('/api/public/articles', publicArticlesApiRouter);
 
   // 挂载文件查看器路由（通用 /api 路由，放在最后）
   app.use('/api', fileViewerRouter);
@@ -119,6 +127,15 @@ export default function (options = { port: 3000, dir: __dirname }) {
   // 文件查看器前端页面（优先于用户目录静态资源）
   const fileViewerDir = path.join(ROOT_DIR, 'public/file-viewer');
   app.use('/file-viewer', express.static(fileViewerDir));
+
+  app.get('/s/:code', async (req, res) => {
+    const { shortLinkModel } = await import('../model/jsondb/index.js');
+    const shortLink = await shortLinkModel.resolve(req.params.code);
+    if (!shortLink) {
+      return res.status(404).send('Short link not found');
+    }
+    return res.redirect(shortLink.targetUrl);
+  });
 
  
 

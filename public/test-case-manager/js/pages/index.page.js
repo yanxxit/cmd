@@ -9,16 +9,22 @@ const { Text } = Typography;
 const [
   { api, clearAuthToken, getAuthToken },
   { default: LoginPage },
+  { default: DashboardPage },
   { default: CasesPage },
   { default: CollectionsPage },
+  { default: EnvsPage },
+  { default: ArticlesPage },
   { default: AdminUsersPage },
   { default: RolesPage },
   { default: AccountPage },
 ] = await Promise.all([
   import(window.getModuleUrl('./js/api.js')),
   import(window.getModuleUrl('./js/components/LoginPage.js')),
+  import(window.getModuleUrl('./js/pages/dashboard.page.js')),
   import(window.getModuleUrl('./js/pages/cases.page.js')),
   import(window.getModuleUrl('./js/pages/collections.page.js')),
+  import(window.getModuleUrl('./js/pages/envs.page.js')),
+  import(window.getModuleUrl('./js/pages/articles.page.js')),
   import(window.getModuleUrl('./js/pages/admin-users.page.js')),
   import(window.getModuleUrl('./js/pages/roles.page.js')),
   import(window.getModuleUrl('./js/pages/account.page.js')),
@@ -27,6 +33,13 @@ const [
 const THEME_KEY = 'tcm-theme';
 const COLLAPSED_KEY = 'tcm-sider-collapsed';
 const PAGE_REGISTRY = {
+  dashboard: {
+    title: '系统概览',
+    section: '首页',
+    permission: 'dashboard.view',
+    icon: 'layout-dashboard',
+    Component: DashboardPage,
+  },
   cases: {
     title: '全部案例',
     section: '测试案例管理',
@@ -40,6 +53,20 @@ const PAGE_REGISTRY = {
     permission: 'collections.view',
     icon: 'folder-tree',
     Component: CollectionsPage,
+  },
+  envs: {
+    title: '环境变量',
+    section: '系统管理',
+    permission: 'envs.view',
+    icon: 'sliders-horizontal',
+    Component: EnvsPage,
+  },
+  articles: {
+    title: '文章管理',
+    section: '内容管理',
+    permission: 'articles.view',
+    icon: 'newspaper',
+    Component: ArticlesPage,
   },
   admins: {
     title: '管理员列表',
@@ -89,7 +116,7 @@ function getInitials(name) {
 }
 
 function App() {
-  const [activeMenu, setActiveMenu] = useState('cases');
+  const [activeMenu, setActiveMenu] = useState('dashboard');
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1');
   const [dark, setDark] = useState(() => localStorage.getItem(THEME_KEY) === 'dark');
   const [authLoading, setAuthLoading] = useState(true);
@@ -176,7 +203,7 @@ function App() {
     clearAuthToken();
     setCurrentAdmin(null);
     setAdminStats(null);
-    setActiveMenu('cases');
+    setActiveMenu('dashboard');
     if (showMessage) {
       message.success('已退出登录');
     }

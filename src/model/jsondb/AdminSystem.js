@@ -3,16 +3,8 @@
  * 基于 @yanit/jsondb 的管理员、角色、会话管理数据模型
  */
 
-import { Database } from '@yanit/jsondb';
 import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const DB_PATH = path.join(__dirname, '../../../.jsondb/test-case-admin');
+import { getAdminDatabase } from './admin-db.js';
 const ADMINS_COLLECTION = 'admins';
 const ROLES_COLLECTION = 'roles';
 const SESSIONS_COLLECTION = 'sessions';
@@ -30,6 +22,10 @@ const PERMISSION_CATALOG = [
   { key: 'admins.manage', group: '管理员', label: '管理管理员', description: '可新增、编辑、删除管理员并重置密码' },
   { key: 'roles.view', group: '角色权限', label: '查看角色权限', description: '可查看角色与权限矩阵' },
   { key: 'roles.manage', group: '角色权限', label: '管理角色权限', description: '可调整角色说明与权限配置' },
+  { key: 'envs.view', group: '环境变量', label: '查看环境变量', description: '可查看环境变量列表、类型与当前值' },
+  { key: 'envs.manage', group: '环境变量', label: '管理环境变量', description: '可新增、编辑、删除环境变量并实时生效' },
+  { key: 'articles.view', group: '文章管理', label: '查看文章', description: '可查看文章列表、详情与统计信息' },
+  { key: 'articles.manage', group: '文章管理', label: '管理文章', description: '可新增、编辑、删除文章并维护发布状态' },
   { key: 'profile.view', group: '账号安全', label: '查看个人账号', description: '可查看个人信息与当前角色' },
   { key: 'password.change', group: '账号安全', label: '修改密码', description: '可修改自己的登录密码' },
 ];
@@ -55,13 +51,13 @@ const DEFAULT_ROLES = [
       'cases.manage',
       'collections.view',
       'collections.manage',
+      'articles.view',
+      'articles.manage',
       'profile.view',
       'password.change',
     ],
   },
 ];
-
-let dbInstance = null;
 
 function nowIso() {
   return new Date().toISOString();
@@ -94,23 +90,10 @@ export class AdminSystemModel {
   }
 
   async connect() {
-    if (dbInstance) {
-      this.admins = dbInstance.collection(ADMINS_COLLECTION);
-      this.roles = dbInstance.collection(ROLES_COLLECTION);
-      this.sessions = dbInstance.collection(SESSIONS_COLLECTION);
-      return this;
-    }
-
-    if (!fs.existsSync(path.dirname(DB_PATH))) {
-      fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-    }
-
-    dbInstance = new Database(DB_PATH, this.options);
-    await dbInstance.open();
-
-    this.admins = dbInstance.collection(ADMINS_COLLECTION);
-    this.roles = dbInstance.collection(ROLES_COLLECTION);
-    this.sessions = dbInstance.collection(SESSIONS_COLLECTION);
+    const db = await getAdminDatabase(this.options);
+    this.admins = db.collection(ADMINS_COLLECTION);
+    this.roles = db.collection(ROLES_COLLECTION);
+    this.sessions = db.collection(SESSIONS_COLLECTION);
 
     await this._ensureDefaults();
     return this;
@@ -131,6 +114,23 @@ export class AdminSystemModel {
           createdAt: nowIso(),
           updatedAt: nowIso(),
         });
+      } else if (existingRole.isSystem) {
+        const nextPermissions = role.code === 'super_admin'
+          ? PERMISSION_CATALOG.map((item) => item.key)
+          : uniqueList([...(existingRole.permissions || []), ...(role.permissions || [])]);
+        await this.roles.updateOne(
+          { code: role.code },
+          {
+            $set: {
+              name: role.name,
+              description: role.description,
+              editable: role.editable,
+              isSystem: true,
+              permissions: nextPermissions,
+              updatedAt: nowIso(),
+            },
+          }
+        );
       }
     }
 

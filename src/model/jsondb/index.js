@@ -6,3 +6,6 @@ export { TaskManagerModel, taskManagerModel, getTaskManagerModel } from './TaskM
 export { TestCaseModel, testCaseModel, getTestCaseModel } from './TestCase.js';
 export { TestCaseCollectionModel, testCaseCollectionModel, getTestCaseCollectionModel } from './TestCaseCollection.js';
 export { AdminSystemModel, adminSystemModel, getAdminSystemModel, adminPermissionCatalog, adminDefaultPassword } from './AdminSystem.js';
+export { EnvironmentVariableModel, environmentVariableModel, getEnvironmentVariableModel } from './EnvironmentVariable.js';
+export { ArticleModel, articleModel, getArticleModel } from './Article.js';
+export { ShortLinkModel, shortLinkModel, getShortLinkModel } from './ShortLink.js';
