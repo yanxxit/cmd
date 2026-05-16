@@ -45,6 +45,8 @@ export async function initDatabase() {
         completed BOOLEAN DEFAULT false,
         priority INTEGER DEFAULT 2,
         due_date TEXT,
+        start_at TEXT,
+        end_at TEXT,
         note TEXT,
         tags TEXT DEFAULT '',
         category TEXT DEFAULT '',
@@ -52,6 +54,10 @@ export async function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // 历史数据迁移：为旧表补齐跨天任务所需的时间字段
+    await db.exec(`ALTER TABLE todos ADD COLUMN IF NOT EXISTS start_at TEXT`);
+    await db.exec(`ALTER TABLE todos ADD COLUMN IF NOT EXISTS end_at TEXT`);
 
     // 创建子任务表
     await db.exec(`
@@ -71,12 +77,14 @@ export async function initDatabase() {
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_todos_completed ON todos(completed)`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_todos_priority ON todos(priority)`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_todos_due_date ON todos(due_date)`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_todos_start_at ON todos(start_at)`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_todos_end_at ON todos(end_at)`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_todos_created_at ON todos(created_at)`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_subtasks_todo_id ON subtasks(todo_id)`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_subtasks_completed ON subtasks(completed)`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_subtasks_sort_order ON subtasks(sort_order)`);
 
-    console.log('✅ 数据表创建成功 (todos + subtasks)');
+    console.log('✅ 数据表创建成功 (todos + subtasks，含跨天任务字段)');
 
     return db;
   } catch (err) {

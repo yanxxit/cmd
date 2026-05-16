@@ -34,8 +34,8 @@ router.use(initDB);
  */
 router.get('/', async (req, res) => {
   try {
-    const { filter, sort, search } = req.query;
-    const todos = await getTodos({ filter, sort, search });
+    const { filter, sort, search, startDate, endDate } = req.query;
+    const todos = await getTodos({ filter, sort, search, startDate, endDate });
     
     res.json({
       success: true,
@@ -57,7 +57,7 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { content, priority, due_date, note, parent_id } = req.body;
+    const { content, priority, due_date, start_at, end_at, note, parent_id, tags, category } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({
@@ -66,7 +66,17 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const todo = await createTodo({ content, priority, due_date, note, parent_id: parent_id || null });
+    const todo = await createTodo({
+      content,
+      priority,
+      due_date,
+      start_at,
+      end_at,
+      note,
+      tags,
+      category,
+      parent_id: parent_id || null,
+    });
 
     res.json({
       success: true,

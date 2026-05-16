@@ -20,6 +20,9 @@ const [
   { default: CouponClaimsPage },
   { default: CouponUsagesPage },
   { default: LotteryPage },
+  { default: DateCalendarPage },
+  { default: PomodoroPage },
+  { default: TodosPage },
   { default: AdminUsersPage },
   { default: RolesPage },
   { default: AccountPage },
@@ -37,6 +40,9 @@ const [
   import(window.getModuleUrl('./js/pages/coupon-claims.page.js')),
   import(window.getModuleUrl('./js/pages/coupon-usages.page.js')),
   import(window.getModuleUrl('./js/pages/lottery.page.js')),
+  import(window.getModuleUrl('./js/pages/date-calendar.page.js')),
+  import(window.getModuleUrl('./js/pages/pomodoro.page.js')),
+  import(window.getModuleUrl('./js/pages/todos.page.js')),
   import(window.getModuleUrl('./js/pages/admin-users.page.js')),
   import(window.getModuleUrl('./js/pages/roles.page.js')),
   import(window.getModuleUrl('./js/pages/account.page.js')),
@@ -44,6 +50,15 @@ const [
 
 const THEME_KEY = 'tcm-theme';
 const COLLAPSED_KEY = 'tcm-sider-collapsed';
+const MENU_OPEN_KEYS_KEY = 'tcm-menu-open-keys';
+const MENU_GROUPS = [
+  {
+    key: 'time',
+    title: '时间',
+    icon: 'calendar-clock',
+    pageKeys: ['dateCalendar', 'pomodoro', 'todos'],
+  },
+];
 const PAGE_REGISTRY = {
   dashboard: {
     title: '系统概览',
@@ -124,6 +139,27 @@ const PAGE_REGISTRY = {
     icon: 'badge-percent',
     Component: LotteryPage,
   },
+  dateCalendar: {
+    title: '日历列表',
+    section: '时间',
+    permission: 'calendar.view',
+    icon: 'calendar-range',
+    Component: DateCalendarPage,
+  },
+  pomodoro: {
+    title: '番茄时钟',
+    section: '时间',
+    permission: 'pomodoro.view',
+    icon: 'timer-reset',
+    Component: PomodoroPage,
+  },
+  todos: {
+    title: 'TODO 列表',
+    section: '时间',
+    permission: 'todos.view',
+    icon: 'list-todo',
+    Component: TodosPage,
+  },
   admins: {
     title: '管理员列表',
     section: '系统管理',
@@ -158,11 +194,47 @@ function getAvailablePages(admin) {
 }
 
 function buildMenuItems(admin) {
-  return getAvailablePages(admin).filter((page) => !page.hidden).map((page) => ({
-    key: page.key,
-    icon: h('i', { 'data-lucide': page.icon, className: 'menu-svg' }),
-    label: page.title,
-  }));
+  const pages = getAvailablePages(admin).filter((page) => !page.hidden);
+  const pageMap = new Map(pages.map((page) => [page.key, page]));
+  const groupedPageKeys = new Set(MENU_GROUPS.flatMap((group) => group.pageKeys));
+  const insertedGroups = new Set();
+
+  return pages.flatMap((page) => {
+    if (groupedPageKeys.has(page.key)) {
+      const group = MENU_GROUPS.find((item) => item.pageKeys.includes(page.key));
+      if (!group || insertedGroups.has(group.key)) {
+        return [];
+      }
+      insertedGroups.add(group.key);
+      const children = group.pageKeys
+        .map((key) => pageMap.get(key))
+        .filter(Boolean)
+        .map((child) => ({
+          key: child.key,
+          icon: h('i', { 'data-lucide': child.icon, className: 'menu-svg' }),
+          label: child.title,
+        }));
+      if (!children.length) {
+        return [];
+      }
+      return [{
+        key: `group:${group.key}`,
+        icon: h('i', { 'data-lucide': group.icon, className: 'menu-svg' }),
+        label: group.title,
+        children,
+      }];
+    }
+    return [{
+      key: page.key,
+      icon: h('i', { 'data-lucide': page.icon, className: 'menu-svg' }),
+      label: page.title,
+    }];
+  });
+}
+
+function getMenuParentKey(pageKey = '') {
+  const group = MENU_GROUPS.find((item) => item.pageKeys.includes(pageKey));
+  return group ? `group:${group.key}` : '';
 }
 
 function getInitials(name) {
@@ -184,6 +256,14 @@ function App() {
   const [pagePayload, setPagePayload] = useState(null);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1');
   const [dark, setDark] = useState(() => localStorage.getItem(THEME_KEY) === 'dark');
+  const [menuOpenKeys, setMenuOpenKeys] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(MENU_OPEN_KEYS_KEY) || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch (error) {
+      return [];
+    }
+  });
   const [authLoading, setAuthLoading] = useState(true);
   const [currentAdmin, setCurrentAdmin] = useState(null);
   const [adminStats, setAdminStats] = useState(null);
@@ -237,6 +317,10 @@ function App() {
   }, [collapsed]);
 
   useEffect(() => {
+    localStorage.setItem(MENU_OPEN_KEYS_KEY, JSON.stringify(menuOpenKeys));
+  }, [menuOpenKeys]);
+
+  useEffect(() => {
     localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
     document.body.dataset.theme = dark ? 'dark' : 'light';
   }, [dark]);
@@ -265,6 +349,16 @@ function App() {
       navigate(firstAvailableKey, null);
     }
   }, [activeMenu, availablePages]);
+
+  useEffect(() => {
+    if (collapsed) {
+      setMenuOpenKeys([]);
+      return;
+    }
+    const parentKey = getMenuParentKey(activeMenu);
+    if (!parentKey) return;
+    setMenuOpenKeys((prev) => (prev.includes(parentKey) ? prev : [parentKey]));
+  }, [activeMenu, collapsed]);
 
   useEffect(() => {
     const t = setTimeout(() => { try { lucide.createIcons(); } catch (e) {} }, 50);
@@ -451,6 +545,21 @@ function App() {
 
   const firstCommandItem = filteredCommandItems[0] || null;
 
+  const rootSubmenuKeys = useMemo(() => MENU_GROUPS.map((group) => `group:${group.key}`), []);
+
+  const handleMenuOpenChange = (nextOpenKeys = []) => {
+    if (collapsed) {
+      setMenuOpenKeys([]);
+      return;
+    }
+    const latestOpenKey = nextOpenKeys.find((key) => !menuOpenKeys.includes(key));
+    if (latestOpenKey && rootSubmenuKeys.includes(latestOpenKey)) {
+      setMenuOpenKeys([latestOpenKey]);
+      return;
+    }
+    setMenuOpenKeys(nextOpenKeys.filter((key) => rootSubmenuKeys.includes(key)));
+  };
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       const isShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
@@ -542,7 +651,9 @@ function App() {
           },
           Menu: {
             darkItemBg: '#001529',
-            darkItemSelectedBg: '#1677ff',
+            darkItemHoverBg: 'rgba(255,255,255,0.08)',
+            darkItemSelectedBg: 'rgba(22,119,255,0.2)',
+            darkItemSelectedColor: '#ffffff',
             darkSubMenuItemBg: '#000c17',
           },
         },
@@ -573,6 +684,8 @@ function App() {
           theme: 'dark',
           mode: 'inline',
           selectedKeys: [activeMenu],
+          openKeys: collapsed ? [] : menuOpenKeys,
+          onOpenChange: handleMenuOpenChange,
           items: menuItems,
           onClick: ({ key }) => navigate(key, null),
           className: 'app-menu',

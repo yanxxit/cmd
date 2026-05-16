@@ -6,6 +6,31 @@
 import { getDatabase } from './database.js';
 import { getSubtasks } from './subtask.js';
 
+function escapeSqlText(value = '') {
+  return String(value || '').replace(/'/g, "''");
+}
+
+function parseDateOnly(value = '') {
+  return String(value || '').slice(0, 10);
+}
+
+function getTodoStart(todo) {
+  return todo.start_at || todo.due_date || todo.created_at || '';
+}
+
+function getTodoEnd(todo) {
+  return todo.end_at || todo.start_at || todo.due_date || todo.created_at || '';
+}
+
+function overlapsDateRange(todo, startDate = '', endDate = '') {
+  const todoStart = parseDateOnly(getTodoStart(todo));
+  const todoEnd = parseDateOnly(getTodoEnd(todo));
+  if (!todoStart && !todoEnd) return false;
+  if (startDate && todoEnd && todoEnd < startDate) return false;
+  if (endDate && todoStart && todoStart > endDate) return false;
+  return true;
+}
+
 /**
  * 将数据库行转换为对象
  */
@@ -17,6 +42,8 @@ function rowToObject(row) {
     completed: row.completed,
     priority: row.priority,
     due_date: row.due_date,
+    start_at: row.start_at || '',
+    end_at: row.end_at || '',
     note: row.note,
     tags: row.tags || '[]',
     category: row.category || '',
@@ -29,7 +56,7 @@ function rowToObject(row) {
  * 获取 TODO 列表
  */
 export async function getTodos(options = {}) {
-  const { filter, sort, search } = options;
+  const { filter, sort, search, startDate = '', endDate = '' } = options;
   
   const conditions = [];
   
@@ -42,7 +69,8 @@ export async function getTodos(options = {}) {
   
   // 搜索条件
   if (search) {
-    conditions.push(`content ILIKE '%${search}%'`);
+    const searchEscaped = escapeSqlText(search);
+    conditions.push(`(content ILIKE '%${searchEscaped}%' OR note ILIKE '%${searchEscaped}%' OR category ILIKE '%${searchEscaped}%')`);
   }
   
   let query = 'SELECT * FROM todos';
@@ -68,6 +96,9 @@ export async function getTodos(options = {}) {
     case 'due_date_asc':
       query += 'due_date ASC, created_at DESC';
       break;
+    case 'schedule_asc':
+      query += "COALESCE(NULLIF(start_at, '')::timestamp, NULLIF(due_date, '')::timestamp, created_at) ASC, created_at DESC";
+      break;
     default:
       query += 'created_at DESC';
   }
@@ -75,7 +106,10 @@ export async function getTodos(options = {}) {
   const db = getDatabase();
   const result = await db.query(query);
   
-  const todos = result.rows.map(row => rowToObject(row));
+  let todos = result.rows.map(row => rowToObject(row));
+  if (startDate || endDate) {
+    todos = todos.filter((todo) => overlapsDateRange(todo, startDate, endDate));
+  }
   
   // 为每个任务添加子任务统计
   for (const todo of todos) {
@@ -102,18 +136,29 @@ export async function getTodoById(id) {
  * 创建 TODO
  */
 export async function createTodo(data) {
-  const { content, priority = 2, due_date = null, note = '', tags = '[]', category = '' } = data;
+  const {
+    content,
+    priority = 2,
+    due_date = null,
+    start_at = '',
+    end_at = '',
+    note = '',
+    tags = '[]',
+    category = '',
+  } = data;
   
   const db = getDatabase();
   
   try {
-    const contentEsc = content.trim().replace(/'/g, "''");
-    const noteEsc = (note || '').replace(/'/g, "''");
+    const contentEsc = escapeSqlText(content.trim());
+    const noteEsc = escapeSqlText(note || '');
     const dueDateVal = due_date ? `'${due_date}'` : 'NULL';
     const tagsVal = tags || '[]';
-    const categoryEsc = (category || '').replace(/'/g, "''");
+    const categoryEsc = escapeSqlText(category || '');
+    const startAtVal = start_at ? `'${start_at}'` : 'NULL';
+    const endAtVal = end_at ? `'${end_at}'` : 'NULL';
     
-    const sql = `INSERT INTO todos (content, priority, due_date, note, tags, category) VALUES ('${contentEsc}', ${priority}, ${dueDateVal}, '${noteEsc}', '${tagsVal}', '${categoryEsc}')`;
+    const sql = `INSERT INTO todos (content, priority, due_date, start_at, end_at, note, tags, category) VALUES ('${contentEsc}', ${priority}, ${dueDateVal}, ${startAtVal}, ${endAtVal}, '${noteEsc}', '${tagsVal}', '${categoryEsc}')`;
     
     await db.exec(sql);
     
@@ -129,12 +174,12 @@ export async function createTodo(data) {
  * 更新 TODO
  */
 export async function updateTodo(id, data) {
-  const { content, completed, priority, due_date, note, tags, category } = data;
+  const { content, completed, priority, due_date, start_at, end_at, note, tags, category } = data;
   
   const fields = [];
   
   if (content !== undefined) {
-    const val = content.trim().replace(/'/g, "''");
+    const val = escapeSqlText(content.trim());
     fields.push(`content = '${val}'`);
   }
   
@@ -149,9 +194,17 @@ export async function updateTodo(id, data) {
   if (due_date !== undefined) {
     fields.push(`due_date = ${due_date ? `'${due_date}'` : 'NULL'}`);
   }
+
+  if (start_at !== undefined) {
+    fields.push(`start_at = ${start_at ? `'${start_at}'` : 'NULL'}`);
+  }
+
+  if (end_at !== undefined) {
+    fields.push(`end_at = ${end_at ? `'${end_at}'` : 'NULL'}`);
+  }
   
   if (note !== undefined) {
-    const val = (note || '').replace(/'/g, "''");
+    const val = escapeSqlText(note || '');
     fields.push(`note = '${val}'`);
   }
   
@@ -160,7 +213,7 @@ export async function updateTodo(id, data) {
   }
   
   if (category !== undefined) {
-    const val = (category || '').replace(/'/g, "''");
+    const val = escapeSqlText(category || '');
     fields.push(`category = '${val}'`);
   }
   
@@ -223,4 +276,16 @@ export async function getTodoStats() {
     pending: parseInt(result.rows[0].pending),
     completed: parseInt(result.rows[0].completed)
   };
+}
+
+export async function getTodosForDateRange(options = {}) {
+  const { startDate = '', endDate = '', search = '', filter = '' } = options;
+  const todos = await getTodos({
+    filter,
+    sort: 'schedule_asc',
+    search,
+    startDate,
+    endDate,
+  });
+  return todos.filter((todo) => overlapsDateRange(todo, startDate, endDate));
 }

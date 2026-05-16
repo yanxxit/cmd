@@ -22,6 +22,7 @@ import adminShortLinksApiRouter from './admin-short-links-api.js';
 import publicArticlesApiRouter from './public-articles-api.js';
 import adminMembersApiRouter from './admin-members-api.js';
 import adminCouponsApiRouter from './admin-coupons-api.js';
+import adminDateApiRouter from './admin-date-api.js';
 import userAuthApiRouter from './user-auth-api.js';
 import userActionsApiRouter from './user-actions-api.js';
 import authApiRouter from './auth-api.js';
@@ -130,6 +131,7 @@ export default function (options = { port: 3000, dir: __dirname }) {
   app.use('/api/admin-short-links', adminShortLinksApiRouter);
   app.use('/api/admin-members', adminMembersApiRouter);
   app.use('/api/admin-coupons', adminCouponsApiRouter);
+  app.use('/api/admin-date', adminDateApiRouter);
   app.use('/api/public/articles', publicArticlesApiRouter);
   app.use('/api/user-auth', userAuthApiRouter);
   app.use('/api/user-actions', userActionsApiRouter);
