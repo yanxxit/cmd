@@ -38,6 +38,11 @@ import { createRequestLogger } from './request-logger.js';
 import requestLoggerApiRouter from './request-logger-api.js';
 import { initDatabase as initTodoDatabase } from '../model/database.js';
 import { createHashMiddleware, createStaticWithHashInjection } from './hash-middleware.js';
+import {
+  computeDirectoryBuildVersion,
+  createHtmlBuildVersionMiddleware,
+  sendHtmlWithBuildVersion,
+} from './middleware/build-version-injector.js';
 import { setupSystemInfoSocket, setupSystemInfoAPI } from './system-info-api.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -331,15 +336,20 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 测试案例管理系统页面
   const testCaseManagerDir = path.join(ROOT_DIR, 'public/test-case-manager');
+  const getTestCaseManagerBuildVersion = () => computeDirectoryBuildVersion(testCaseManagerDir);
+  app.use('/test-case-manager', createHtmlBuildVersionMiddleware({
+    baseDir: testCaseManagerDir,
+    getBuildVersion: getTestCaseManagerBuildVersion,
+  }));
   app.use('/test-case-manager', express.static(testCaseManagerDir));
   app.get('/test-case-manager', (req, res) => {
-    res.sendFile(path.join(testCaseManagerDir, 'index.html'));
+    sendHtmlWithBuildVersion(res, path.join(testCaseManagerDir, 'index.html'), getTestCaseManagerBuildVersion());
   });
   app.get('/test-case-manager/member-center', (req, res) => {
-    res.sendFile(path.join(testCaseManagerDir, 'member-center.html'));
+    sendHtmlWithBuildVersion(res, path.join(testCaseManagerDir, 'member-center.html'), getTestCaseManagerBuildVersion());
   });
   app.get('/test-case-manager/member-h5', (req, res) => {
-    res.sendFile(path.join(testCaseManagerDir, 'member-h5.html'));
+    sendHtmlWithBuildVersion(res, path.join(testCaseManagerDir, 'member-h5.html'), getTestCaseManagerBuildVersion());
   });
 
   // Web IDE
