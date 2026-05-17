@@ -55,16 +55,34 @@ const COLLAPSED_KEY = 'tcm-sider-collapsed';
 const MENU_OPEN_KEYS_KEY = 'tcm-menu-open-keys';
 const MENU_GROUPS = [
   {
-    key: 'time',
-    title: '时间',
+    key: 'workspace',
+    title: '工作台',
+    icon: 'layout-dashboard',
+    pageKeys: ['dashboard'],
+  },
+  {
+    key: 'testing',
+    title: '测试管理',
+    icon: 'layout-list',
+    pageKeys: ['cases', 'collections'],
+  },
+  {
+    key: 'operations',
+    title: '业务运营',
+    icon: 'badge-percent',
+    pageKeys: ['articles', 'shortlinks', 'members', 'coupons', 'lottery'],
+  },
+  {
+    key: 'tools',
+    title: '效率工具',
     icon: 'calendar-clock',
     pageKeys: ['dateCalendar', 'pomodoro', 'todos'],
   },
   {
-    key: 'database',
-    title: '数据库',
-    icon: 'database',
-    pageKeys: ['jsondb'],
+    key: 'system',
+    title: '系统配置',
+    icon: 'shield-check',
+    pageKeys: ['envs', 'jsondb', 'admins', 'roles', 'account'],
   },
 ];
 const PAGE_REGISTRY = {
@@ -212,39 +230,37 @@ function buildMenuItems(admin) {
   const pages = getAvailablePages(admin).filter((page) => !page.hidden);
   const pageMap = new Map(pages.map((page) => [page.key, page]));
   const groupedPageKeys = new Set(MENU_GROUPS.flatMap((group) => group.pageKeys));
-  const insertedGroups = new Set();
+  const groupedItems = MENU_GROUPS.map((group) => {
+    const children = group.pageKeys
+      .map((key) => pageMap.get(key))
+      .filter(Boolean)
+      .map((child) => ({
+        key: child.key,
+        icon: h('i', { 'data-lucide': child.icon, className: 'menu-svg' }),
+        label: child.title,
+      }));
 
-  return pages.flatMap((page) => {
-    if (groupedPageKeys.has(page.key)) {
-      const group = MENU_GROUPS.find((item) => item.pageKeys.includes(page.key));
-      if (!group || insertedGroups.has(group.key)) {
-        return [];
-      }
-      insertedGroups.add(group.key);
-      const children = group.pageKeys
-        .map((key) => pageMap.get(key))
-        .filter(Boolean)
-        .map((child) => ({
-          key: child.key,
-          icon: h('i', { 'data-lucide': child.icon, className: 'menu-svg' }),
-          label: child.title,
-        }));
-      if (!children.length) {
-        return [];
-      }
-      return [{
-        key: `group:${group.key}`,
-        icon: h('i', { 'data-lucide': group.icon, className: 'menu-svg' }),
-        label: group.title,
-        children,
-      }];
+    if (!children.length) {
+      return null;
     }
-    return [{
+
+    return {
+      key: `group:${group.key}`,
+      icon: h('i', { 'data-lucide': group.icon, className: 'menu-svg' }),
+      label: group.title,
+      children,
+    };
+  }).filter(Boolean);
+
+  const ungroupedItems = pages
+    .filter((page) => !groupedPageKeys.has(page.key))
+    .map((page) => ({
       key: page.key,
       icon: h('i', { 'data-lucide': page.icon, className: 'menu-svg' }),
       label: page.title,
-    }];
-  });
+    }));
+
+  return [...groupedItems, ...ungroupedItems];
 }
 
 function getMenuParentKey(pageKey = '') {
