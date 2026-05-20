@@ -787,7 +787,24 @@ function showTableResult(data) {
 
   const table = document.getElementById('resultTable');
   let html = '<thead><tr>';
-  data.headers.forEach(h => html += `<th>${escapeHtml(h)}</th>`);
+  data.headers.forEach((h, index) => {
+    html += `
+      <th>
+        <div class="table-header-cell">
+          <span class="table-header-text">${escapeHtml(h)}</span>
+          <button
+            type="button"
+            class="table-column-delete-btn"
+            onclick="removeTableColumn(${index})"
+            title="删除这一列"
+            aria-label="删除列 ${escapeHtml(h || `列${index + 1}`)}"
+          >
+            ×
+          </button>
+        </div>
+      </th>
+    `;
+  });
   html += '</tr></thead><tbody>';
   
   data.rows.forEach(row => {
@@ -802,6 +819,34 @@ function showTableResult(data) {
 
   showResultTab('table');
   resultSection.classList.add('show');
+}
+
+function removeTableColumn(columnIndex) {
+  if (!currentData?.table) return;
+
+  const tableData = currentData.table;
+  const currentColumnCount = Math.max(
+    tableData.headers.length,
+    ...(tableData.rows || []).map((row) => row.length),
+    0
+  );
+
+  if (currentColumnCount <= 1) {
+    showError('至少需要保留 1 列，无法继续删除');
+    return;
+  }
+
+  tableData.headers = tableData.headers.filter((_, index) => index !== columnIndex);
+  tableData.rows = tableData.rows.map((row) => row.filter((_, index) => index !== columnIndex));
+
+  if (tableData.headers.length === 0 && tableData.rows.length > 0) {
+    const nextColumnCount = Math.max(...tableData.rows.map((row) => row.length), 0);
+    tableData.headers = Array.from({ length: nextColumnCount }, (_, index) => `列${index + 1}`);
+  }
+
+  currentData = { ...currentData, table: tableData };
+  showTableResult(tableData);
+  hideError();
 }
 
 function showJSONResult(parsed, raw) {
@@ -1549,6 +1594,8 @@ window.copyTableHTML = function() {
     copyToClipboard(html, 'HTML 表格');
   }
 };
+
+window.removeTableColumn = removeTableColumn;
 
 // 页面加载后聚焦
 window.addEventListener('load', () => {

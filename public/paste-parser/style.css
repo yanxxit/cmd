@@ -231,6 +231,40 @@ body {
   color: #333;
 }
 
+.table-header-cell {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.table-header-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.table-column-delete-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #f0b7bd;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #d14343;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-column-delete-btn:hover {
+  background: #d14343;
+  border-color: #d14343;
+  color: #ffffff;
+  transform: scale(1.06);
+}
+
 .table-container tr:hover {
   background: #f8f9ff;
 }
