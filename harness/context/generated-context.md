@@ -1,6 +1,6 @@
 # Generated Context
 
-- generated_at: 2026-05-29 14:20:02
+- generated_at: 2026-05-29 15:17:50
 - project_root: /Users/bytedance/github/cmd
 - package_name: @yanit/cmd
 - package_description: cmd tools 
@@ -8,7 +8,6 @@
 ## Top Level Directories
 - .agents
 - .claude
-- .http-sniffer
 - .jsondb
 - .pgdata
 - .trae

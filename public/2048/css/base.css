@@ -1,0 +1,27 @@
+/* Base styles for 2048 */
+:root {
+  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --grid-bg: #bbada0;
+  --cell-bg: #cdc1b4;
+  --text-dark: #776e65;
+  --text-light: #f9f6f2;
+  --panel-bg: rgba(255, 255, 255, 0.15);
+  --panel-border: rgba(255, 255, 255, 0.22);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: var(--bg-gradient);
+  user-select: none;
+}
+
+button {
+  font: inherit;
+}
