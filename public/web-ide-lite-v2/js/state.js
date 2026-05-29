@@ -37,6 +37,15 @@ export function state() {
     settingsVisible: ref(false),
     currentSettingsCategory: ref('editor'),
     settings: ref(null),
+    // Harness 开发模式状态
+    harnessEnabled: ref(false),
+    harnessVisible: ref(false),
+    harnessAutoRun: ref(false),
+    harnessLoading: ref(false),
+    harnessPrompt: ref('请结合当前文件和项目上下文，给出下一步开发建议。'),
+    harnessMessages: ref([]),
+    harnessLastAutoFileId: ref(null),
+    harnessBootstrapped: ref(false),
     // 文件搜索状态
     fileSearchQuery: ref(''),
     searchResults: ref([]),

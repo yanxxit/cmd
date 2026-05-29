@@ -226,6 +226,9 @@
         <button @click="createNewFile" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm desktop-btn">📄 <span class="btn-text">新建</span></button>
         <button @click="saveCurrentFile" :disabled="!currentFile" class="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded text-sm desktop-btn">💾 <span class="btn-text">保存</span></button>
         <button @click="saveCurrentFile" :disabled="!currentFile" class="p-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded mobile-btn">💾</button>
+        <button @click="toggleHarnessPanel" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded text-sm">
+          🤖 <span class="btn-text">Harness</span>
+        </button>
       </div>
     </header>
 
@@ -409,6 +412,63 @@
           </div>
         </div>
       </main>
+
+      <!-- Harness 开发模式面板 -->
+      <aside v-show="harnessVisible" class="w-[380px] max-w-[45vw] bg-ide-sidebar border-l border-gray-700 flex flex-col flex-shrink-0">
+        <div class="px-4 py-3 border-b border-gray-700 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-semibold">Harness Dev Mode</div>
+            <div class="text-xs text-gray-400">
+              {{ currentFile ? `当前文件：${currentFile.name}` : '当前未打开文件' }}
+            </div>
+          </div>
+          <button @click="toggleHarnessPanel" class="text-gray-400 hover:text-white text-lg">×</button>
+        </div>
+
+        <div class="px-4 py-3 border-b border-gray-700 space-y-3">
+          <div class="text-xs text-gray-400">
+            {{ harnessAutoRun ? '已开启自动触发：打开文件后会立即分析。' : '可手动输入提示词触发 Harness。' }}
+          </div>
+          <textarea
+            v-model="harnessPrompt"
+            class="w-full min-h-28 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm outline-none focus:border-violet-500 resize-y"
+            placeholder="输入开发目标，例如：请帮我改造当前文件，给出改动方案和风险点。"
+          ></textarea>
+          <div class="flex items-center gap-2">
+            <button
+              @click="runHarnessFromPrompt"
+              :disabled="harnessLoading"
+              class="px-3 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded text-sm"
+            >
+              {{ harnessLoading ? '分析中...' : '立即触发' }}
+            </button>
+            <button
+              @click="runHarness(currentFile ? `请进入开发模式，分析当前打开的文件 \"${currentFile.name}\"，给出改造建议、风险点和最推荐的下一步。` : '请进入开发模式，基于当前项目上下文先给出启动建议和推荐操作顺序。')"
+              :disabled="harnessLoading"
+              class="px-3 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded text-sm"
+            >
+              快速分析
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+          <div
+            v-for="message in harnessMessages"
+            :key="message.id"
+            class="rounded-lg px-3 py-2 text-sm whitespace-pre-wrap"
+            :class="message.role === 'assistant' ? 'bg-gray-800 text-gray-100' : 'bg-violet-950/60 text-violet-100'"
+          >
+            <div class="text-[11px] uppercase tracking-wide opacity-60 mb-1">
+              {{ message.role === 'assistant' ? 'Harness' : 'You' }}
+            </div>
+            <div>{{ message.content }}</div>
+          </div>
+          <div v-if="!harnessMessages.length" class="text-sm text-gray-500">
+            Harness 面板已就绪，输入提示词即可开始。
+          </div>
+        </div>
+      </aside>
     </div>
 
     <!-- Status Bar -->

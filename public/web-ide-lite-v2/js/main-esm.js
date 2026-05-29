@@ -54,6 +54,8 @@ export function createWebIDE() {
         '打开目录'
       );
 
+      actionsObj.initHarnessMode();
+
       // 挂载后初始化功能
       setTimeout(() => {
         composables.initSettingsFeature();
@@ -65,6 +67,7 @@ export function createWebIDE() {
 
         // 添加全局键盘事件监听
         addGlobalKeydownListener(actionsObj);
+        actionsObj.autoRunHarnessOnReady();
       }, 100);
 
       return {

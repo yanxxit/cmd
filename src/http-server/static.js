@@ -35,6 +35,7 @@ import xlsxParserRouter from './xlsx-parser.js';
 import aiChatApiRouter from './ai-chat-api.js';
 import appsApiRouter from './apps-api.js';
 import contrastApiRouter from './contrast-api.js';
+import harnessApiRouter from './harness-api.js';
 import markdownContrastApiRouter from './markdown-contrast-api.js';
 import { createRequestLogger } from './request-logger.js';
 import requestLoggerApiRouter from './request-logger-api.js';
@@ -117,6 +118,9 @@ export default function (options = { port: 3000, dir: __dirname }) {
 
   // 挂载 AI 聊天 API 路由
   app.use('/api/ai', aiChatApiRouter);
+
+  // 挂载 Harness 开发模式 API 路由
+  app.use('/api/harness', harnessApiRouter);
 
   // 挂载具体 API 路由（必须在通用 /api 之前）
   app.use('/api/todos', todoApiRouter);

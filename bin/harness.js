@@ -4,12 +4,36 @@ import { program } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import readline from 'readline';
+import path from 'path';
 import AIHarness from '../src/harness/index.js';
+import server from '../src/http-server/static.js';
+import { openURL } from '../src/open.js';
 
 program
   .name('x-harness')
   .description('简单的 AI 测试和调用框架')
   .version('1.0.0');
+
+function resolveTargetDir(dir) {
+  if (!dir) {
+    return process.cwd();
+  }
+  return path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir);
+}
+
+function buildHarnessDevUrl(port, options = {}) {
+  const params = new URLSearchParams({
+    harness: '1',
+    autoHarness: options.autoHarness === false ? '0' : '1',
+  });
+
+  if (options.prompt) {
+    params.set('prompt', options.prompt);
+  }
+
+  const page = options.editor === 'monaco' ? 'web-ide' : 'web-ide-lite-v2';
+  return `http://127.0.0.1:${port}/${page}/?${params.toString()}`;
+}
 
 program
   .command('ask <question>')
@@ -151,6 +175,43 @@ program
         const fs = await import('fs/promises');
         await fs.writeFile(options.output, JSON.stringify(results, null, 2));
         console.log(chalk.green(`结果已保存到: ${options.output}`));
+      }
+    } catch (error) {
+      console.error(chalk.red('错误:'), error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('dev [dir]')
+  .description('以 Harness 开发模式启动本地编辑器')
+  .option('-p, --port <port>', '端口号', (value) => parseInt(value, 10), 3100)
+  .option('-e, --editor <editor>', '编辑器类型（lite-v2 | monaco）', 'lite-v2')
+  .option('--prompt <prompt>', '启动时默认注入的 Harness 提示词')
+  .option('--no-auto-harness', '打开文件后不自动触发 Harness')
+  .option('--no-open', '启动后不自动打开浏览器')
+  .action(async (dir, options) => {
+    try {
+      const targetDir = resolveTargetDir(dir);
+      const url = buildHarnessDevUrl(options.port, options);
+
+      server({
+        dir: targetDir,
+        port: options.port
+      });
+
+      console.log(chalk.cyan('\nHarness 开发模式已启动'));
+      console.log(chalk.gray('─'.repeat(60)));
+      console.log(`目录: ${chalk.white(targetDir)}`);
+      console.log(`地址: ${chalk.white(url)}`);
+      console.log(chalk.gray('─'.repeat(60)));
+
+      if (options.open) {
+        setTimeout(() => {
+          openURL(url).catch((error) => {
+            console.error(chalk.red('打开浏览器失败:'), error.message);
+          });
+        }, 600);
       }
     } catch (error) {
       console.error(chalk.red('错误:'), error.message);

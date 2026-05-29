@@ -4,6 +4,7 @@
 import { createFileActions } from './actions/file-actions.js';
 import { createDirectoryActions } from './actions/directory-actions.js';
 import { createEditorActions } from './actions/editor-actions.js';
+import { createHarnessActions } from './actions/harness-actions.js';
 import { createUIActions } from './actions/ui-actions.js';
 import { fileTypes } from './config.js';
 
@@ -12,8 +13,13 @@ export function actions(state, composables = {}) {
   const uiActions = createUIActions(state);
   const { showToast } = uiActions;
 
+  // Harness 开发模式
+  const harnessActions = createHarnessActions(state, showToast);
+
   // 文件操作
-  const fileActions = createFileActions(state, showToast);
+  const fileActions = createFileActions(state, showToast, {
+    onOpenFile: harnessActions.handleFileOpened
+  });
 
   // 目录操作
   const dirActions = createDirectoryActions(state, showToast);
@@ -27,6 +33,9 @@ export function actions(state, composables = {}) {
   return {
     // UI
     ...uiActions,
+
+    // Harness
+    ...harnessActions,
 
     // 文件
     ...fileActions,

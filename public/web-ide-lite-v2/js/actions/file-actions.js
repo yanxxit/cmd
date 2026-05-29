@@ -4,7 +4,7 @@
 import { nextTick } from 'vue';
 import { formatFileSize } from '../utils.js';
 
-export function createFileActions(state, showToast) {
+export function createFileActions(state, showToast, hooks = {}) {
   const openFile = (file) => {
     if (!state.openTabs.value.find(t => t.id === file.id)) {
       state.openTabs.value.push({ ...file });
@@ -14,6 +14,9 @@ export function createFileActions(state, showToast) {
     state.currentLanguage.value = file.language || detectLanguage(file.name);
     file.language = state.currentLanguage.value;
     nextTick(() => state.editorRef.value?.focus());
+    if (typeof hooks.onOpenFile === 'function') {
+      hooks.onOpenFile(file);
+    }
   };
 
   const closeTab = (tab) => {
