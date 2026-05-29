@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Public Page Template Preview</title>
+  <script>
+    const G_VER = Date.now();
+    window.G_VER = G_VER;
+    window.getAssetUrl = (path) => `${path}?v=${G_VER}`;
+    window.injectStyle = (href) => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = window.getAssetUrl(href);
+      document.head.appendChild(link);
+      return link;
+    };
+    window.injectStyle('./css/base.css');
+  </script>
+  <script type="importmap">
+  {
+    "imports": {
+      "dayjs": "https://cdn.jsdelivr.net/npm/dayjs@1.11.19/+esm"
+    }
+  }
+  </script>
+  <script type="module">
+    const { bootTemplatePage } = await import(`./js/main.js?v=${window.G_VER}`);
+    await bootTemplatePage({ mount: '#app' });
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+</body>
+</html>

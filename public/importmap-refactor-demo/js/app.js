@@ -1,21 +1,25 @@
-// App assembly: connect shell, data, preview and activity log.
+// App assembly: connect shell, preview, practical case study and activity log.
 import dayjs from 'dayjs';
 
 const v = window.G_VER || Date.now();
 const [
   { createStore },
   { getScenarioById, listScenarios, getOverviewMetrics },
+  { caseStudy },
   { renderPageShell },
   { renderModuleMap },
   { renderPreviewPanel },
+  { renderCaseStudy },
   { renderActivityLog },
   { qs, on }
 ] = await Promise.all([
   import(`./state/store.js?v=${v}`),
   import(`./services/demo-data.js?v=${v}`),
+  import(`./services/case-study.js?v=${v}`),
   import(`./components/page-shell.js?v=${v}`),
   import(`./components/module-map.js?v=${v}`),
   import(`./components/preview-panel.js?v=${v}`),
+  import(`./components/case-study-steps.js?v=${v}`),
   import(`./components/activity-log.js?v=${v}`),
   import(`./utils/dom.js?v=${v}`)
 ]);
@@ -49,7 +53,7 @@ export async function createDemoApp({ mount = '#app' } = {}) {
           time: dayjs().format('HH:mm:ss')
         },
         ...current
-      ].slice(0, 6)
+      ].slice(0, 8)
     });
   }
 
@@ -66,6 +70,7 @@ export async function createDemoApp({ mount = '#app' } = {}) {
       metrics,
       moduleMapHtml: renderModuleMap(scenario.modules),
       previewHtml: renderPreviewPanel(scenario),
+      caseStudyHtml: renderCaseStudy(caseStudy),
       activityHtml: renderActivityLog(state.logs)
     });
 
@@ -93,6 +98,11 @@ export async function createDemoApp({ mount = '#app' } = {}) {
 
     on(qs('[data-action="simulate-style"]', root), 'click', () => {
       appendLog('应用样式拆分', '基础样式、布局样式、组件样式已独立，支持按需加载。');
+      render();
+    });
+
+    on(qs('[data-action="simulate-case-step"]', root), 'click', () => {
+      appendLog('查看实战案例', `按 ${caseStudy.steps.length} 个步骤逐步拆分 ${caseStudy.pageName}`);
       render();
     });
   }

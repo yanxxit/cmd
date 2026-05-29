@@ -17,6 +17,7 @@
 - `next-app/`：独立的 Next.js + TypeScript + antd 应用。
 - `harness/templates/public-page-template/`：`public/` 静态页面的推荐脚手架。
 - `public/importmap-refactor-demo/`：展示如何把复杂单 HTML 页面拆成多文件 ESM 模块的示例。
+- `public/migration-checklist/`：面向团队协作的交互式迁移清单工具页。
 
 ### 2.3 测试与验证层
 - `test/`：Vitest 单测、脚本测试、性能测试。
@@ -43,6 +44,7 @@
 - 文档/配置变更可以不新增测试，但必须经过脚本校验并在交付中说明。
 - 模块级 spec/tasks 可放在对应 `docs/<feature>/` 目录下；仓库级入口统一挂在 `tasks/`。
 - 对 `public/` 下新增或中大型迭代页面，优先采用原生 ESM + ImportMaps + 多文件拆分方案，避免继续膨胀单 HTML 文件。
+- 迁移规则既保留 Markdown 文档，也提供可交互页面版本，便于团队同步进度和沉淀迁移经验。
 
 ## 4. 关键目录约定
 - `docs/decisions/`：记录仓库级决策、流程变更、关键约束。

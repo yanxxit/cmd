@@ -10,3 +10,4 @@
 2. 修改 `index.html` 标题、页面文案和 `js/services/` 里的业务数据源。
 3. 保留 `G_VER`、动态样式加载和多文件 ESM 结构，不要回退到超大单 HTML。
 4. 需要参考真实拆分案例时，查看 `public/importmap-refactor-demo/`。
+5. 需要执行旧页面迁移时，配合 `docs/public-html-to-esm-migration-checklist.md` 使用。

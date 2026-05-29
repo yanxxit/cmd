@@ -20,6 +20,9 @@
 - [x] 创建 `harness/skills/` 模板与示例
 - [x] 创建 `harness/templates/public-page-template/`
 - [x] 创建 `public/importmap-refactor-demo/` 作为规则示例页面
+- [x] 创建 `docs/public-html-to-esm-migration-checklist.md`
+- [x] 创建 `public/migration-checklist/` 作为可交互迁移清单工具页
+- [x] 为 `public/importmap-refactor-demo/` 补充逐步迁移实战案例
 - [ ] 后续根据实际自动化需要补充更细的 repo skill 与脚本
 
 ## 验收标准

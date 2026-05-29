@@ -26,6 +26,8 @@
 为降低这条规则的理解门槛，同时补充两类配套资产：
 - `harness/templates/public-page-template/`：可直接复制的标准脚手架
 - `public/importmap-refactor-demo/`：展示复杂 HTML 拆分方式的真实示例页面
+- `public/migration-checklist/`：支持勾选与记录进度的交互式迁移清单页面
+- `docs/public-html-to-esm-migration-checklist.md`：与交互页面共享规则源的 Markdown 清单文档
 
 ## 结果
 - `AGENTS.md` 与 `CLAUDE.md` 不再指向不存在的路径。

@@ -16,6 +16,8 @@
 - 若页面已处于独立框架子工程中，例如 `next-app/`，则不强制使用该策略。
 - 可复制模板位于 `harness/templates/public-page-template/`。
 - 真实示例页面位于 `public/importmap-refactor-demo/`，用于演示复杂 HTML 的拆分方式。
+- 迁移清单文档位于 `docs/public-html-to-esm-migration-checklist.md`。
+- 交互式清单页面位于 `public/migration-checklist/`，支持在浏览器中勾选并保存进度。
 
 ## 推荐使用方式
 1. 开始任务前先读 `AGENTS.md`、`CLAUDE.md`、`docs/design.md`。

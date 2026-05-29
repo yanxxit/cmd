@@ -1,0 +1,42 @@
+/* Layout styles */
+.checklist-page {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 32px 20px 72px;
+}
+
+.checklist-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
+}
+
+.checklist-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+
+.checklist-panel-inner {
+  padding: 24px;
+}
+
+.checklist-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 18px;
+}
+
+.checklist-stack {
+  display: grid;
+  gap: 18px;
+}
+
+@media (max-width: 1080px) {
+  .checklist-hero,
+  .checklist-grid {
+    grid-template-columns: 1fr;
+  }
+}
