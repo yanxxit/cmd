@@ -1,6 +1,6 @@
 # Generated Context
 
-- generated_at: 2026-05-29 09:56:56
+- generated_at: 2026-05-29 10:25:24
 - project_root: /Users/bytedance/github/cmd
 - package_name: @yanit/cmd
 - package_description: cmd tools 
@@ -10,9 +10,9 @@
 - .claude
 - .http-sniffer
 - .jsondb
-- .lingma
 - .pgdata
 - .trae
+- .vscode
 - bin
 - bun-app
 - docs

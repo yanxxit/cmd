@@ -21,6 +21,12 @@
 - `tasks/README.md`
 - `tasks/00-harness-foundation.md`
 
+针对 `public/` 下新增或中大型迭代的静态页面，优先采用 `native-esm-importmaps` skill 进行开发或重构，默认朝“多文件原生 ESM + ImportMaps”方向演进，避免继续堆积超大单 HTML 文件。
+
+为降低这条规则的理解门槛，同时补充两类配套资产：
+- `harness/templates/public-page-template/`：可直接复制的标准脚手架
+- `public/importmap-refactor-demo/`：展示复杂 HTML 拆分方式的真实示例页面
+
 ## 结果
 - `AGENTS.md` 与 `CLAUDE.md` 不再指向不存在的路径。
 - 仓库级流程具备可执行脚本，而不是只停留在口号。

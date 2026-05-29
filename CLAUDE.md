@@ -10,12 +10,14 @@
 - 交付前默认运行 `bash harness/scripts/verify.sh`。
 - 修改 Node/CLI/HTTP 逻辑时，补充执行最接近改动面的 `npm run test:*`。
 - 文档、任务、决策要同步更新，不允许只改代码不回写上下文。
+- 当任务落在 `public/` 目录且属于新增页面或迭代重构时，优先调用 `native-esm-importmaps` skill，将页面拆成多文件原生 ESM 模块，而不是继续堆大体积单 HTML。
 
 ## 仓库现实约束
 - 主工程是 Node.js ESM 仓库，测试框架为 Vitest。
 - 实际测试目录是 `test/`，不是 `tests/`。
 - `docs/test-case-manager/` 已经存在一套完整 spec/tasks，可作为后续新功能的参考模板。
 - `harness/` 目录承载仓库级 Harness 配置、脚本、skills 模板和概念说明。
+- `public/` 下的大多数工具页是零构建静态页面，后续新增或迭代时应优先朝 `type="module"` + ImportMaps + 多文件拆分方向演进。
 
 ## 推荐工作流
 1. 读取协议与设计文档。

@@ -1,0 +1,69 @@
+/* Template page styles */
+.template-page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 40px 20px 60px;
+}
+
+.template-hero {
+  background: var(--panel);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.template-hero h1 {
+  margin: 0 0 12px;
+  font-size: 32px;
+}
+
+.template-hero p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.template-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.template-card h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.template-card p,
+.template-card li {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.template-card ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.template-meta {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.template-pill {
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary);
+}

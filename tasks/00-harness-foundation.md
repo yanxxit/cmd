@@ -18,6 +18,8 @@
 - [x] 创建 `harness/scripts/generate_context.sh`
 - [x] 创建 `harness/scripts/verify.sh`
 - [x] 创建 `harness/skills/` 模板与示例
+- [x] 创建 `harness/templates/public-page-template/`
+- [x] 创建 `public/importmap-refactor-demo/` 作为规则示例页面
 - [ ] 后续根据实际自动化需要补充更细的 repo skill 与脚本
 
 ## 验收标准

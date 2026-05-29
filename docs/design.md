@@ -15,6 +15,8 @@
 ### 2.2 前端工具层
 - `public/`：原生 HTML/CSS/JS 页面、轻量前端工具、`web-ide-lite-v2` 等。
 - `next-app/`：独立的 Next.js + TypeScript + antd 应用。
+- `harness/templates/public-page-template/`：`public/` 静态页面的推荐脚手架。
+- `public/importmap-refactor-demo/`：展示如何把复杂单 HTML 页面拆成多文件 ESM 模块的示例。
 
 ### 2.3 测试与验证层
 - `test/`：Vitest 单测、脚本测试、性能测试。
@@ -40,6 +42,7 @@
 - 代码测试默认使用 Vitest。
 - 文档/配置变更可以不新增测试，但必须经过脚本校验并在交付中说明。
 - 模块级 spec/tasks 可放在对应 `docs/<feature>/` 目录下；仓库级入口统一挂在 `tasks/`。
+- 对 `public/` 下新增或中大型迭代页面，优先采用原生 ESM + ImportMaps + 多文件拆分方案，避免继续膨胀单 HTML 文件。
 
 ## 4. 关键目录约定
 - `docs/decisions/`：记录仓库级决策、流程变更、关键约束。

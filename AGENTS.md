@@ -13,6 +13,7 @@
 - 遇到不确定，先查文档、测试和现有实现，不猜测。
 - 优先复用仓库已有模式：`test/` 为测试目录，`docs/test-case-manager/` 是现成的 spec/tasks 示例。
 - 生成项目上下文时，使用 `bash harness/scripts/generate_context.sh`。
+- 对 `public/` 下新增或迭代修改的页面，优先使用 `native-esm-importmaps` skill 规划为多文件原生 ESM + ImportMaps 结构，避免单个 HTML 过大、难以阅读和维护。
 
 ## 本仓库实际结构
 - `src/`：Node.js/Express/CLI 核心源码。
