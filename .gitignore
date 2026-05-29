@@ -54,7 +54,6 @@ test/result/
 next-app/data/articles/*
 
 
-harness
 
 # --- harness setup (managed) ---
 # 由 harness/skills/setup 管理的产物
