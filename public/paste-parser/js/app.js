@@ -3,6 +3,13 @@ import {
   buildRichMarkdownZipBundle,
   convertRichHtmlToMarkdown,
 } from './services/rich-content.js';
+import {
+  AUTO_PARSE_TYPE,
+  decidePasteAction,
+  decideTextAction,
+  getParseModeLabel,
+  normalizeSelectedParseType,
+} from './services/paste-routing.js';
 
 /**
  * 粘贴解析工具 - JavaScript
@@ -16,6 +23,8 @@ const hiddenEditable = document.getElementById('hiddenEditable');
 const errorMessage = document.getElementById('errorMessage');
 const resultSection = document.getElementById('resultSection');
 const pasteTypeIndicator = document.getElementById('pasteTypeIndicator');
+const parseModeStatus = document.getElementById('parseModeStatus');
+const parseModeAutoBtn = document.getElementById('parseModeAutoBtn');
 
 // 徽章
 const badges = {
@@ -58,6 +67,7 @@ let images = [];
 let files = [];
 let rawHtml = null;
 let rawText = null;
+let selectedParseType = AUTO_PARSE_TYPE;
 
 marked.setOptions({
   breaks: true,
@@ -69,7 +79,6 @@ export function initPasteParserApp() {
 // 聚焦粘贴区域
 pasteArea.addEventListener('click', () => {
   pasteArea.focus();
-  highlightBadge(null);
 });
 
 pasteArea.addEventListener('focus', () => {
@@ -82,6 +91,16 @@ pasteArea.addEventListener('blur', () => {
 
 // 粘贴事件
 pasteArea.addEventListener('paste', handlePaste);
+
+parseModeAutoBtn?.addEventListener('click', () => {
+  setSelectedParseType(AUTO_PARSE_TYPE);
+});
+
+Object.entries(badges).forEach(([type, badge]) => {
+  badge?.addEventListener('click', () => {
+    setSelectedParseType(type);
+  });
+});
 
 // 拖拽事件
 pasteArea.addEventListener('dragover', (e) => {
@@ -291,134 +310,132 @@ document.getElementById('imageGrid')?.addEventListener('click', async (event) =>
   }
 });
 
+updateParseModeUI();
+
 // 处理粘贴
 function handlePaste(e) {
   e.preventDefault();
-  const clipboardData = e.clipboardData;
-  
-  // 优先检查 HTML 内容
-  const html = clipboardData.getData('text/html');
-  if (html) {
-    if (isTableHTML(html)) {
-      parseTableHTML(html);
-      return;
-    }
-    const text = clipboardData.getData('text/plain');
-    if (text && text.trim()) {
-      const trimmed = text.trim();
-      if (isColorCode(trimmed)) {
-        parseColor(trimmed);
-        return;
-      }
-      if (isJWT(trimmed) || isBase64(trimmed) || isURL(trimmed)) {
-        detectAndParse(trimmed);
-        return;
-      }
-    }
-    parseRichText(html);
-    return;
-  }
-
-  // 检查普通文本
-  const text = clipboardData.getData('text/plain');
-  if (text) {
-    if (isTableText(text)) {
-      parseTableText(text);
-      return;
-    }
-    detectAndParse(text);
-    return;
-  }
-  
-  // 处理图片文件
-  const files = clipboardData.files;
-  if (files.length > 0) {
-    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-    const otherFiles = Array.from(files).filter(f => !f.type.startsWith('image/'));
-    
-    if (imageFiles.length > 0) {
-      handleImages(imageFiles);
-      if (otherFiles.length > 0) {
-        handleFiles(otherFiles);
-      }
-      return;
-    }
-    
-    if (otherFiles.length > 0) {
-      handleFiles(otherFiles);
-      return;
-    }
-  }
-  
-  showError('未检测到可解析的内容');
+  processPastePayload({
+    html: e.clipboardData.getData('text/html'),
+    text: e.clipboardData.getData('text/plain'),
+    files: Array.from(e.clipboardData.files || []),
+  });
 }
 
 // 处理拖拽
 function handleDrop(e) {
   e.preventDefault();
   pasteArea.classList.remove('dragover');
-  
-  const html = e.dataTransfer.getData('text/html');
-  if (html) {
-    if (isTableHTML(html)) {
-      parseTableHTML(html);
-      return;
-    } else {
-      parseRichText(html);
-      return;
-    }
-  }
-
-  const text = e.dataTransfer.getData('text/plain');
-  if (text) {
-    if (isTableText(text)) {
-      parseTableText(text);
-      return;
-    }
-    detectAndParse(text);
-    return;
-  }
-  
-  const files = e.dataTransfer.files;
-  if (files.length > 0) {
-    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-    const otherFiles = Array.from(files).filter(f => !f.type.startsWith('image/'));
-    
-    if (imageFiles.length > 0) {
-      handleImages(imageFiles);
-      if (otherFiles.length > 0) {
-        handleFiles(otherFiles);
-      }
-      return;
-    }
-    
-    if (otherFiles.length > 0) {
-      handleFiles(otherFiles);
-      return;
-    }
-  }
-  
-  showError('未检测到可解析的内容');
+  processPastePayload({
+    html: e.dataTransfer.getData('text/html'),
+    text: e.dataTransfer.getData('text/plain'),
+    files: Array.from(e.dataTransfer.files || []),
+  });
 }
 
 // 检测并解析文本类型
 function detectAndParse(text) {
-  const trimmed = text.trim();
-  
-  if (isJWT(trimmed)) { parseJWT(trimmed); return; }
-  if (isBase64(trimmed)) { parseBase64(trimmed); return; }
-  if (isColorCode(trimmed)) { parseColor(trimmed); return; }
-  if (isURL(trimmed)) { parseURL(trimmed); return; }
-  if (isJSON(trimmed)) { parseJSON(trimmed); return; }
-  if (isXML(trimmed)) { parseXML(trimmed); return; }
-  if (isMarkdown(trimmed)) { parseMarkdown(trimmed); return; }
-  
-  const lang = detectLanguage(trimmed);
-  if (lang) { parseCode(trimmed, lang); return; }
-  
-  if (isTableText(trimmed)) { parseTableText(trimmed); return; }
-  
-  parsePlainText(trimmed);
+  executePasteAction(decideTextAction(text, getRoutingHelpers()));
+}
+
+function setSelectedParseType(type) {
+  selectedParseType = normalizeSelectedParseType(type);
+  updateParseModeUI();
+  pasteArea.focus();
+}
+
+function updateParseModeUI() {
+  if (parseModeStatus) {
+    parseModeStatus.textContent = `当前：${getParseModeLabel(selectedParseType)}`;
+  }
+  if (parseModeAutoBtn) {
+    parseModeAutoBtn.classList.toggle('active', selectedParseType === AUTO_PARSE_TYPE);
+  }
+  highlightBadge(currentType);
+}
+
+function getRoutingHelpers() {
+  return {
+    isJWT,
+    isBase64,
+    isColorCode,
+    isURL,
+    isJSON,
+    isXML,
+    isMarkdown,
+    isTableText,
+    isTableHTML,
+    detectLanguage,
+    extractTextFromHtml,
+  };
+}
+
+function processPastePayload(payload) {
+  const action = decidePasteAction(
+    {
+      selectedType: selectedParseType,
+      html: payload.html,
+      text: payload.text,
+      files: payload.files,
+    },
+    getRoutingHelpers()
+  );
+  executePasteAction(action);
+}
+
+function executePasteAction(action) {
+  switch (action.kind) {
+    case 'table-html':
+      parseTableHTML(action.html);
+      return;
+    case 'table-text':
+      parseTableText(action.text);
+      return;
+    case 'json':
+      parseJSON(action.text);
+      return;
+    case 'xml':
+      parseXML(action.text);
+      return;
+    case 'markdown':
+      parseMarkdown(action.text);
+      return;
+    case 'code':
+      parseCode(action.text, action.language || 'text');
+      return;
+    case 'text':
+      parsePlainText(action.text);
+      return;
+    case 'rich':
+      parseRichText(action.html);
+      return;
+    case 'image':
+      handleImages(action.files);
+      return;
+    case 'file':
+      handleFiles(action.files);
+      return;
+    case 'url':
+      parseURL(action.text);
+      return;
+    case 'jwt':
+      parseJWT(action.text);
+      return;
+    case 'base64':
+      parseBase64(action.text);
+      return;
+    case 'color':
+      parseColor(action.text);
+      return;
+    default:
+      showError(action.message || '未检测到可解析的内容');
+  }
+}
+
+function extractTextFromHtml(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(String(html || ''), 'text/html');
+  return doc.body.textContent || '';
 }
 
 // ===== 检测函数 =====
@@ -1640,8 +1657,10 @@ function showResultTab(type) {
 }
 
 function highlightBadge(type) {
-  Object.values(badges).forEach(b => b.classList.remove('active'));
-  if (badges[type]) badges[type].classList.add('active');
+  Object.entries(badges).forEach(([badgeType, badge]) => {
+    badge.classList.toggle('selected', selectedParseType !== AUTO_PARSE_TYPE && selectedParseType === badgeType);
+    badge.classList.toggle('detected', type === badgeType);
+  });
 }
 
 function syntaxHighlightJSON(json) {

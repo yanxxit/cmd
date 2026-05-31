@@ -25,13 +25,13 @@
 </head>
 <body>
   <div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div class="page-toolbar">
       <a href="/file-viewer" class="back-link">← 返回文件查看器</a>
-      <div style="display: flex; gap: 10px;">
-        <a href="/paste-parser/xlsx.html" class="back-link" style="background: rgba(255, 255, 255, 0.15);">📊 Excel 解析</a>
-        <a href="/paste-parser/word.html" class="back-link" style="background: rgba(255, 255, 255, 0.2);">📄 Word 解析</a>
-        <a href="/paste-parser/url-edit.html" class="back-link" style="background: rgba(255, 255, 255, 0.25);">🛠️ URL 编辑器</a>
-        <a href="/paste-parser/url.html" class="back-link" style="background: rgba(255, 255, 255, 0.3);">🔗 URL 解析工具</a>
+      <div class="page-toolbar-links">
+        <a href="/paste-parser/xlsx.html" class="back-link toolbar-link toolbar-link-soft">📊 Excel 解析</a>
+        <a href="/paste-parser/word.html" class="back-link toolbar-link toolbar-link-soft">📄 Word 解析</a>
+        <a href="/paste-parser/url-edit.html" class="back-link toolbar-link toolbar-link-soft">🛠️ URL 编辑器</a>
+        <a href="/paste-parser/url.html" class="back-link toolbar-link toolbar-link-strong">🔗 URL 解析工具</a>
       </div>
     </div>
 
@@ -41,25 +41,36 @@
     </div>
 
     <div class="main-card">
+      <div class="parse-mode-toolbar">
+        <div>
+          <div class="parse-mode-title">解析模式</div>
+          <div class="parse-mode-status" id="parseModeStatus">当前：自动识别粘贴内容</div>
+        </div>
+        <div class="parse-mode-actions">
+          <button type="button" class="parse-mode-chip active" id="parseModeAutoBtn">自动识别</button>
+        </div>
+      </div>
+
       <div class="paste-area" id="pasteArea" tabindex="0">
         <div class="paste-icon">📋</div>
         <div class="paste-text">点击此处后按 Ctrl+V / Cmd+V 粘贴</div>
         <div class="paste-hint">或直接从其他应用拖拽内容到此处</div>
+        <div class="parse-mode-hint" id="parseModeHint">点击下方类型可切换为强制解析；再次点“自动识别”恢复默认。</div>
         
         <div class="paste-types">
-          <span class="paste-type-badge" id="badge-table">📊 表格</span>
-          <span class="paste-type-badge" id="badge-json">🔷 JSON</span>
-          <span class="paste-type-badge" id="badge-xml">📝 XML</span>
-          <span class="paste-type-badge" id="badge-markdown">📑 Markdown</span>
-          <span class="paste-type-badge" id="badge-code">💻 代码</span>
-          <span class="paste-type-badge" id="badge-text">📄 文本</span>
-          <span class="paste-type-badge" id="badge-rich">🎨 富文本</span>
-          <span class="paste-type-badge" id="badge-image">🖼️ 图片</span>
-          <span class="paste-type-badge" id="badge-file">📁 文件</span>
-          <span class="paste-type-badge" id="badge-url">🔗 URL</span>
-          <span class="paste-type-badge" id="badge-jwt">🔐 JWT</span>
-          <span class="paste-type-badge" id="badge-base64">📦 Base64</span>
-          <span class="paste-type-badge" id="badge-color">🎨 颜色</span>
+          <button type="button" class="paste-type-badge" id="badge-table" data-parse-type="table">📊 表格</button>
+          <button type="button" class="paste-type-badge" id="badge-json" data-parse-type="json">🔷 JSON</button>
+          <button type="button" class="paste-type-badge" id="badge-xml" data-parse-type="xml">📝 XML</button>
+          <button type="button" class="paste-type-badge" id="badge-markdown" data-parse-type="markdown">📑 Markdown</button>
+          <button type="button" class="paste-type-badge" id="badge-code" data-parse-type="code">💻 代码</button>
+          <button type="button" class="paste-type-badge" id="badge-text" data-parse-type="text">📄 文本</button>
+          <button type="button" class="paste-type-badge" id="badge-rich" data-parse-type="rich">🎨 富文本</button>
+          <button type="button" class="paste-type-badge" id="badge-image" data-parse-type="image">🖼️ 图片</button>
+          <button type="button" class="paste-type-badge" id="badge-file" data-parse-type="file">📁 文件</button>
+          <button type="button" class="paste-type-badge" id="badge-url" data-parse-type="url">🔗 URL</button>
+          <button type="button" class="paste-type-badge" id="badge-jwt" data-parse-type="jwt">🔐 JWT</button>
+          <button type="button" class="paste-type-badge" id="badge-base64" data-parse-type="base64">📦 Base64</button>
+          <button type="button" class="paste-type-badge" id="badge-color" data-parse-type="color">🎨 颜色</button>
         </div>
 
         <div class="supported-formats">
