@@ -1,3 +1,9 @@
+import { marked } from 'marked';
+import {
+  buildRichMarkdownZipBundle,
+  convertRichHtmlToMarkdown,
+} from './services/rich-content.js';
+
 /**
  * 粘贴解析工具 - JavaScript
  * 支持表格、JSON、XML、Markdown、代码、图片、文件、URL、JWT、Base64、颜色等格式
@@ -52,6 +58,13 @@ let images = [];
 let files = [];
 let rawHtml = null;
 let rawText = null;
+
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
+
+export function initPasteParserApp() {
 
 // 聚焦粘贴区域
 pasteArea.addEventListener('click', () => {
@@ -159,17 +172,86 @@ document.getElementById('copyTableHtmlBtn')?.addEventListener('click', () => {
 });
 
 // 复制 Markdown 按钮
-document.getElementById('copyMarkdownBtn')?.addEventListener('click', () => {
+document.getElementById('copyTableMarkdownBtn')?.addEventListener('click', (event) => {
   if (currentData && currentData.table) {
     const md = tableToMarkdown(currentData.table);
-    copyToClipboard(md, 'Markdown 表格');
+    copyToClipboard(md, 'Markdown 表格', event.currentTarget);
   }
 });
 
 // 下载 Markdown 按钮
-document.getElementById('downloadMarkdownBtn')?.addEventListener('click', () => {
+document.getElementById('downloadTableMarkdownBtn')?.addEventListener('click', () => {
   if (currentData && currentData.table) {
     downloadMarkdown(currentData.table);
+  }
+});
+
+document.getElementById('copyParsedMarkdownBtn')?.addEventListener('click', (event) => {
+  if (currentData?.markdown) {
+    copyToClipboard(currentData.markdown, 'Markdown', event.currentTarget);
+  }
+});
+
+document.getElementById('copyMdHtmlBtn')?.addEventListener('click', (event) => {
+  if (currentData?.markdown) {
+    copyToClipboard(marked.parse(currentData.markdown), 'HTML', event.currentTarget);
+  }
+});
+
+document.getElementById('copyRichTextBtn')?.addEventListener('click', async (event) => {
+  if (currentData?.rich) {
+    await copyRichClipboard(currentData.rich.sanitizedHtml, currentData.rich.text, event.currentTarget);
+  }
+});
+
+document.getElementById('copyRichHtmlBtn')?.addEventListener('click', (event) => {
+  if (currentData?.rich) {
+    copyToClipboard(currentData.rich.sanitizedHtml, 'HTML', event.currentTarget);
+  }
+});
+
+document.getElementById('copyRichMarkdownBtn')?.addEventListener('click', (event) => {
+  if (currentData?.rich?.clipboardMarkdown) {
+    copyToClipboard(currentData.rich.clipboardMarkdown, 'Markdown', event.currentTarget);
+  }
+});
+
+document.getElementById('exportRichZipBtn')?.addEventListener('click', async (event) => {
+  if (!currentData?.rich?.exportMarkdown) return;
+
+  const button = event.currentTarget;
+  const originalText = button.textContent;
+  button.dataset.originalText = originalText;
+
+  button.textContent = '打包中...';
+  button.disabled = true;
+
+  try {
+    const bundle = await buildRichMarkdownZipBundle({
+      markdown: currentData.rich.placeholderMarkdown,
+      assets: currentData.rich.assets,
+      assetDir: 'images',
+      markdownFileName: 'content.md',
+    });
+    downloadBlob(bundle.blob, 'rich-markdown-export.zip');
+    flashButton(button, '✓ 已导出');
+  } catch (error) {
+    showError('导出 ZIP 失败：' + error.message);
+    button.textContent = originalText;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById('copyUrlBtn')?.addEventListener('click', (event) => {
+  if (currentData?.url) {
+    copyToClipboard(currentData.url.href, 'URL', event.currentTarget);
+  }
+});
+
+document.getElementById('openUrlBtn')?.addEventListener('click', () => {
+  if (currentData?.url) {
+    window.open(currentData.url.href, '_blank', 'noopener,noreferrer');
   }
 });
 
@@ -186,6 +268,27 @@ document.querySelectorAll('.tab').forEach(tab => {
     });
     tab.classList.add('active');
   });
+});
+
+document.getElementById('resultTable')?.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-action="remove-column"]');
+  if (!button) return;
+  removeTableColumn(Number(button.dataset.columnIndex));
+});
+
+document.getElementById('imageGrid')?.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-image-action]');
+  if (!button) return;
+
+  const index = Number(button.dataset.imageIndex);
+  if (button.dataset.imageAction === 'download') {
+    downloadImage(index);
+    return;
+  }
+
+  if (button.dataset.imageAction === 'copy') {
+    await copyImage(index, button);
+  }
 });
 
 // 处理粘贴
@@ -436,6 +539,54 @@ function detectLanguage(text) {
   return null;
 }
 
+function sanitizeRichHtml(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(String(html || ''), 'text/html');
+
+  doc.querySelectorAll('script, style, iframe, object, embed').forEach((element) => element.remove());
+  doc.querySelectorAll('*').forEach((element) => {
+    Array.from(element.attributes).forEach((attribute) => {
+      const name = attribute.name.toLowerCase();
+      const value = attribute.value || '';
+      if (name.startsWith('on')) {
+        element.removeAttribute(attribute.name);
+      }
+      if ((name === 'href' || name === 'src') && /^javascript:/i.test(value)) {
+        element.removeAttribute(attribute.name);
+      }
+    });
+  });
+
+  return doc.body.innerHTML;
+}
+
+function flashButton(button, nextText) {
+  if (!button) return;
+  const originalText = button.dataset.originalText || button.textContent;
+  button.dataset.originalText = originalText;
+  button.textContent = nextText;
+  window.setTimeout(() => {
+    button.textContent = originalText;
+  }, 2000);
+}
+
+async function copyRichClipboard(html, text, button) {
+  try {
+    if (window.ClipboardItem && navigator.clipboard?.write) {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      });
+      await navigator.clipboard.write([item]);
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+    flashButton(button, '✓ 已复制');
+  } catch (error) {
+    showError('复制富文本失败：' + error.message);
+  }
+}
+
 // ===== 检测 HTML 表格 =====
 
 function isTableHTML(html) {
@@ -650,14 +801,26 @@ function parsePlainText(text) {
 }
 
 function parseRichText(html) {
+  const sanitizedHtml = sanitizeRichHtml(html);
   const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  const text = doc.body.textContent || '';
-  
-  currentData = { rich: { html, text } };
+  const doc = parser.parseFromString(sanitizedHtml, 'text/html');
+  const text = (doc.body.textContent || '').trim();
+  const markdownResult = convertRichHtmlToMarkdown(sanitizedHtml);
+
+  currentData = {
+    rich: {
+      html,
+      sanitizedHtml,
+      text,
+      assets: markdownResult.assets,
+      placeholderMarkdown: markdownResult.placeholderMarkdown,
+      clipboardMarkdown: markdownResult.clipboardMarkdown,
+      exportMarkdown: markdownResult.exportMarkdown,
+    },
+  };
   currentType = 'rich';
-  
-  showRichResult(html, text);
+
+  showRichResult(currentData.rich);
   hideError();
 }
 
@@ -795,7 +958,8 @@ function showTableResult(data) {
           <button
             type="button"
             class="table-column-delete-btn"
-            onclick="removeTableColumn(${index})"
+            data-action="remove-column"
+            data-column-index="${index}"
             title="删除这一列"
             aria-label="删除列 ${escapeHtml(h || `列${index + 1}`)}"
           >
@@ -885,9 +1049,10 @@ function showMarkdownResult(text) {
   highlightBadge('markdown');
   
   const lines = text.split('\n').length;
-  document.getElementById('textStats').innerHTML = `
+  document.getElementById('markdownStats').innerHTML = `
     <div class="stat-item"><div class="stat-value">${lines}</div><div class="stat-label">行数</div></div>
     <div class="stat-item"><div class="stat-value">${text.length}</div><div class="stat-label">字符数</div></div>
+    <div class="stat-item"><div class="stat-value">${text.split(/\s+/).filter(Boolean).length}</div><div class="stat-label">词元数</div></div>
   `;
 
   const html = markdownToHTML(text);
@@ -933,12 +1098,20 @@ function showTextResult(text) {
   resultSection.classList.add('show');
 }
 
-function showRichResult(html, text) {
+function showRichResult(richData) {
   pasteTypeIndicator.textContent = '🎨 富文本';
   highlightBadge('rich');
-  
-  document.getElementById('richPreview').innerHTML = html;
-  document.getElementById('richHtml').textContent = html;
+
+  const markdownText = richData.exportMarkdown || richData.clipboardMarkdown || '';
+  document.getElementById('richStats').innerHTML = `
+    <div class="stat-item"><div class="stat-value">${richData.text.length}</div><div class="stat-label">文本字符数</div></div>
+    <div class="stat-item"><div class="stat-value">${markdownText.split(/\r?\n/).filter(Boolean).length}</div><div class="stat-label">Markdown 行数</div></div>
+    <div class="stat-item"><div class="stat-value">${richData.assets.length}</div><div class="stat-label">图片资源</div></div>
+  `;
+
+  document.getElementById('richPreview').innerHTML = richData.sanitizedHtml;
+  document.getElementById('richHtml').textContent = richData.sanitizedHtml;
+  document.getElementById('richMarkdown').textContent = markdownText;
   
   showResultTab('rich');
   resultSection.classList.add('show');
@@ -964,8 +1137,8 @@ function showImageResult(images) {
         <div>${(img.size / 1024).toFixed(1)} KB</div>
       </div>
       <div class="image-actions">
-        <button class="btn" onclick="downloadImage(${index})">下载</button>
-        <button class="btn btn-outline" onclick="copyImage(${index})">复制</button>
+        <button class="btn" data-image-action="download" data-image-index="${index}">下载</button>
+        <button class="btn btn-outline" data-image-action="copy" data-image-index="${index}">复制</button>
       </div>
     </div>
   `).join('');
@@ -1486,18 +1659,7 @@ function syntaxHighlightJSON(json) {
 }
 
 function markdownToHTML(md) {
-  let html = md;
-  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-  html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
-  html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
-  html = html.replace(/`(.*?)`/gim, '<code>$1</code>');
-  html = html.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank">$1</a>');
-  html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
-  html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
-  html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
-  return html;
+  return marked.parse(String(md || ''));
 }
 
 function escapeHtml(text) {
@@ -1536,68 +1698,45 @@ function copyCurrentResult() {
     copyToClipboard(currentData.base64, 'Base64');
   } else if (currentData.color) {
     copyToClipboard(currentData.color, '颜色');
+  } else if (currentData.rich?.clipboardMarkdown) {
+    copyToClipboard(currentData.rich.clipboardMarkdown, 'Markdown');
+  } else if (currentData.table) {
+    copyToClipboard(tableToMarkdown(currentData.table), 'Markdown 表格');
   }
 }
 
-function copyToClipboard(text, label) {
+function copyToClipboard(text, label, button) {
   navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('copyResultBtn');
-    const originalText = btn.textContent;
-    btn.textContent = '✓ 已复制';
-    setTimeout(() => btn.textContent = originalText, 2000);
+    flashButton(button || document.getElementById('copyResultBtn'), '✓ 已复制');
   }).catch(err => {
     showError('复制失败：' + err.message);
   });
 }
 
-// 全局函数
-window.downloadImage = function(index) {
+function downloadImage(index) {
   const img = images[index];
+  if (!img) return;
   const a = document.createElement('a');
   a.href = img.dataUrl;
   a.download = img.name || 'image.png';
   a.click();
-};
+}
 
-window.copyImage = async function(index) {
+async function copyImage(index, button) {
   const img = images[index];
+  if (!img) return;
   try {
     const response = await fetch(img.dataUrl);
     const blob = await response.blob();
     await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+    flashButton(button, '✓ 已复制');
   } catch (err) {
     showError('复制图片失败：' + err.message);
   }
-};
-
-window.openCurrentUrl = function() {
-  if (currentData && currentData.url) {
-    window.open(currentData.url.href, '_blank');
-  }
-};
-
-window.exportTableCSV = function() {
-  if (currentData && currentData.table) {
-    exportToCSV(currentData.table);
-  }
-};
-
-window.exportTableJSON = function() {
-  if (currentData && currentData.table) {
-    exportToJSON(currentData.table);
-  }
-};
-
-window.copyTableHTML = function() {
-  if (currentData && currentData.table) {
-    const html = tableToHTML(currentData.table);
-    copyToClipboard(html, 'HTML 表格');
-  }
-};
-
-window.removeTableColumn = removeTableColumn;
+}
 
 // 页面加载后聚焦
-window.addEventListener('load', () => {
+window.setTimeout(() => {
   pasteArea.focus();
-});
+}, 0);
+}

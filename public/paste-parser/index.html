@@ -5,7 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>粘贴解析工具 - 增强版</title>
   <meta name="description" content="支持表格、文本、代码、图片、文件等多种格式的粘贴与解析">
-  <link rel="stylesheet" href="style.css">
+  <script>
+    const G_VER = Date.now();
+    window.G_VER = G_VER;
+    window.getAssetUrl = (path) => `${path}?v=${G_VER}`;
+    const style = document.createElement('link');
+    style.rel = 'stylesheet';
+    style.href = window.getAssetUrl('./css/page.css');
+    document.head.appendChild(style);
+  </script>
+  <script type="importmap">
+  {
+    "imports": {
+      "marked": "/libs/marked/16.3.0/marked.esm.min.js"
+    }
+  }
+  </script>
+  <script src="/static/vendor/jszip/jszip.js"></script>
 </head>
 <body>
   <div class="container">
@@ -91,8 +107,8 @@
             <button class="btn" id="exportCsvBtn">导出 CSV</button>
             <button class="btn btn-outline" id="exportJsonBtn">导出 JSON</button>
             <button class="btn btn-outline" id="copyTableHtmlBtn">复制 HTML</button>
-            <button class="btn btn-outline" id="copyMarkdownBtn">复制 Markdown</button>
-            <button class="btn btn-outline" id="downloadMarkdownBtn">下载</button>
+            <button class="btn btn-outline" id="copyTableMarkdownBtn">复制 Markdown</button>
+            <button class="btn btn-outline" id="downloadTableMarkdownBtn">下载</button>
           </div>
         </div>
 
@@ -121,6 +137,7 @@
 
         <!-- Markdown 结果 -->
         <div class="tab-content" id="markdownResult">
+          <div class="stats" id="markdownStats"></div>
           <div class="tabs">
             <button class="tab active" data-target="mdPreview">预览</button>
             <button class="tab" data-target="mdSource">源码</button>
@@ -128,7 +145,7 @@
           <div class="html-preview" id="mdPreview"></div>
           <div class="text-output" id="mdSource" style="display: none;"></div>
           <div class="actions">
-            <button class="btn" id="copyMarkdownBtn">复制 Markdown</button>
+            <button class="btn" id="copyParsedMarkdownBtn">复制 Markdown</button>
             <button class="btn btn-outline" id="copyMdHtmlBtn">复制 HTML</button>
           </div>
         </div>
@@ -159,15 +176,24 @@
 
         <!-- 富文本结果 -->
         <div class="tab-content" id="richResult">
+          <div class="stats" id="richStats"></div>
+          <div class="format-info" id="richMarkdownHint">
+            <div class="format-info-title">Markdown 导出说明</div>
+            <div class="format-info-content">复制 Markdown 时会保留原始图片来源；导出 ZIP 时会将可获取的图片写入 `images/` 目录，并在 `content.md` 中使用相对路径。</div>
+          </div>
           <div class="tabs">
             <button class="tab active" data-target="richPreview">预览</button>
             <button class="tab" data-target="richHtml">HTML 源码</button>
+            <button class="tab" data-target="richMarkdown">Markdown</button>
           </div>
           <div class="html-preview" id="richPreview"></div>
           <div class="text-output" id="richHtml" style="display: none;"></div>
+          <div class="text-output" id="richMarkdown" style="display: none;"></div>
           <div class="actions">
             <button class="btn" id="copyRichTextBtn">复制富文本</button>
             <button class="btn btn-outline" id="copyRichHtmlBtn">复制 HTML</button>
+            <button class="btn btn-outline" id="copyRichMarkdownBtn">复制 Markdown</button>
+            <button class="btn btn-outline" id="exportRichZipBtn">导出 MD+图片 ZIP</button>
           </div>
         </div>
 
@@ -189,7 +215,7 @@
           <div class="url-parts" id="urlParts"></div>
           <div class="actions">
             <button class="btn" id="copyUrlBtn">复制 URL</button>
-            <button class="btn btn-outline" id="openUrlBtn" onclick="openCurrentUrl()">在新窗口打开</button>
+            <button class="btn btn-outline" id="openUrlBtn">在新窗口打开</button>
           </div>
         </div>
 
@@ -233,7 +259,9 @@
   <!-- 隐藏的可编辑区域用于捕获粘贴 -->
   <div id="hiddenEditable" contenteditable="true"></div>
   <input type="file" id="hiddenInput" multiple>
-
-  <script src="app.js"></script>
+  <script type="module">
+    const { bootstrapPasteParser } = await import(`./js/main.js?v=${window.G_VER}`);
+    bootstrapPasteParser();
+  </script>
 </body>
 </html>

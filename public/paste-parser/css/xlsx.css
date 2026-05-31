@@ -1,0 +1,70 @@
+/* Spreadsheet parser page styles. */
+.sheet-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 10px;
+  overflow-x: auto;
+}
+
+.sheet-tab {
+  padding: 10px 20px;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-size: 1rem;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.sheet-tab:hover {
+  background: #e0e0e0;
+}
+
+.sheet-tab.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.table-container {
+  overflow: auto;
+  max-height: 640px;
+}
+
+.sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.sheet-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.sheet-table th,
+.sheet-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border: 1px solid #e0e0e0;
+  white-space: nowrap;
+}
+
+.sheet-table tbody tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+.sheet-table tbody tr:hover {
+  background: #f0f4ff;
+}
+
+.empty-sheet {
+  padding: 40px 20px;
+  text-align: center;
+  color: #666;
+}
